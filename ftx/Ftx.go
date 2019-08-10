@@ -1,98 +1,90 @@
 package ftx
 
 import (
-	"encoding/json"
-	"errors"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"net/url"
-	"strings"
+	"strconv"
 	"time"
 
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
 type Ftx struct {
+	client *http.Client
 }
 
 var (
-	apiUrl = "https://ftx.com/api"
+	apiURL    = "https://ftx.com/api"
+	apiPrefix = "/api/"
 )
 
-func (ftx *Ftx) GetAccountInfo() map[string]string {
-	map[string][]string
-	return ftx.get("account", &url.Values)
+func NewFtx(c *http.Client) *Ftx {
+	ftx := &Ftx{}
+	ftx.client = c
+	return ftx
 }
 
-func (ftx *Ftx) buildRequest(reqMethod, path string, postForm *url.Values) error {
-	httpRequest
+func (ftx *Ftx) GetAccountInfo() []byte {
+	return ftx.doRequest("GET", "account", "")
 }
 
-func (ftx *Ftx) get(path string, params *url.Values) {
-	return doMyRequest("GET", path, params)
-}
+func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
+	client := ftx.client
 
-func (ftx *Ftx) doMyRequest(method string, path string, params *url.Values) error {
+	var res []byte
 
-	err := buildPostForm(method, path, params)
+	fullUrl := fmt.Sprintf("%s/%s", apiURL, apiName)
+	req, err := http.NewRequest(method, fullUrl, nil)
 	if err != nil {
-		return err
+		log.Println(err)
+		return res
 	}
-	url := apiUrl + path
 
-	//log.Println(sign, timestamp)
-	resp, err := httpRequest(http.DefaultClient, method, url, reqBody, params)
-
-	if err != nil {
-		//log.Println(err)
-		return err
-	} else {
-		//	log.Println(string(resp))
-		return json.Unmarshal(resp, &response)
-	}
-}
-
-func (ftx *Ftx) buildPostForm(reqMethod, path string, postForm *url.Values) error {
-	postForm.Set("FTX-KEY", bsk.FTX_KEY)
-	nanos := time.Now().UnixNano()
-	ts := string(nanos / 1000000)
-	postForm.Set("FTX-TS", ts)
-	//domain := strings.Replace(ftx.config.Endpoint, "https://", "", len(ftx.config.Endpoint))
-	boyd := "" //之後再用
-	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, path, body)
-	sign, _ := GetParamHmacSHA256Base64Sign(bsk.FTX_API_SECRET_KEY, payload)
-	postForm.Set("FTX-SIGN", sign)
-
-	return nil
-}
-
-func httpRequest(client *http.Client, reqtype, reqUrl string, postData string, requstHeaders map[string]string) ([]byte, error) {
-	req, _ := http.NewRequest(reqType, reqUrl, strings.NewReader(postData))
-	if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
-	}
-	if requstHeaders != nil {
-		for k, v := range requstHeaders {
-			req.Header.Add(k, v)
-		}
-	}
+	addHeader(&req.Header, method, apiName, body)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return res
 	}
 
 	defer resp.Body.Close()
-
-	bodyData, err := ioutil.ReadAll(resp.Body)
+	sitemap, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
+		fmt.Printf("%s", err)
+		return res
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("HttpStatusCode:%d ,Desc:%s", resp.StatusCode, string(bodyData)))
-	}
+	fmt.Printf("%s", sitemap)
+	return sitemap
+}
 
-	return bodyData, nil
+func addHeader(header *http.Header, reqMethod, path, body string) {
+	nanos := time.Now().UnixNano() / 1000000
+	ts := strconv.FormatInt(nanos, 10)
+
+	header.Add("FTX-KEY", bsk.FTX_KEY)
+	header.Add("FTX-TS", ts)
+	//boyd := "" //之後再用
+	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
+	log.Println(payload)
+	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
+	log.Println(sign)
+	header.Add("FTX-SIGN", sign)
+}
+
+func GetParamHmacSHA256HexSign(secret, params string) (string, error) {
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, err := mac.Write([]byte(params))
+	if err != nil {
+		return "", err
+	}
+	signByte := mac.Sum(nil)
+	return hex.EncodeToString(signByte), nil
 }
