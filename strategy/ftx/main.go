@@ -12,5 +12,7 @@ func main() {
 
 	var ftx = fx.NewFtx(http.DefaultClient)
 
-	ftx.GetAccountInfo()
+	//ftx.GetAccountInfo()
+
+	ftx.GetMarkets()
 }
