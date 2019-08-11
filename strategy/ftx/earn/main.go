@@ -19,8 +19,21 @@ const (
 	TAKER_FEE = 0.000665
 )
 
-func main() {
+var ftx = fx.NewFtx(http.DefaultClient)
 
+func main() {
+	checkProfit()
+}
+
+func testOrder() {
+	marketName := "FTT/USD"
+	var myOrder fx.FtxOrder = fx.FtxOrder{
+		Market: marketName,
+		Side:   "sell",
+		Price:  1.82,
+		Size:   1,
+	}
+	ftx.PostOrder(myOrder)
 }
 
 func checkProfit() {
@@ -40,6 +53,7 @@ func checkProfit() {
 		fmt.Println("No Profit")
 		return
 	}
+
 }
 
 ///
@@ -62,7 +76,6 @@ func getAskWithBaseCoin(goalCoin, currentCoin, baseCoin string) float64 {
 
 func getAsk(goalCoin, currentCoin string) float64 {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	var ftx = fx.NewFtx(http.DefaultClient)
 	res := ftx.GetAsk(marketName, 1)
 	//fmt.Printf("%f", res)
 
@@ -83,7 +96,6 @@ func getBidWithBaseCoin(goalCoin, currentCoin, baseCoin string) float64 {
 
 func getBid(goalCoin, currentCoin string) float64 {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	var ftx = fx.NewFtx(http.DefaultClient)
 	res := ftx.GetBid(marketName, 1)
 	//fmt.Printf("%f", res)
 

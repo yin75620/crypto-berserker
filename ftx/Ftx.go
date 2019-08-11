@@ -1,6 +1,7 @@
 package ftx
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -117,8 +118,40 @@ func (ftx *Ftx) GetBid(marketName string, depth int) float64 {
 	return res.price
 }
 
+type EOrderType string
+
+const (
+	LIMIT  EOrderType = "limit"
+	MARKET EOrderType = "market"
+)
+
+type FtxOrder struct {
+	Market string  `json:"market"`
+	Side   string  `json:"side"`
+	Price  float64 `json:"price"`
+	Size   float64 `json:"size"`
+	//OrderType  EOrderType `json:"order_type"`
+	//ReduceOnly bool       `json:"reduceOnly"`
+}
+
+//下訂單
+func (ftx *Ftx) PostOrder(order FtxOrder) {
+	request, err := json.Marshal(order)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body := string(request)
+	fmt.Println(fmt.Sprintf("body:%s", body))
+	response := ftx.doPost("orders", body)
+	fmt.Println(fmt.Sprintf("%s", response))
+}
+
 func (ftx *Ftx) doGet(apiName, body string) []byte {
 	return ftx.doRequest("GET", apiName, body)
+}
+
+func (ftx *Ftx) doPost(apiName, body string) []byte {
+	return ftx.doRequest("POST", apiName, body)
 }
 
 func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
@@ -127,12 +160,13 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	var res []byte
 
 	fullUrl := fmt.Sprintf("%s/%s", apiURL, apiName)
-	req, err := http.NewRequest(method, fullUrl, nil)
+	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
 		return res
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, body)
 
 	resp, err := client.Do(req)
