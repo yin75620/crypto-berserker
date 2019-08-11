@@ -13,6 +13,13 @@ import (
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
+type PrizeType int
+
+const (
+	Ask PrizeType = iota
+	Bid
+)
+
 type PricePair struct {
 	price  float64
 	volume float64
@@ -24,15 +31,22 @@ type PriceStatus struct {
 }
 
 func (ps *PriceStatus) getAskPricePair(depth int) (PricePair, error) {
+	return getPricePair(depth, ps.Asks)
+}
+func (ps *PriceStatus) getBidPricePair(depth int) (PricePair, error) {
+	return getPricePair(depth, ps.Bids)
+}
+
+func getPricePair(depth int, prices [][]float64) (PricePair, error) {
 	var res = PricePair{}
-	size := len(ps.Asks)
+	size := len(prices)
 	if depth > size {
 		return res, errors.New("depth can't over size")
 	}
 
 	index := depth - 1
-	res.price = ps.Asks[index][0] // first prize, second volume
-	res.volume = ps.Asks[index][1]
+	res.price = prices[index][0] // first prize, second volume
+	res.volume = prices[index][1]
 	return res, nil
 }
 
@@ -83,17 +97,24 @@ func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
 	return response
 }
 
-// 看看 Api提供的交易對
-func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
+func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResponse {
 	response := ftx.GetOrderBook(marketName, depth)
 	var bookResponse OrderBookResponse
 	json.Unmarshal(response, &bookResponse)
+	return bookResponse
+}
+
+// 看看 Api提供的交易對
+func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
+	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getAskPricePair(depth)
 	return res.price
 }
 
-func (ftx *Ftx) GetBidPrice() {
-
+func (ftx *Ftx) GetBid(marketName string, depth int) float64 {
+	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
+	res, _ := bookResponse.Result.getBidPricePair(depth)
+	return res.price
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {

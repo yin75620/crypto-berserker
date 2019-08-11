@@ -66,7 +66,7 @@ func main() {
 	//log.Println(loginJson)
 	//send(c, loginJson)
 
-	////
+	////開 gorountine 收訊息
 	done := make(chan struct{})
 
 	go func() {
@@ -82,7 +82,7 @@ func main() {
 	}()
 	////
 
-	///
+	///開啟伺服器讓程式留著
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World")
 	})
