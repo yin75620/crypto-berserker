@@ -38,9 +38,9 @@ func testOrder() {
 
 func checkProfit() {
 	resAsk, AskCoin := getLowestAsk([]string{USD, BTC}, FTT, USD)
-	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", resAsk, AskCoin))
 
 	resBid, bidCoin := getTopBid([]string{USD, BTC}, FTT, USD)
+	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", resAsk, AskCoin))
 	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", resBid, bidCoin))
 
 	// 檢查是否有利潤
@@ -132,6 +132,9 @@ func getLowestAsk(coins []string, goalCoin string, baseCoin string) (float64, st
 	for i := 0; i < len(coins); i++ {
 		coin := coins[i]
 		currentAsk := getAskWithBaseCoin(goalCoin, coin, baseCoin)
+		if coin != baseCoin {
+			currentAsk = currentAsk * (1 + TAKER_FEE)
+		}
 		fmt.Println(fmt.Sprintf("currentAsk:%f, currentCoin:%s", currentAsk, coin))
 		if currentAsk < resAsk {
 			resAsk = currentAsk
