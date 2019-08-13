@@ -10,7 +10,7 @@ import (
 
 const (
 	USD  = "USD"
-	USDT = "USDt"
+	USDT = "USDT"
 	BTC  = "BTC"
 	FTT  = "FTT"
 )
@@ -36,7 +36,66 @@ func testOrder() {
 	ftx.PostOrder(myOrder)
 }
 
-func checkProfit() {
+type Quote struct {
+	marketName string
+	price      float64
+	volume     float64
+}
+
+func (q *Quote) InitWithPair(marketName string, pair fx.PricePair) {
+	q.price = pair.Price
+	q.volume = pair.Volume
+}
+
+func NewQuoto(marketName string) Quote {
+	var pType fx.PriceType = fx.Ask
+	pair := ftx.GetPair(marketName, 1, pType)
+	var quote Quote = Quote{}
+	quote.InitWithPair(marketName, pair)
+	return quote
+}
+
+func profitCheck(quotes []Quote) {
+
+}
+
+/*
+func startDeal() {
+
+	// 獲取資料
+	var fuQuote Quote = NewQuoto("FTT/USD")
+	var fbQuote Quote = NewQuoto("FTT/BTC")
+	var buQuote Quote = NewQuoto("BTC/USD")
+
+	// 檢查是否有利潤
+	//takerFee := 1 + TAKER_FEE
+	fbuPrice := fuQuote.price * buQuote.price
+	fbuVolume := math.Min(fbQuote.volume*fbQuote.price, buQuote.volume)
+
+	var fbuPair fx.PricePair = fx.PricePair{
+		Price:  fbuPrice,
+		Volume: fbuVolume,
+	}
+
+	coinPairs := []fx.PricePair{fuPair, fbuPair}
+
+	var resPair fx.PricePair
+	var resAsk float64 = math.MaxFloat64
+	for i := 0; i < len(coinPairs); i++ {
+		currentPair := coinPairs[i]
+
+		fmt.Println(fmt.Sprintf("currentAsk:%f, currentCoin:%s", currentPair.Price, currentPair.Volume))
+		if currentPair.Price < resAsk {
+			resAsk = currentPair.Price
+			resPair = currentPair
+		}
+	}
+
+	fmt.Println(resPair)
+
+	// 檢查是否有利潤
+
+	// 執行套利
 	resAsk, AskCoin := getLowestAsk([]string{USD, BTC}, FTT, USD)
 
 	resBid, bidCoin := getTopBid([]string{USD, BTC}, FTT, USD)
@@ -55,6 +114,42 @@ func checkProfit() {
 	}
 
 }
+*/
+func checkProfit() {
+	resAsk, AskCoin := getLowestAsk([]string{USD, BTC}, FTT, USD)
+
+	resBid, bidCoin := getTopBid([]string{USD, BTC}, FTT, USD)
+	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", resAsk, AskCoin))
+	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", resBid, bidCoin))
+
+	// 檢查是否有利潤
+	profit := (resBid - resAsk) / resAsk
+	fmt.Println(fmt.Sprintf("profit:%f", profit))
+
+	// 有利潤
+	if profit < 0 {
+		// 執行套利
+		fmt.Println("No Profit")
+		return
+	}
+}
+
+///
+//交易
+func postCoinOrder(goalCoin, currentCoin, side string, price, size float64) {
+	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
+	postOrder(marketName, side, price, size)
+}
+
+func postOrder(marketName, side string, price, size float64) {
+	var myOrder fx.FtxOrder = fx.FtxOrder{
+		Market: marketName,
+		Side:   side,
+		Price:  price,
+		Size:   size,
+	}
+	ftx.PostOrder(myOrder)
+}
 
 ///
 //
@@ -70,7 +165,7 @@ func getAskWithBaseCoin(goalCoin, currentCoin, baseCoin string) float64 {
 
 	gcAsk := getAsk(goalCoin, currentCoin)
 	cbAsk := getAsk(currentCoin, baseCoin)
-	res := gcAsk * cbAsk
+	res := gcAsk * cbAsk * (1 + TAKER_FEE)
 	return res
 }
 
@@ -90,7 +185,7 @@ func getBidWithBaseCoin(goalCoin, currentCoin, baseCoin string) float64 {
 
 	gcBid := getBid(goalCoin, currentCoin)
 	cbBid := getBid(currentCoin, baseCoin)
-	res := gcBid * cbBid
+	res := gcBid * cbBid * (1 - TAKER_FEE)
 	return res
 }
 
@@ -111,6 +206,7 @@ func getTopBid(coins []string, goalCoin string, baseCoin string) (float64, strin
 	for i := 0; i < len(coins); i++ {
 		coin := coins[i]
 		currentBid := getBidWithBaseCoin(goalCoin, coin, baseCoin)
+
 		fmt.Println(fmt.Sprintf("currentBid:%f, currentCoin:%s", currentBid, coin))
 		if currentBid > resBid {
 			resBid = currentBid
@@ -132,9 +228,7 @@ func getLowestAsk(coins []string, goalCoin string, baseCoin string) (float64, st
 	for i := 0; i < len(coins); i++ {
 		coin := coins[i]
 		currentAsk := getAskWithBaseCoin(goalCoin, coin, baseCoin)
-		if coin != baseCoin {
-			currentAsk = currentAsk * (1 + TAKER_FEE)
-		}
+
 		fmt.Println(fmt.Sprintf("currentAsk:%f, currentCoin:%s", currentAsk, coin))
 		if currentAsk < resAsk {
 			resAsk = currentAsk
@@ -143,7 +237,4 @@ func getLowestAsk(coins []string, goalCoin string, baseCoin string) (float64, st
 	}
 
 	return resAsk, resCoin
-}
-
-type CoinEchange struct {
 }

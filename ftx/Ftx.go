@@ -14,21 +14,31 @@ import (
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
-type PrizeType int
+type PriceType int
 
 const (
-	Ask PrizeType = iota
+	Ask PriceType = iota
 	Bid
 )
 
 type PricePair struct {
-	price  float64
-	volume float64
+	Price  float64
+	Volume float64
 }
 
 type PriceStatus struct {
 	Asks [][]float64 `"json:asks"`
 	Bids [][]float64 `"json:bids"`
+}
+
+func (ps *PriceStatus) GetPair(depth int, pType PriceType) (PricePair, error) {
+	switch pType {
+	case Ask:
+		return ps.getAskPricePair(depth)
+	case Bid:
+		return ps.getBidPricePair(depth)
+	}
+	return PricePair{}, errors.New("has no match PriceType")
 }
 
 func (ps *PriceStatus) getAskPricePair(depth int) (PricePair, error) {
@@ -46,8 +56,8 @@ func getPricePair(depth int, prices [][]float64) (PricePair, error) {
 	}
 
 	index := depth - 1
-	res.price = prices[index][0] // first prize, second volume
-	res.volume = prices[index][1]
+	res.Price = prices[index][0] // first prize, second volume
+	res.Volume = prices[index][1]
 	return res, nil
 }
 
@@ -106,16 +116,32 @@ func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResp
 }
 
 // 看看 Api提供的交易對
-func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
+func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) PricePair {
+	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
+	res, _ := bookResponse.Result.GetPair(depth, pType)
+	return res
+}
+
+func (ftx *Ftx) GetAskPair(marketName string, depth int) PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getAskPricePair(depth)
-	return res.price
+	return res
+}
+
+func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
+	res := ftx.GetAskPair(marketName, depth)
+	return res.Price
+}
+
+func (ftx *Ftx) GetBidPair(marketName string, depth int) PricePair {
+	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
+	res, _ := bookResponse.Result.getBidPricePair(depth)
+	return res
 }
 
 func (ftx *Ftx) GetBid(marketName string, depth int) float64 {
-	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
-	res, _ := bookResponse.Result.getBidPricePair(depth)
-	return res.price
+	res := ftx.GetBidPair(marketName, depth)
+	return res.Price
 }
 
 type EOrderType string
