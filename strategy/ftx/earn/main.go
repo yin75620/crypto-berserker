@@ -5,6 +5,8 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
+	"strings"
 
 	fx "github.com/yin75620/crypto-berserker/ftx"
 )
@@ -23,7 +25,7 @@ const (
 var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
-	checkProfit()
+	//checkProfit()
 	stratStrategy()
 }
 
@@ -43,6 +45,7 @@ type Quote struct {
 	currentCoin string
 	askPair     fx.PricePair
 	bidPair     fx.PricePair
+	underDot    int
 }
 
 func (q *Quote) MarketName() string {
@@ -71,7 +74,17 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 	quote.bidPair = bidPair
 	quote.goalCoin = goalCoin
 	quote.currentCoin = currentCoin
+	s := fmt.Sprintf("%g", askPair.Volume)
+	quote.underDot = strings.LastIndex(s, ".") + 1
 	return quote
+}
+
+func strToFloat64(str string, len int) float64 {
+	lenstr := "%." + strconv.Itoa(len) + "f"
+	value, _ := strconv.ParseFloat(str, 64)
+	nstr := fmt.Sprintf(lenstr, value)
+	val, _ := strconv.ParseFloat(nstr, 64)
+	return val
 }
 
 type DealFlow struct {
@@ -95,7 +108,7 @@ func NewDealFlow(goalCoin string, stepCoins ...string) DealFlow {
 func (df *DealFlow) getName() string {
 	marketName := ""
 	for _, value := range df.quotes {
-		marketName = fmt.Sprintf("%s%s", marketName, value.MarketName)
+		marketName = fmt.Sprintf("%s%s", marketName, value.MarketName())
 	}
 	return marketName
 }
@@ -107,6 +120,7 @@ func (df *DealFlow) getFinalPair(pType fx.PriceType) fx.PricePair {
 func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.PricePair {
 	var finalPrice float64 = 1
 	var finalVolume float64 = math.MaxFloat64
+	var compareVolume float64 = math.MaxFloat64
 	for _, quote := range df.quotes {
 		pair := quote.GetPair(pType)
 		finalPrice = finalPrice * pair.Price
@@ -117,7 +131,8 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 			}
 			finalPrice = finalPrice * (1.0 + TAKER_FEE*cacularSymbol)
 		}
-		finalVolume = math.Min(pair.Price*pair.Volume, finalVolume)
+		compareVolume = math.Min(pair.Volume, finalVolume)
+		finalVolume = pair.Price * compareVolume
 	}
 
 	var finalAskPair fx.PricePair = fx.PricePair{}
@@ -125,31 +140,6 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 	finalAskPair.Volume = finalVolume
 	return finalAskPair
 }
-
-func profitCheck(quotes []Quote) {
-
-}
-
-func stratStrategy() {
-	fuDealFlow := NewDealFlow(FTT, USD)
-	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
-
-	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow}
-	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
-	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
-	lName := lowestAskFlow.getName()
-	hName := highestBidFlow.getName()
-	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", lowestAskFlow.getFinalPair(fx.Ask).Price, lName))
-	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", highestBidFlow.getFinalPair(fx.Bid).Price, hName))
-
-	//fuAskPair := fuDealFlow.getFinalPair(fx.Ask)
-	//fbuAskPair := fbuDealFlow.getFinalPair(fx.Ask)
-
-	//pairs := []fx.PricePair{fuAskPair, fbuAskPair}
-	//fmt.Println(askLowest)
-
-}
-
 func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	lowest := math.MaxFloat64
 	resDealFlow := DealFlow{}
@@ -176,62 +166,73 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	return resDealFlow
 }
 
-/*
-func startDeal() {
+func stratStrategy() {
+	fuDealFlow := NewDealFlow(FTT, USD)
+	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
+	//futDealFlow := NewDealFlow(FTT, USDT)
 
-	// 獲取資料
-	var fuQuote Quote = NewQuoto("FTT/USD")
-	var fbQuote Quote = NewQuoto("FTT/BTC")
-	var buQuote Quote = NewQuoto("BTC/USD")
+	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow}
+	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
+	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
+	laName := lowestAskFlow.getName()
+	hbName := highestBidFlow.getName()
 
-	// 檢查是否有利潤
-	//takerFee := 1 + TAKER_FEE
-	fbuPrice := fuQuote.price * buQuote.price
-	fbuVolume := math.Min(fbQuote.volume*fbQuote.price, buQuote.volume)
+	laPrice := lowestAskFlow.getFinalPair(fx.Ask).Price
+	hbPrice := highestBidFlow.getFinalPair(fx.Bid).Price
 
-	var fbuPair fx.PricePair = fx.PricePair{
-		Price:  fbuPrice,
-		Volume: fbuVolume,
+	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
+	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
+
+	//orderVolume := math.Min(laVolume, hbVolume)
+
+	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
+	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
+
+	profit := hbPrice - laPrice
+	fmt.Println(fmt.Sprintf("Profit:%f", profit))
+	// 有利可圖
+	if hbPrice < laPrice {
+		fmt.Println("No profit")
+		//return
 	}
 
-	coinPairs := []fx.PricePair{fuPair, fbuPair}
+	if true {
+		executeOrder(lowestAskFlow, fx.Ask, laVolume)
+		executeOrder(highestBidFlow, fx.Bid, hbVolume)
+	}
+}
 
-	var resPair fx.PricePair
-	var resAsk float64 = math.MaxFloat64
-	for i := 0; i < len(coinPairs); i++ {
-		currentPair := coinPairs[i]
+func executeOrder(df DealFlow, pType fx.PriceType, orderVolume float64) {
+	//finalPair := df.getFinalPair(pType)
+	fmt.Println(fmt.Sprintf("finalVolume:%f", orderVolume))
+	side := ""
+	switch pType {
+	case fx.Bid:
+		side = "sell"
+		nextVolume := orderVolume
+		for _, quote := range df.quotes {
+			orderVolume := nextVolume / quote.GetPair(pType).Price
 
-		fmt.Println(fmt.Sprintf("currentAsk:%f, currentCoin:%s", currentPair.Price, currentPair.Volume))
-		if currentPair.Price < resAsk {
-			resAsk = currentPair.Price
-			resPair = currentPair
+			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+			nextVolume = orderVolume
+			orderPrice := quote.GetPair(pType).Price
+			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
+		}
+	case fx.Ask:
+		side := "buy"
+		nextVolume := orderVolume
+		for i := len(df.quotes) - 1; i >= 0; i-- {
+			quote := df.quotes[i]
+			orderVolume := nextVolume / quote.GetPair(pType).Price
+			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+			nextVolume = orderVolume
+			orderPrice := quote.GetPair(pType).Price
+			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
 		}
 	}
 
-	fmt.Println(resPair)
-
-	// 檢查是否有利潤
-
-	// 執行套利
-	resAsk, AskCoin := getLowestAsk([]string{USD, BTC}, FTT, USD)
-
-	resBid, bidCoin := getTopBid([]string{USD, BTC}, FTT, USD)
-	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", resAsk, AskCoin))
-	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", resBid, bidCoin))
-
-	// 檢查是否有利潤
-	profit := (resBid - resAsk) / resAsk
-	fmt.Println(fmt.Sprintf("profit:%f", profit))
-
-	// 有利潤
-	if profit < 0 {
-		// 執行套利
-		fmt.Println("No Profit")
-		return
-	}
-
 }
-*/
+
 func checkProfit() {
 	resAsk, AskCoin := getLowestAsk([]string{USD, BTC}, FTT, USD)
 

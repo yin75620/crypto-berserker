@@ -168,8 +168,8 @@ func (ftx *Ftx) PostOrder(order FtxOrder) {
 	}
 	body := string(request)
 	fmt.Println(fmt.Sprintf("body:%s", body))
-	response := ftx.doPost("orders", body)
-	fmt.Println(fmt.Sprintf("%s", response))
+	//response := ftx.doPost("orders", body)
+	//fmt.Println(fmt.Sprintf("%s", response))
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {
