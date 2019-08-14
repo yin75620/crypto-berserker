@@ -168,6 +168,7 @@ func (ftx *Ftx) PostOrder(order FtxOrder) {
 	}
 	body := string(request)
 	fmt.Println(fmt.Sprintf("body:%s", body))
+	//TODO: 打開並完成下單
 	//response := ftx.doPost("orders", body)
 	//fmt.Println(fmt.Sprintf("%s", response))
 }

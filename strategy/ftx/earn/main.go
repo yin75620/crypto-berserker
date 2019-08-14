@@ -193,6 +193,7 @@ func stratStrategy() {
 	// 有利可圖
 	if hbPrice < laPrice {
 		fmt.Println("No profit")
+		//TODO: 打開並完成下單
 		//return
 	}
 
@@ -203,7 +204,6 @@ func stratStrategy() {
 }
 
 func executeOrder(df DealFlow, pType fx.PriceType, orderVolume float64) {
-	//finalPair := df.getFinalPair(pType)
 	fmt.Println(fmt.Sprintf("finalVolume:%f", orderVolume))
 	side := ""
 	switch pType {
