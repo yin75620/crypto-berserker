@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 
@@ -23,6 +24,7 @@ var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	checkProfit()
+	stratStrategy()
 }
 
 func testOrder() {
@@ -37,26 +39,141 @@ func testOrder() {
 }
 
 type Quote struct {
-	marketName string
-	price      float64
-	volume     float64
+	goalCoin    string
+	currentCoin string
+	askPair     fx.PricePair
+	bidPair     fx.PricePair
 }
 
-func (q *Quote) InitWithPair(marketName string, pair fx.PricePair) {
-	q.price = pair.Price
-	q.volume = pair.Volume
+func (q *Quote) MarketName() string {
+	marketName := fmt.Sprintf("%s/%s", q.goalCoin, q.currentCoin)
+	return marketName
 }
 
-func NewQuoto(marketName string) Quote {
-	var pType fx.PriceType = fx.Ask
-	pair := ftx.GetPair(marketName, 1, pType)
+func (q *Quote) GetPair(pType fx.PriceType) fx.PricePair {
+	switch pType {
+	case fx.Ask:
+		return q.askPair
+	case fx.Bid:
+		return q.bidPair
+	}
+	log.Fatal("Error: not specific pType")
+	return fx.PricePair{}
+}
+
+func NewQuote(goalCoin, currentCoin string) Quote {
+	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
+	res := ftx.GetOrderBookResponse(marketName, 1)
+	askPair, _ := res.Result.GetPair(1, fx.Ask)
+	bidPair, _ := res.Result.GetPair(1, fx.Bid)
 	var quote Quote = Quote{}
-	quote.InitWithPair(marketName, pair)
+	quote.askPair = askPair
+	quote.bidPair = bidPair
+	quote.goalCoin = goalCoin
+	quote.currentCoin = currentCoin
 	return quote
+}
+
+type DealFlow struct {
+	quotes []Quote
+}
+
+func NewDealFlow(goalCoin string, stepCoins ...string) DealFlow {
+	var dealFlow DealFlow = DealFlow{}
+	tempGoalCoin := goalCoin
+	stepLen := len(stepCoins)
+	dealFlow.quotes = make([]Quote, stepLen)
+	for i := 0; i < stepLen; i++ {
+		stepCoin := stepCoins[i]
+		quote := NewQuote(tempGoalCoin, stepCoin)
+		dealFlow.quotes[i] = quote
+		tempGoalCoin = stepCoin
+	}
+	return dealFlow
+}
+
+func (df *DealFlow) getName() string {
+	marketName := ""
+	for _, value := range df.quotes {
+		marketName = fmt.Sprintf("%s%s", marketName, value.MarketName)
+	}
+	return marketName
+}
+
+func (df *DealFlow) getFinalPair(pType fx.PriceType) fx.PricePair {
+	return df.getFinalPairWithFee(pType, true)
+}
+
+func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.PricePair {
+	var finalPrice float64 = 1
+	var finalVolume float64 = math.MaxFloat64
+	for _, quote := range df.quotes {
+		pair := quote.GetPair(pType)
+		finalPrice = finalPrice * pair.Price
+		if hasFee {
+			cacularSymbol := 1.0
+			if pType == fx.Bid {
+				cacularSymbol = -1
+			}
+			finalPrice = finalPrice * (1.0 + TAKER_FEE*cacularSymbol)
+		}
+		finalVolume = math.Min(pair.Price*pair.Volume, finalVolume)
+	}
+
+	var finalAskPair fx.PricePair = fx.PricePair{}
+	finalAskPair.Price = finalPrice
+	finalAskPair.Volume = finalVolume
+	return finalAskPair
 }
 
 func profitCheck(quotes []Quote) {
 
+}
+
+func stratStrategy() {
+	fuDealFlow := NewDealFlow(FTT, USD)
+	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
+
+	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow}
+	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
+	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
+	lName := lowestAskFlow.getName()
+	hName := highestBidFlow.getName()
+	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", lowestAskFlow.getFinalPair(fx.Ask).Price, lName))
+	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", highestBidFlow.getFinalPair(fx.Bid).Price, hName))
+
+	//fuAskPair := fuDealFlow.getFinalPair(fx.Ask)
+	//fbuAskPair := fbuDealFlow.getFinalPair(fx.Ask)
+
+	//pairs := []fx.PricePair{fuAskPair, fbuAskPair}
+	//fmt.Println(askLowest)
+
+}
+
+func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
+	lowest := math.MaxFloat64
+	resDealFlow := DealFlow{}
+	for _, value := range dealFlows {
+		pair := value.getFinalPair(pType)
+		if lowest > pair.Price {
+			lowest = pair.Price
+			resDealFlow = value
+		}
+	}
+	return resDealFlow
+}
+
+func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
+	highest := 0.0
+	resDealFlow := DealFlow{}
+	for _, value := range dealFlows {
+		pair := value.getFinalPair(pType)
+		if highest < pair.Price {
+			highest = pair.Price
+			resDealFlow = value
+		}
+	}
+	return resDealFlow
 }
 
 /*
