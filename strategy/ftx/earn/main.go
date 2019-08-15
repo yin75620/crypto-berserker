@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	gomail "github.com/alexcesaro/mail/gomail"
 	fx "github.com/yin75620/crypto-berserker/ftx"
+	"github.com/yin75620/crypto-berserker/setting"
 )
 
 const (
@@ -26,7 +29,11 @@ var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	//checkProfit()
-	stratStrategy()
+	ticker := time.NewTicker(5 * time.Second)
+	for _ = range ticker.C {
+		stratStrategy()
+	}
+
 }
 
 func testOrder() {
@@ -137,7 +144,7 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 
 	var finalAskPair fx.PricePair = fx.PricePair{}
 	finalAskPair.Price = finalPrice
-	finalAskPair.Volume = finalVolume
+	finalAskPair.Volume = finalVolume / finalPrice
 	return finalAskPair
 }
 func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
@@ -145,6 +152,7 @@ func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
+		fmt.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if lowest > pair.Price {
 			lowest = pair.Price
 			resDealFlow = value
@@ -158,6 +166,7 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
+		fmt.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if highest < pair.Price {
 			highest = pair.Price
 			resDealFlow = value
@@ -183,7 +192,7 @@ func stratStrategy() {
 	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
 
-	//orderVolume := math.Min(laVolume, hbVolume)
+	orderVolume := math.Min(laVolume, hbVolume)
 
 	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
 	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
@@ -194,40 +203,65 @@ func stratStrategy() {
 	if hbPrice < laPrice {
 		fmt.Println("No profit")
 		//TODO: 打開並完成下單
-		//return
+		return
 	}
 
-	if true {
-		executeOrder(lowestAskFlow, fx.Ask, laVolume)
-		executeOrder(highestBidFlow, fx.Bid, hbVolume)
+	const isOrder = true
+	if isOrder {
+		const isKeepUSD = true
+		if isKeepUSD {
+			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
+			executeOrder(highestBidFlow, fx.Bid, orderVolume)
+		} else {
+			executeOrder(highestBidFlow, fx.Bid, orderVolume)
+			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
+		}
+	}
+
+	sendMail()
+}
+
+/// email
+func sendMail() {
+	msg := gomail.NewMessage()
+	msg.SetAddressHeader("From", "yin75620@gmail.com", "Golang")
+	msg.SetHeader("To", "yin75620@gmail.com")
+	msg.AddHeader("To", "yin75620@gmail.com")
+	msg.SetHeader("Subject", "Hello!")
+	msg.SetBody("text/plain", "Hello Has Profit")
+	msg.AddAlternative("text/html", "Hello <b>Has Profit</b>!")
+
+	m := gomail.NewMailer("smtp.gmail.com", "yin75620", setting.GMAIL_PASSWORD, 25)
+	if err := m.Send(msg); err != nil {
+		log.Println(err)
 	}
 }
 
-func executeOrder(df DealFlow, pType fx.PriceType, orderVolume float64) {
-	fmt.Println(fmt.Sprintf("finalVolume:%f", orderVolume))
+///
+
+func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
+	fmt.Println(fmt.Sprintf("finalVolume:%f", startVolume))
 	side := ""
 	switch pType {
 	case fx.Bid:
 		side = "sell"
-		nextVolume := orderVolume
+		orderVolume := startVolume
 		for _, quote := range df.quotes {
-			orderVolume := nextVolume / quote.GetPair(pType).Price
-
 			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
-			nextVolume = orderVolume
+
 			orderPrice := quote.GetPair(pType).Price
 			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
+			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
 	case fx.Ask:
 		side := "buy"
-		nextVolume := orderVolume
+		orderVolume := startVolume
 		for i := len(df.quotes) - 1; i >= 0; i-- {
 			quote := df.quotes[i]
-			orderVolume := nextVolume / quote.GetPair(pType).Price
 			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
-			nextVolume = orderVolume
 			orderPrice := quote.GetPair(pType).Price
 			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
+			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
 	}
 
