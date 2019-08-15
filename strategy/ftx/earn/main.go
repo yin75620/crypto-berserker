@@ -29,6 +29,7 @@ var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	//checkProfit()
+	stratStrategy()
 	ticker := time.NewTicker(5 * time.Second)
 	for _ = range ticker.C {
 		stratStrategy()
@@ -73,9 +74,16 @@ func (q *Quote) GetPair(pType fx.PriceType) fx.PricePair {
 
 func NewQuote(goalCoin, currentCoin string) Quote {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	res := ftx.GetOrderBookResponse(marketName, 1)
-	askPair, _ := res.Result.GetPair(1, fx.Ask)
-	bidPair, _ := res.Result.GetPair(1, fx.Bid)
+	var askPair fx.PricePair
+	var bidPair fx.PricePair
+	if marketName == "USDT/USD" {
+		askPair = fx.PricePair{1.001, 999999}
+		bidPair = fx.PricePair{0.997, 999999}
+	} else {
+		res := ftx.GetOrderBookResponse(marketName, 1)
+		askPair, _ = res.Result.GetPair(1, fx.Ask)
+		bidPair, _ = res.Result.GetPair(1, fx.Bid)
+	}
 	var quote Quote = Quote{}
 	quote.askPair = askPair
 	quote.bidPair = bidPair
@@ -89,6 +97,7 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 func strToFloat64(str string, len int) float64 {
 	lenstr := "%." + strconv.Itoa(len) + "f"
 	value, _ := strconv.ParseFloat(str, 64)
+	value = math.Floor(math.Pow10(len)*value) / math.Pow10(len) // 無條件捨去
 	nstr := fmt.Sprintf(lenstr, value)
 	val, _ := strconv.ParseFloat(nstr, 64)
 	return val
@@ -178,9 +187,9 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 func stratStrategy() {
 	fuDealFlow := NewDealFlow(FTT, USD)
 	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
-	//futDealFlow := NewDealFlow(FTT, USDT)
+	futDealFlow := NewDealFlow(FTT, USDT, USD)
 
-	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow}
+	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow, futDealFlow}
 	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
 	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
 	laName := lowestAskFlow.getName()
@@ -194,15 +203,21 @@ func stratStrategy() {
 
 	orderVolume := math.Min(laVolume, hbVolume)
 
+	const PER_ORDER_MAX_VOLUME = 200
+	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
+
 	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
 	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
 
 	profit := hbPrice - laPrice
 	fmt.Println(fmt.Sprintf("Profit:%f", profit))
+
 	// 有利可圖
-	if hbPrice < laPrice {
+	if profit < 0 {
 		fmt.Println("No profit")
-		//TODO: 打開並完成下單
+		return
+	} else if profit < 0.0001 {
+		fmt.Println("No enough profit")
 		return
 	}
 
@@ -218,18 +233,19 @@ func stratStrategy() {
 		}
 	}
 
-	sendMail()
+	content := fmt.Sprintf("%s%s, volume:%g", fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName), fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName), orderVolume)
+	sendMail(content)
 }
 
 /// email
-func sendMail() {
+func sendMail(content string) {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", "yin75620@gmail.com", "Golang")
 	msg.SetHeader("To", "yin75620@gmail.com")
 	msg.AddHeader("To", "yin75620@gmail.com")
 	msg.SetHeader("Subject", "Hello!")
 	msg.SetBody("text/plain", "Hello Has Profit")
-	msg.AddAlternative("text/html", "Hello <b>Has Profit</b>!")
+	msg.AddAlternative("text/html", "content")
 
 	m := gomail.NewMailer("smtp.gmail.com", "yin75620", setting.GMAIL_PASSWORD, 25)
 	if err := m.Send(msg); err != nil {
@@ -240,7 +256,7 @@ func sendMail() {
 ///
 
 func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
-	fmt.Println(fmt.Sprintf("finalVolume:%f", startVolume))
+	fmt.Println(fmt.Sprintf("startVolume:%f", startVolume))
 	side := ""
 	switch pType {
 	case fx.Bid:
@@ -253,7 +269,7 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
-	case fx.Ask:
+		/*case fx.Ask:
 		side := "buy"
 		orderVolume := startVolume
 		for i := len(df.quotes) - 1; i >= 0; i-- {
@@ -262,9 +278,62 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 			orderPrice := quote.GetPair(pType).Price
 			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
 			orderVolume = orderVolume * quote.GetPair(pType).Price
+		}*/
+		/*
+			case fx.Ask:
+				side := "buy"
+				orderVolume := startVolume
+				var orders []fx.FtxOrder = []fx.FtxOrder{}
+				for i := len(df.quotes) - 1; i >= 0; i-- {
+					quote := df.quotes[i]
+					orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+
+					orderPrice := quote.GetPair(pType).Price
+
+					var myOrder fx.FtxOrder = fx.FtxOrder{
+						Market: quote.MarketName(),
+						Side:   side,
+						Price:  orderPrice,
+						Size:   orderVolume,
+					}
+					orders = append(orders, myOrder)
+
+					orderVolume = orderVolume * quote.GetPair(pType).Price
+
+				}
+
+				for i := 0; i < len(orders); i++ {
+					order := orders[i]
+					ftx.PostOrder(order)
+				}
+			}*/
+	case fx.Ask:
+		side := "buy"
+		orderVolume := startVolume
+		var orders []fx.FtxOrder = []fx.FtxOrder{}
+		for i := 0; i < len(df.quotes); i++ {
+			quote := df.quotes[i]
+			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+
+			orderPrice := quote.GetPair(pType).Price
+
+			var myOrder fx.FtxOrder = fx.FtxOrder{
+				Market: quote.MarketName(),
+				Side:   side,
+				Price:  orderPrice,
+				Size:   orderVolume,
+			}
+			orders = append(orders, myOrder)
+
+			orderVolume = orderVolume * quote.GetPair(pType).Price
+
+		}
+
+		for i := len(orders) - 1; i >= 0; i-- {
+			order := orders[i]
+			ftx.PostOrder(order)
 		}
 	}
-
 }
 
 func checkProfit() {

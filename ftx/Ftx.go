@@ -226,4 +226,5 @@ func addHeader(header *http.Header, reqMethod, path, body string) {
 	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
 	log.Println(sign)
 	header.Add("FTX-SIGN", sign)
+	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
 }
