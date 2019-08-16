@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gomail "github.com/alexcesaro/mail/gomail"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	fx "github.com/yin75620/crypto-berserker/ftx"
 	"github.com/yin75620/crypto-berserker/setting"
 )
@@ -29,12 +30,20 @@ var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	//checkProfit()
+	NewTelegram()
 	stratStrategy()
 	ticker := time.NewTicker(5 * time.Second)
 	for _ = range ticker.C {
 		stratStrategy()
 	}
 
+	///開啟伺服器讓程式留著
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello World")
+	})
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+	///
 }
 
 func testOrder() {
@@ -216,7 +225,7 @@ func stratStrategy() {
 	if profit < 0 {
 		fmt.Println("No profit")
 		return
-	} else if profit < 0.0001 {
+	} else if profit < 0.001 {
 		fmt.Println("No enough profit")
 		return
 	}
@@ -234,10 +243,10 @@ func stratStrategy() {
 	}
 
 	content := fmt.Sprintf("%s%s, volume:%g", fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName), fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName), orderVolume)
-	sendMail(content)
+	sendTelegram(content)
 }
 
-/// email
+/// message
 func sendMail(content string) {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", "yin75620@gmail.com", "Golang")
@@ -245,12 +254,24 @@ func sendMail(content string) {
 	msg.AddHeader("To", "yin75620@gmail.com")
 	msg.SetHeader("Subject", "Hello!")
 	msg.SetBody("text/plain", "Hello Has Profit")
-	msg.AddAlternative("text/html", "content")
+	msg.AddAlternative("text/html", content)
 
 	m := gomail.NewMailer("smtp.gmail.com", "yin75620", setting.GMAIL_PASSWORD, 25)
 	if err := m.Send(msg); err != nil {
 		log.Println(err)
 	}
+}
+
+var bot *tgbotapi.BotAPI
+
+func NewTelegram() {
+	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
+}
+
+func sendTelegram(content string) {
+	msg := tgbotapi.NewMessage(945156610, content)
+
+	bot.Send(msg)
 }
 
 ///
