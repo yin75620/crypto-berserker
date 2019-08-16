@@ -169,8 +169,8 @@ func (ftx *Ftx) PostOrder(order FtxOrder) {
 	body := string(request)
 	fmt.Println(fmt.Sprintf("body:%s", body))
 	//TODO: 打開並完成下單
-	//response := ftx.doPost("orders", body)
-	//fmt.Println(fmt.Sprintf("%s", response))
+	response := ftx.doPost("orders", body)
+	fmt.Println(fmt.Sprintf("%s", response))
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {
@@ -220,11 +220,8 @@ func addHeader(header *http.Header, reqMethod, path, body string) {
 
 	header.Add("FTX-KEY", bsk.FTX_KEY)
 	header.Add("FTX-TS", ts)
-	//boyd := "" //之後再用
 	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
-	log.Println(payload)
 	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
-	log.Println(sign)
 	header.Add("FTX-SIGN", sign)
 	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
 }
