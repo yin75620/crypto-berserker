@@ -98,8 +98,16 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 	quote.bidPair = bidPair
 	quote.goalCoin = goalCoin
 	quote.currentCoin = currentCoin
-	s := fmt.Sprintf("%g", askPair.Volume)
-	quote.underDot = strings.LastIndex(s, ".") + 1
+	askVolumeStr := fmt.Sprintf("%g", askPair.Volume)
+
+	// 找出小數點後有幾位
+	array := strings.Split(askVolumeStr, ".")
+	lastItem := ""
+	if strings.Index(askVolumeStr, ".") > 0 {
+		lastItem = array[len(array)-1]
+	}
+
+	quote.underDot = len(lastItem)
 	return quote
 }
 
@@ -196,9 +204,13 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 func stratStrategy() {
 	fuDealFlow := NewDealFlow(FTT, USD)
 	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
-	futDealFlow := NewDealFlow(FTT, USDT, USD)
+	//futDealFlow := NewDealFlow(FTT, USDT, USD)
 
-	dealFlows := []DealFlow{fuDealFlow, fbuDealFlow, futDealFlow}
+	dealFlows := []DealFlow{
+		fuDealFlow,
+		fbuDealFlow,
+		//futDealFlow,
+	}
 	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
 	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
 	laName := lowestAskFlow.getName()
@@ -212,7 +224,7 @@ func stratStrategy() {
 
 	orderVolume := math.Min(laVolume, hbVolume)
 
-	const PER_ORDER_MAX_VOLUME = 200
+	const PER_ORDER_MAX_VOLUME = 100
 	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
 
 	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
@@ -242,7 +254,11 @@ func stratStrategy() {
 		}
 	}
 
-	content := fmt.Sprintf("%s%s, volume:%g", fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName), fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName), orderVolume)
+	content := fmt.Sprintf("%s%s, volume:%g \r\n profit:%s",
+		fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName),
+		fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName),
+		orderVolume,
+		profit)
 	sendTelegram(content)
 }
 
@@ -290,44 +306,6 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
-		/*case fx.Ask:
-		side := "buy"
-		orderVolume := startVolume
-		for i := len(df.quotes) - 1; i >= 0; i-- {
-			quote := df.quotes[i]
-			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
-			orderPrice := quote.GetPair(pType).Price
-			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
-			orderVolume = orderVolume * quote.GetPair(pType).Price
-		}*/
-		/*
-			case fx.Ask:
-				side := "buy"
-				orderVolume := startVolume
-				var orders []fx.FtxOrder = []fx.FtxOrder{}
-				for i := len(df.quotes) - 1; i >= 0; i-- {
-					quote := df.quotes[i]
-					orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
-
-					orderPrice := quote.GetPair(pType).Price
-
-					var myOrder fx.FtxOrder = fx.FtxOrder{
-						Market: quote.MarketName(),
-						Side:   side,
-						Price:  orderPrice,
-						Size:   orderVolume,
-					}
-					orders = append(orders, myOrder)
-
-					orderVolume = orderVolume * quote.GetPair(pType).Price
-
-				}
-
-				for i := 0; i < len(orders); i++ {
-					order := orders[i]
-					ftx.PostOrder(order)
-				}
-			}*/
 	case fx.Ask:
 		side := "buy"
 		orderVolume := startVolume
