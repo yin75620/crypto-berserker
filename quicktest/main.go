@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/yin75620/crypto-berserker/ftx"
 )
@@ -24,7 +24,7 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	httptest()
+	logTest()
 }
 
 func codeText() {
@@ -46,29 +46,43 @@ func codeText() {
 	log.Println(string(loginJson))
 }
 
-func httptest() {
+func orderTest() {
 
-	req, err := http.NewRequest("GET", "www.google.com", bytes.NewBuffer([]byte("body")))
+	var ftxClient = ftx.NewFtx(http.DefaultClient)
+
+	var myOrder ftx.FtxOrder = ftx.FtxOrder{
+		Market:    "FTT/USD",
+		Side:      "sell",
+		Price:     1.70,
+		Size:      1,
+		OrderType: ftx.MARKET,
+	}
+	response := ftxClient.PostOrder(myOrder)
+	fmt.Println(response)
+}
+
+func logTest() {
+
+	/*f, err := os.OpenFile("text.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
-		return
 	}
+	defer f.Close()
 
-	req.Header.Set("Content-Type", "application/json")
-	//addHeader(&req.Header, method, apiName, body)
+	logger := log.New(f, "prefix", log.LstdFlags)
+	logger.Println("text to append")
+	logger.Println("more text to append")*/
 
-	resp, err := client.Do(req)
+	logFile, err := os.OpenFile("testlogfile.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Fatalf("error opening file: %v", err)
 	}
+	defer logFile.Close()
 
-	defer resp.Body.Close()
-	sitemap, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Printf("%s", err)
-		return
-	}
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
 
+	//log.SetOutput(f)
+	log.Println("This is a test log entry")
 }

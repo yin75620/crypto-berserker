@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -68,15 +70,15 @@ func main() {
 	///
 }
 
-func testOrder() {
-	marketName := "FTT/USD"
-	var myOrder fx.FtxOrder = fx.FtxOrder{
-		Market: marketName,
-		Side:   "sell",
-		Price:  1.82,
-		Size:   1,
+func setLog() {
+	logFile, err := os.OpenFile("earn.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
 	}
-	ftx.PostOrder(myOrder)
+	defer logFile.Close()
+
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
 }
 
 type Quote struct {
@@ -107,6 +109,7 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
 	var askPair fx.PricePair
 	var bidPair fx.PricePair
+	//偽裝成 USDT
 	if marketName == "USDT/USD" {
 		askPair = fx.PricePair{1.001, 999999}
 		bidPair = fx.PricePair{0.997, 999999}
