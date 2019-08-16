@@ -32,9 +32,21 @@ func main() {
 	//checkProfit()
 	NewTelegram()
 	stratStrategy()
-	ticker := time.NewTicker(5 * time.Second)
-	for _ = range ticker.C {
-		stratStrategy()
+	/*
+		ticker := time.NewTicker(6 * time.Second)
+		for _ = range ticker.C {
+			stratStrategy()
+		}*/
+	var delay_time int = 5
+	d := time.Duration(time.Second * time.Duration(delay_time))
+
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	for {
+		<-t.C
+		plusSecond := stratStrategy()
+		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
 	}
 
 	///開啟伺服器讓程式留著
@@ -203,7 +215,7 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	return resDealFlow
 }
 
-func stratStrategy() {
+func stratStrategy() int {
 	fuDealFlow := NewDealFlow(FTT, USD)
 	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
 	//futDealFlow := NewDealFlow(FTT, USDT, USD)
@@ -228,7 +240,7 @@ func stratStrategy() {
 
 	fmt.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
 
-	const PER_ORDER_MAX_VOLUME = 100
+	const PER_ORDER_MAX_VOLUME = 200
 	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
 
 	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
@@ -240,13 +252,13 @@ func stratStrategy() {
 	// 有利可圖
 	if profit < 0 {
 		fmt.Println("No profit")
-		return
+		return 0
 	} else if profit < 0.001 {
 		fmt.Println("No enough profit")
-		return
+		return 0
 	} else if orderVolume < 10 {
 		fmt.Println("orderVolume < 10")
-		return
+		return 0
 	}
 
 	const isOrder = true
@@ -267,6 +279,8 @@ func stratStrategy() {
 		orderVolume,
 		profit)
 	sendTelegram(content)
+
+	return 3
 }
 
 /// message
@@ -310,7 +324,16 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
 
 			orderPrice := quote.GetPair(pType).Price
-			postOrder(quote.MarketName(), side, orderPrice, orderVolume)
+
+			var myOrder fx.FtxOrder = fx.FtxOrder{
+				Market:    quote.MarketName(),
+				Side:      side,
+				Price:     orderPrice,
+				Size:      orderVolume,
+				OrderType: fx.MARKET,
+			}
+			ftx.PostOrder(myOrder)
+
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
 	case fx.Ask:
@@ -324,10 +347,11 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 			orderPrice := quote.GetPair(pType).Price
 
 			var myOrder fx.FtxOrder = fx.FtxOrder{
-				Market: quote.MarketName(),
-				Side:   side,
-				Price:  orderPrice,
-				Size:   orderVolume,
+				Market:    quote.MarketName(),
+				Side:      side,
+				Price:     orderPrice,
+				Size:      orderVolume,
+				OrderType: fx.MARKET,
 			}
 			orders = append(orders, myOrder)
 

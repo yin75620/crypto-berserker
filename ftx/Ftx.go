@@ -152,11 +152,11 @@ const (
 )
 
 type FtxOrder struct {
-	Market string  `json:"market"`
-	Side   string  `json:"side"`
-	Price  float64 `json:"price"`
-	Size   float64 `json:"size"`
-	//OrderType  EOrderType `json:"order_type"`
+	Market    string     `json:"market"`
+	Side      string     `json:"side"`
+	Price     float64    `json:"price"`
+	Size      float64    `json:"size"`
+	OrderType EOrderType `json:"order_type"`
 	//ReduceOnly bool       `json:"reduceOnly"`
 }
 
