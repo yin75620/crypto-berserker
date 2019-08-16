@@ -152,24 +152,26 @@ func (df *DealFlow) getFinalPair(pType fx.PriceType) fx.PricePair {
 
 func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.PricePair {
 	var finalPrice float64 = 1
+	var finalFeePrice float64 = 1
 	var finalVolume float64 = math.MaxFloat64
 	var compareVolume float64 = math.MaxFloat64
 	for _, quote := range df.quotes {
 		pair := quote.GetPair(pType)
 		finalPrice = finalPrice * pair.Price
+		finalFeePrice = finalFeePrice * pair.Price
 		if hasFee {
 			cacularSymbol := 1.0
 			if pType == fx.Bid {
 				cacularSymbol = -1
 			}
-			finalPrice = finalPrice * (1.0 + TAKER_FEE*cacularSymbol)
+			finalFeePrice = finalFeePrice * (1.0 + TAKER_FEE*cacularSymbol)
 		}
 		compareVolume = math.Min(pair.Volume, finalVolume)
 		finalVolume = pair.Price * compareVolume
 	}
 
 	var finalAskPair fx.PricePair = fx.PricePair{}
-	finalAskPair.Price = finalPrice
+	finalAskPair.Price = finalFeePrice
 	finalAskPair.Volume = finalVolume / finalPrice
 	return finalAskPair
 }
@@ -224,6 +226,8 @@ func stratStrategy() {
 
 	orderVolume := math.Min(laVolume, hbVolume)
 
+	fmt.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
+
 	const PER_ORDER_MAX_VOLUME = 100
 	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
 
@@ -239,6 +243,9 @@ func stratStrategy() {
 		return
 	} else if profit < 0.001 {
 		fmt.Println("No enough profit")
+		return
+	} else if orderVolume < 10 {
+		fmt.Println("orderVolume < 10")
 		return
 	}
 
