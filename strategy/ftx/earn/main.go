@@ -23,7 +23,8 @@ const (
 )
 
 const (
-	TAKER_FEE = 0.000665
+	TAKER_FEE     = 0.000665
+	RANGE_PREMIUM = 0.5
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
@@ -325,19 +326,23 @@ func sendTelegram(content string) {
 func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 	fmt.Println(fmt.Sprintf("startVolume:%f", startVolume))
 	side := ""
+	orderSymbol := 1.0
 	switch pType {
 	case fx.Bid:
 		side = "sell"
 		orderVolume := startVolume
+		orderSymbol = -1
 		for _, quote := range df.quotes {
 			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
 
 			orderPrice := quote.GetPair(pType).Price
 
+			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+
 			var myOrder fx.FtxOrder = fx.FtxOrder{
 				Market:    quote.MarketName(),
 				Side:      side,
-				Price:     orderPrice,
+				Price:     myOrderPrice,
 				Size:      orderVolume,
 				OrderType: fx.MARKET,
 			}
@@ -348,6 +353,7 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 	case fx.Ask:
 		side := "buy"
 		orderVolume := startVolume
+		orderSymbol = 1.0
 		var orders []fx.FtxOrder = []fx.FtxOrder{}
 		for i := 0; i < len(df.quotes); i++ {
 			quote := df.quotes[i]
@@ -355,10 +361,12 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 
 			orderPrice := quote.GetPair(pType).Price
 
+			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+
 			var myOrder fx.FtxOrder = fx.FtxOrder{
 				Market:    quote.MarketName(),
 				Side:      side,
-				Price:     orderPrice,
+				Price:     myOrderPrice,
 				Size:      orderVolume,
 				OrderType: fx.MARKET,
 			}
