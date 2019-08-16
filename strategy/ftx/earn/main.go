@@ -26,7 +26,7 @@ const (
 
 const (
 	TAKER_FEE     = 0.000665
-	RANGE_PREMIUM = 0.5
+	RANGE_PREMIUM = 0.1 //10%
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
