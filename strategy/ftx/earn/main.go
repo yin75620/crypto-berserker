@@ -32,6 +32,9 @@ func main() {
 	//checkProfit()
 	NewTelegram()
 	stratStrategy()
+
+	infoStr := string(ftx.GetAccountInfo())
+	sendTelegram(infoStr)
 	/*
 		ticker := time.NewTicker(6 * time.Second)
 		for _ = range ticker.C {
@@ -47,6 +50,12 @@ func main() {
 		<-t.C
 		plusSecond := stratStrategy()
 		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
+	}
+
+	ticker := time.NewTicker(600 * time.Second)
+	for _ = range ticker.C {
+		infoStr = string(ftx.GetAccountInfo())
+		sendTelegram(infoStr)
 	}
 
 	///開啟伺服器讓程式留著
@@ -280,7 +289,7 @@ func stratStrategy() int {
 		profit)
 	sendTelegram(content)
 
-	return 3
+	return -2
 }
 
 /// message

@@ -161,16 +161,16 @@ type FtxOrder struct {
 }
 
 //下訂單
-func (ftx *Ftx) PostOrder(order FtxOrder) {
+func (ftx *Ftx) PostOrder(order FtxOrder) string {
 	request, err := json.Marshal(order)
 	if err != nil {
 		log.Fatal(err)
 	}
 	body := string(request)
 	fmt.Println(fmt.Sprintf("body:%s", body))
-	//TODO: 打開並完成下單
 	response := ftx.doPost("orders", body)
 	fmt.Println(fmt.Sprintf("%s", response))
+	return string(response)
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {
