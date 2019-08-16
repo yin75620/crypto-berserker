@@ -32,7 +32,9 @@ const (
 var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
-	NewTelegram()
+	StartTelegram()
+	//var logFile *os.File = StartLog()
+	//defer logFile.Close()
 	stratStrategy()
 
 	infoStr := string(ftx.GetAccountInfo())
@@ -63,15 +65,15 @@ func main() {
 	///
 }
 
-func setLog() {
+func StartLog() *os.File {
 	logFile, err := os.OpenFile("earn.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
-	defer logFile.Close()
 
 	mw := io.MultiWriter(os.Stdout, logFile)
 	log.SetOutput(mw)
+	return logFile
 }
 
 type Quote struct {
@@ -198,7 +200,7 @@ func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		fmt.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		log.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if lowest > pair.Price {
 			lowest = pair.Price
 			resDealFlow = value
@@ -212,7 +214,7 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		fmt.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		log.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if highest < pair.Price {
 			highest = pair.Price
 			resDealFlow = value
@@ -244,26 +246,26 @@ func stratStrategy() int {
 
 	orderVolume := math.Min(laVolume, hbVolume)
 
-	fmt.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
+	log.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
 
 	const PER_ORDER_MAX_VOLUME = 200
 	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
 
-	fmt.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
-	fmt.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
+	log.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
+	log.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
 
 	profit := hbPrice - laPrice
-	fmt.Println(fmt.Sprintf("Profit:%f", profit))
+	log.Println(fmt.Sprintf("Profit:%f", profit))
 
 	// 有利可圖
 	if profit < 0 {
-		fmt.Println("No profit")
+		log.Println("No profit")
 		return 0
 	} else if profit < 0.001 {
-		fmt.Println("No enough profit")
+		log.Println("No enough profit")
 		return 0
 	} else if orderVolume < 10 {
-		fmt.Println("orderVolume < 10")
+		log.Println("orderVolume < 10")
 		return 0
 	}
 
@@ -307,7 +309,7 @@ func sendMail(content string) {
 
 var bot *tgbotapi.BotAPI
 
-func NewTelegram() {
+func StartTelegram() {
 	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
 }
 
@@ -320,7 +322,7 @@ func sendTelegram(content string) {
 ///
 
 func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
-	fmt.Println(fmt.Sprintf("startVolume:%f", startVolume))
+	log.Println(fmt.Sprintf("startVolume:%f", startVolume))
 	side := ""
 	orderSymbol := 1.0
 	switch pType {
