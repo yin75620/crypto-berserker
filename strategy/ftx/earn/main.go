@@ -41,9 +41,9 @@ var (
 )
 
 const (
-	R_VOLUME      = 1
-	R_PROFIT      = 2
-	R_PLUS_SECOND = 3
+	R_VOLUME      = 0
+	R_PROFIT      = 1
+	R_PLUS_SECOND = 2
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
@@ -245,6 +245,8 @@ var (
 	m_expectedLowestProfit float64 = 0
 )
 
+var m_isFullPower = false
+
 func stratStrategy() int {
 	fuDealFlow := NewDealFlow(FTT, USD)
 	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
@@ -275,25 +277,24 @@ func stratStrategy() int {
 	log.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
 
 	profit := hbPrice - laPrice
-	m_expectedLowestProfit = profit
+
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
 	perOrderMaxVolume := RANK_N[R_VOLUME]
-	var isFullPower = false
+
 	// 表示有人來搶單拉!!
 	if m_expectedSourceOrder != 0 && m_expectedSourceOrder > sourceOrderVolume {
-		isFullPower = true
+		m_isFullPower = true
 
 	} else if profit > RANK_S[R_PROFIT] {
 		// 利潤超高 買起來!!!
-		isFullPower = true
+		m_isFullPower = true
 	} else if m_expectedLowestProfit != 0 && m_expectedLowestProfit < profit {
 		// 利潤變少了，全力買起來
-		isFullPower = true
-		m_expectedLowestProfit = 0
+		m_isFullPower = true
 	}
 
-	if isFullPower {
+	if m_isFullPower {
 		perOrderMaxVolume = RANK_S[R_VOLUME]
 	}
 
@@ -303,16 +304,14 @@ func stratStrategy() int {
 	orderVolume := math.Min(wnatOrderVolume, sourceOrderVolume)
 
 	m_expectedSourceOrder = sourceOrderVolume - orderVolume
+	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	if profit < 0 {
-		log.Println("No profit")
-		return 0
-	} else if profit < PROFIT_THRESHOLD {
-		log.Println("No enough profit")
-		return 0
-	} else if orderVolume < LEAST_VOLUME {
-		log.Println("orderVolume < 10")
+	if !canOrder(profit, orderVolume) {
+		// 無利可圖，重設偵測
+		m_isFullPower = false
+		m_expectedSourceOrder = 0
+		m_expectedLowestProfit = 0
 		return 0
 	}
 
@@ -337,11 +336,26 @@ func stratStrategy() int {
 	sendTelegram(content)
 
 	resPlusSecond := RANK_N[R_PLUS_SECOND]
-	if isFullPower {
+	if m_isFullPower {
 		resPlusSecond = RANK_S[R_PLUS_SECOND]
 	}
 
 	return int(resPlusSecond)
+}
+
+func canOrder(profit, orderVolume float64) bool {
+	// 有利可圖
+	if profit < 0 {
+		log.Println("No profit")
+		return false
+	} else if profit < PROFIT_THRESHOLD {
+		log.Println("No enough profit")
+		return false
+	} else if orderVolume < LEAST_VOLUME {
+		log.Println("orderVolume < 10")
+		return false
+	}
+	return true
 }
 
 /// message
