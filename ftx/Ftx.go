@@ -167,9 +167,9 @@ func (ftx *Ftx) PostOrder(order FtxOrder) string {
 		log.Fatal(err)
 	}
 	body := string(request)
-	fmt.Println(fmt.Sprintf("body:%s", body))
+	log.Println(fmt.Sprintf("body:%s", body))
 	response := ftx.doPost("orders", body)
-	fmt.Println(fmt.Sprintf("%s", response))
+	log.Println(fmt.Sprintf("%s", response))
 	return string(response)
 }
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -25,16 +26,19 @@ const (
 )
 
 const (
-	TAKER_FEE     = 0.000665
-	RANGE_PREMIUM = 0.1 //10%
+	TAKER_FEE            = 0.000665
+	RANGE_PREMIUM        = 0.2 //20%
+	PER_ORDER_MAX_VOLUME = 853
+	PROFIT_THRESHOLD     = 0.003
+	LEAST_VOLUME         = 10
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	StartTelegram()
-	//var logFile *os.File = StartLog()
-	//defer logFile.Close()
+	var logFile *os.File = StartLog()
+	defer logFile.Close()
 	stratStrategy()
 
 	infoStr := string(ftx.GetAccountInfo())
@@ -244,12 +248,14 @@ func stratStrategy() int {
 	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
 
-	orderVolume := math.Min(laVolume, hbVolume)
+	sourceOrderVolume := math.Min(laVolume, hbVolume)
 
-	log.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
+	log.Println(fmt.Sprintf("sourceOrderVolume:%g", sourceOrderVolume))
 
-	const PER_ORDER_MAX_VOLUME = 200
-	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
+	wnatOrderVolume := PER_ORDER_MAX_VOLUME * (1 + (10 * rand.Float64() / 100.0)) // 隨機 +10%
+	wnatOrderVolume = math.Floor(wnatOrderVolume)
+
+	orderVolume := math.Min(wnatOrderVolume, sourceOrderVolume)
 
 	log.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
 	log.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
@@ -261,10 +267,10 @@ func stratStrategy() int {
 	if profit < 0 {
 		log.Println("No profit")
 		return 0
-	} else if profit < 0.001 {
+	} else if profit < PROFIT_THRESHOLD {
 		log.Println("No enough profit")
 		return 0
-	} else if orderVolume < 10 {
+	} else if orderVolume < LEAST_VOLUME {
 		log.Println("orderVolume < 10")
 		return 0
 	}
@@ -281,11 +287,12 @@ func stratStrategy() int {
 		}
 	}
 
-	content := fmt.Sprintf("%s%s, volume:%g \r\n profit:%s",
+	content := fmt.Sprintf("%s\r\n %s,\r\n volume:%g \r\n profit:%g \r\n sourceVolume:%g",
 		fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName),
 		fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName),
 		orderVolume,
-		profit)
+		profit,
+		sourceOrderVolume)
 	sendTelegram(content)
 
 	return -2
