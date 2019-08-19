@@ -15,8 +15,6 @@ import (
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
-type PricePair exc.PricePair
-
 type PriceType exc.PriceType
 
 const (
@@ -29,25 +27,25 @@ type PriceStatus struct {
 	Bids [][]float64 `"json:bids"`
 }
 
-func (ps *PriceStatus) GetPair(depth int, pType PriceType) (PricePair, error) {
+func (ps *PriceStatus) GetPair(depth int, pType PriceType) (exc.PricePair, error) {
 	switch pType {
 	case Ask:
 		return ps.getAskPricePair(depth)
 	case Bid:
 		return ps.getBidPricePair(depth)
 	}
-	return PricePair{}, errors.New("has no match PriceType")
+	return exc.PricePair{}, errors.New("has no match PriceType")
 }
 
-func (ps *PriceStatus) getAskPricePair(depth int) (PricePair, error) {
+func (ps *PriceStatus) getAskPricePair(depth int) (exc.PricePair, error) {
 	return getPricePair(depth, ps.Asks)
 }
-func (ps *PriceStatus) getBidPricePair(depth int) (PricePair, error) {
+func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
 	return getPricePair(depth, ps.Bids)
 }
 
-func getPricePair(depth int, prices [][]float64) (PricePair, error) {
-	var res = PricePair{}
+func getPricePair(depth int, prices [][]float64) (exc.PricePair, error) {
+	var res = exc.PricePair{}
 	size := len(prices)
 	if depth > size {
 		return res, errors.New("depth can't over size")
@@ -121,13 +119,13 @@ func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResp
 }
 
 // 看看 Api提供的交易對
-func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) PricePair {
+func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.GetPair(depth, pType)
 	return res
 }
 
-func (ftx *Ftx) GetAskPair(marketName string, depth int) PricePair {
+func (ftx *Ftx) GetAskPair(marketName string, depth int) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getAskPricePair(depth)
 	return res
@@ -138,7 +136,7 @@ func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
 	return res.Price
 }
 
-func (ftx *Ftx) GetBidPair(marketName string, depth int) PricePair {
+func (ftx *Ftx) GetBidPair(marketName string, depth int) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getBidPricePair(depth)
 	return res
@@ -166,7 +164,7 @@ type FtxOrder struct {
 }
 
 //下訂單
-func (ftx *Ftx) PostOrder(order FtxOrder) string {
+func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) string {
 	request, err := json.Marshal(order)
 	if err != nil {
 		log.Fatal(err)

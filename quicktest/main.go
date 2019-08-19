@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/yin75620/crypto-berserker/ftx"
 )
@@ -24,7 +25,7 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	logTest()
+	timerTest()
 }
 
 func codeText() {
@@ -85,4 +86,26 @@ func logTest() {
 
 	//log.SetOutput(f)
 	log.Println("This is a test log entry")
+}
+
+func timerTest() {
+	var delay_time int = 5
+	d := time.Duration(time.Second * time.Duration(delay_time))
+
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	var count = 0
+	for {
+		<-t.C
+		plusSecond := 0
+		if count > 2 {
+			plusSecond = -4
+		}
+		count = count + 1
+		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
+		time.Sleep(time.Second * 3)
+
+		log.Println("TEST")
+	}
 }
