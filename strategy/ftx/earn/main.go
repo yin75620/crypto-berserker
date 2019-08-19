@@ -28,7 +28,7 @@ const (
 const (
 	TAKER_FEE            = 0.000665
 	RANGE_PREMIUM        = 0.2 //20%
-	PER_ORDER_MAX_VOLUME = 853 //有人搶就全力對搶
+	PER_ORDER_MAX_VOLUME = 400 //有人搶就全力對搶
 	PROFIT_THRESHOLD     = 0.001
 	LEAST_VOLUME         = 10
 )
@@ -37,7 +37,7 @@ const (
 var (
 	// 數量, 利潤, 加速
 	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.01, -2.0}
-	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 4, 0.001, 0.0}
+	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0}
 )
 
 const (
