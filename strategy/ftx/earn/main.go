@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -25,16 +26,32 @@ const (
 )
 
 const (
-	TAKER_FEE     = 0.000665
-	RANGE_PREMIUM = 0.1 //10%
+	TAKER_FEE            = 0.000665
+	RANGE_PREMIUM        = 0.2 //20%
+	PER_ORDER_MAX_VOLUME = 400 //有人搶就全力對搶
+	PROFIT_THRESHOLD     = 0.001
+	LEAST_VOLUME         = 10
+)
+
+//當const 用
+var (
+	// 數量, 利潤, 加速
+	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.01, -2.0}
+	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0}
+)
+
+const (
+	R_VOLUME      = 0
+	R_PROFIT      = 1
+	R_PLUS_SECOND = 2
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
 
 func main() {
 	StartTelegram()
-	//var logFile *os.File = StartLog()
-	//defer logFile.Close()
+	var logFile *os.File = StartLog()
+	defer logFile.Close()
 	stratStrategy()
 
 	infoStr := string(ftx.GetAccountInfo())
@@ -223,6 +240,13 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	return resDealFlow
 }
 
+var (
+	m_expectedSourceOrder  float64 = 0
+	m_expectedLowestProfit float64 = 0
+)
+
+var m_isFullPower = false
+
 func stratStrategy() int {
 	fuDealFlow := NewDealFlow(FTT, USD)
 	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
@@ -244,28 +268,50 @@ func stratStrategy() int {
 	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
 
-	orderVolume := math.Min(laVolume, hbVolume)
+	sourceOrderVolume := math.Min(laVolume, hbVolume)
 
-	log.Println(fmt.Sprintf("sourceOrderVolume:%g", orderVolume))
-
-	const PER_ORDER_MAX_VOLUME = 200
-	orderVolume = math.Min(PER_ORDER_MAX_VOLUME, orderVolume)
+	log.Println(fmt.Sprintf("sourceOrderVolume:%g", sourceOrderVolume))
+	log.Println(fmt.Sprintf("m_expectedSourceOrder:%g", m_expectedSourceOrder))
 
 	log.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
 	log.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
 
 	profit := hbPrice - laPrice
+
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
+	perOrderMaxVolume := RANK_N[R_VOLUME]
+
+	// 表示有人來搶單拉!!
+	if m_expectedSourceOrder != 0 && m_expectedSourceOrder > sourceOrderVolume {
+		m_isFullPower = true
+
+	} else if profit > RANK_S[R_PROFIT] {
+		// 利潤超高 買起來!!!
+		m_isFullPower = true
+	} else if m_expectedLowestProfit != 0 && m_expectedLowestProfit < profit {
+		// 利潤變少了，全力買起來
+		m_isFullPower = true
+	}
+
+	if m_isFullPower {
+		perOrderMaxVolume = RANK_S[R_VOLUME]
+	}
+
+	wnatOrderVolume := perOrderMaxVolume * (1 + (10 * rand.Float64() / 100.0)) // 隨機 +10%
+	wnatOrderVolume = math.Floor(wnatOrderVolume)
+
+	orderVolume := math.Min(wnatOrderVolume, sourceOrderVolume)
+
+	m_expectedSourceOrder = sourceOrderVolume - orderVolume
+	m_expectedLowestProfit = profit
+
 	// 有利可圖
-	if profit < 0 {
-		log.Println("No profit")
-		return 0
-	} else if profit < 0.001 {
-		log.Println("No enough profit")
-		return 0
-	} else if orderVolume < 10 {
-		log.Println("orderVolume < 10")
+	if !canOrder(profit, orderVolume) {
+		// 無利可圖，重設偵測
+		m_isFullPower = false
+		m_expectedSourceOrder = 0
+		m_expectedLowestProfit = 0
 		return 0
 	}
 
@@ -281,14 +327,35 @@ func stratStrategy() int {
 		}
 	}
 
-	content := fmt.Sprintf("%s%s, volume:%g \r\n profit:%s",
+	content := fmt.Sprintf("%s\r\n %s,\r\n volume:%g \r\n profit:%g \r\n sourceVolume:%g",
 		fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName),
 		fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName),
 		orderVolume,
-		profit)
+		profit,
+		sourceOrderVolume)
 	sendTelegram(content)
 
-	return -2
+	resPlusSecond := RANK_N[R_PLUS_SECOND]
+	if m_isFullPower {
+		resPlusSecond = RANK_S[R_PLUS_SECOND]
+	}
+
+	return int(resPlusSecond)
+}
+
+func canOrder(profit, orderVolume float64) bool {
+	// 有利可圖
+	if profit < 0 {
+		log.Println("No profit")
+		return false
+	} else if profit < PROFIT_THRESHOLD {
+		log.Println("No enough profit")
+		return false
+	} else if orderVolume < LEAST_VOLUME {
+		log.Println("orderVolume < 10")
+		return false
+	}
+	return true
 }
 
 /// message
