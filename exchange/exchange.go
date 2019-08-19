@@ -33,7 +33,3 @@ type ExchangeOrder struct {
 	OrderType EOrderType `json:"order_type"`
 	//ReduceOnly bool       `json:"reduceOnly"`
 }
-
-func GetAskBidPair() {
-
-}
