@@ -110,15 +110,14 @@ func (q *Quote) MarketName() string {
 }
 
 func (q *Quote) GetPair(pType exc.PriceType) exc.PricePair {
-	res := exc.PricePair{}
 	switch pType {
 	case exc.Ask:
-		res := q.askPair
+		return q.askPair
 	case exc.Bid:
-		res := q.bidPair
+		return q.bidPair
 	}
 	log.Fatal("Error: not specific pType")
-	return res
+	return exc.PricePair{}
 }
 
 func NewQuote(goalCoin, currentCoin string) Quote {
@@ -266,8 +265,8 @@ func stratStrategy() int {
 		//futDealFlow,
 	}
 
-	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
-	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
+	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
+	highestBidFlow := getHighestFlow(dealFlows, exc.Bid)
 
 	laName := lowestAskFlow.getName()
 	hbName := highestBidFlow.getName()
@@ -334,11 +333,11 @@ func stratStrategy() int {
 	if isOrder {
 		const isKeepUSD = true
 		if isKeepUSD {
-			executeOrder(lowestAskFlow, fx.Ask, laOrderVolume)
-			executeOrder(highestBidFlow, fx.Bid, hbOrderVolume)
+			executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
+			executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
 		} else {
-			executeOrder(highestBidFlow, fx.Bid, laOrderVolume)
-			executeOrder(lowestAskFlow, fx.Ask, hbOrderVolume)
+			executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
+			executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
 		}
 	}
 
