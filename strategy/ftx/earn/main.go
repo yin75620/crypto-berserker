@@ -30,20 +30,22 @@ const (
 	RANGE_PREMIUM        = 0.2 //20%
 	PER_ORDER_MAX_VOLUME = 400 //有人搶就全力對搶
 	PROFIT_THRESHOLD     = 0.001
-	LEAST_VOLUME         = 10
+	//LEAST_VOLUME         = 10
+	LEAST_TOTAL_VALUE = 20 //20US
 )
 
 //當const 用
 var (
-	// 數量, 利潤, 加速
-	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -4.0}
-	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0}
+	// 數量, 利潤, 加速, 價值(美元計價)
+	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -4.0, 650}
+	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0, 300}
 )
 
 const (
 	R_VOLUME      = 0
 	R_PROFIT      = 1
 	R_PLUS_SECOND = 2
+	R_TOTAL_VALUE = 3
 )
 
 var ftx = fx.NewFtx(http.DefaultClient)
@@ -190,8 +192,8 @@ func (df *DealFlow) getFinalPair(pType fx.PriceType) fx.PricePair {
 func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.PricePair {
 	var finalPrice float64 = 1
 	var finalFeePrice float64 = 1
-	var finalVolume float64 = math.MaxFloat64
-	var compareVolume float64 = math.MaxFloat64
+	var resTotalValue float64 = math.MaxFloat64 //總價值
+
 	for _, quote := range df.quotes {
 		pair := quote.GetPair(pType)
 		finalPrice = finalPrice * pair.Price
@@ -203,13 +205,19 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 			}
 			finalFeePrice = finalFeePrice * (1.0 + TAKER_FEE*cacularSymbol)
 		}
-		compareVolume = math.Min(pair.Volume, finalVolume)
-		finalVolume = pair.Price * compareVolume
+
+		// 上次總價值 與這次量相比 (這樣單位才一致)
+		minVolume := math.Min(resTotalValue, pair.Volume)
+
+		resTotalValue = pair.Price * minVolume
+		fmt.Println(fmt.Sprintf("resTotalValue %f", resTotalValue))
+		fmt.Println(fmt.Sprintf("minVolume %f", minVolume))
+
 	}
 
 	var finalAskPair fx.PricePair = fx.PricePair{}
 	finalAskPair.Price = finalFeePrice
-	finalAskPair.Volume = finalVolume / finalPrice
+	finalAskPair.Volume = resTotalValue / finalPrice
 	return finalAskPair
 }
 func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
@@ -241,7 +249,7 @@ func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 }
 
 var (
-	m_expectedSourceOrder  float64 = 0
+	m_expectedTotalValue   float64 = 0
 	m_expectedLowestProfit float64 = 0
 )
 
@@ -259,6 +267,7 @@ func stratStrategy() int {
 	}
 	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
 	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
+
 	laName := lowestAskFlow.getName()
 	hbName := highestBidFlow.getName()
 
@@ -268,22 +277,25 @@ func stratStrategy() int {
 	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
 
-	sourceOrderVolume := math.Min(laVolume, hbVolume)
+	laValue := laPrice * laVolume
+	hbValue := hbPrice * hbVolume
 
-	log.Println(fmt.Sprintf("sourceOrderVolume:%g", sourceOrderVolume))
-	log.Println(fmt.Sprintf("m_expectedSourceOrder:%g", m_expectedSourceOrder))
+	minSourceTotalValue := math.Min(laValue, hbValue)
 
-	log.Println(fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName))
-	log.Println(fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName))
+	log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
+	log.Println(fmt.Sprintf("m_expectedTotalValue:%g", m_expectedTotalValue))
+
+	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
+	log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
 
 	profit := hbPrice - laPrice
 
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
-	perOrderMaxVolume := RANK_N[R_VOLUME]
+	currentOrderTotalValue := RANK_N[R_TOTAL_VALUE]
 
 	// 表示有人來搶單拉!!
-	if m_expectedSourceOrder != 0 && m_expectedSourceOrder > sourceOrderVolume {
+	if m_expectedTotalValue != 0 && m_expectedTotalValue > currentOrderTotalValue {
 		m_isFullPower = true
 
 	} else if profit > RANK_S[R_PROFIT] {
@@ -295,44 +307,46 @@ func stratStrategy() int {
 	}
 
 	if m_isFullPower {
-		perOrderMaxVolume = RANK_S[R_VOLUME]
+		currentOrderTotalValue = RANK_S[R_TOTAL_VALUE]
 	}
 
-	wnatOrderVolume := perOrderMaxVolume * (1 + (10 * rand.Float64() / 100.0)) // 隨機 +10%
-	wnatOrderVolume = math.Floor(wnatOrderVolume)
+	wnatOrderTotalValue := currentOrderTotalValue * (1 + (10 * rand.Float64() / 100.0)) // 隨機 +10%
+	wnatOrderTotalValue = math.Floor(wnatOrderTotalValue)
 
-	orderVolume := math.Min(wnatOrderVolume, sourceOrderVolume)
+	orderTotalValue := math.Min(wnatOrderTotalValue, minSourceTotalValue)
 
-	m_expectedSourceOrder = sourceOrderVolume - orderVolume
+	m_expectedTotalValue = minSourceTotalValue - orderTotalValue
 	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	if !canOrder(profit, orderVolume) {
+	if !canOrder(profit, orderTotalValue) {
 		// 無利可圖，重設偵測
 		m_isFullPower = false
-		m_expectedSourceOrder = 0
+		m_expectedTotalValue = 0
 		m_expectedLowestProfit = 0
 		return 0
 	}
 
+	laOrderVolume := orderTotalValue / laPrice
+	hbOrderVolume := orderTotalValue / hbPrice
 	const isOrder = true
 	if isOrder {
 		const isKeepUSD = true
 		if isKeepUSD {
-			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
-			executeOrder(highestBidFlow, fx.Bid, orderVolume)
+			executeOrder(lowestAskFlow, fx.Ask, laOrderVolume)
+			executeOrder(highestBidFlow, fx.Bid, hbOrderVolume)
 		} else {
-			executeOrder(highestBidFlow, fx.Bid, orderVolume)
-			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
+			executeOrder(highestBidFlow, fx.Bid, laOrderVolume)
+			executeOrder(lowestAskFlow, fx.Ask, hbOrderVolume)
 		}
 	}
 
-	content := fmt.Sprintf("%s\r\n %s,\r\n volume:%g \r\n profit:%g \r\n sourceVolume:%g",
-		fmt.Sprintf("resAsk:%f, AskCoin:%s", laPrice, laName),
-		fmt.Sprintf("resBid:%f, bidCoin:%s", hbPrice, hbName),
-		orderVolume,
+	content := fmt.Sprintf("%s\r\n %s,\r\n orderTotalValue:%g \r\n profit:%g \r\n m_expectedTotalValue:%g",
+		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", laPrice, laOrderVolume, laName),
+		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", hbPrice, hbOrderVolume, hbName),
+		orderTotalValue,
 		profit,
-		sourceOrderVolume)
+		m_expectedTotalValue)
 	sendTelegram(content)
 
 	resPlusSecond := RANK_N[R_PLUS_SECOND]
@@ -343,7 +357,7 @@ func stratStrategy() int {
 	return int(resPlusSecond)
 }
 
-func canOrder(profit, orderVolume float64) bool {
+func canOrder(profit, orderTotalValue float64) bool {
 	// 有利可圖
 	if profit < 0 {
 		log.Println("No profit")
@@ -351,8 +365,8 @@ func canOrder(profit, orderVolume float64) bool {
 	} else if profit < PROFIT_THRESHOLD {
 		log.Println("No enough profit")
 		return false
-	} else if orderVolume < LEAST_VOLUME {
-		log.Println("orderVolume < 10")
+	} else if orderTotalValue < LEAST_TOTAL_VALUE {
+		log.Println(fmt.Sprintf("orderTotalValue < %f", LEAST_TOTAL_VALUE))
 		return false
 	}
 	return true
