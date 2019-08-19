@@ -27,9 +27,9 @@ const (
 
 const (
 	TAKER_FEE            = 0.000665
-	RANGE_PREMIUM        = 0.2  //20%
-	PER_ORDER_MAX_VOLUME = 853  //有人搶就全力對搶
-	PROFIT_THRESHOLD     = 0.01 //百分之一就全力做
+	RANGE_PREMIUM        = 0.2 //20%
+	PER_ORDER_MAX_VOLUME = 853 //有人搶就全力對搶
+	PROFIT_THRESHOLD     = 0.001
 	LEAST_VOLUME         = 10
 )
 
