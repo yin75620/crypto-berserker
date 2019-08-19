@@ -209,9 +209,6 @@ func (df *DealFlow) getFinalPairWithFee(pType exc.PriceType, hasFee bool) exc.Pr
 		minVolume := math.Min(resTotalValue, pair.Volume)
 
 		resTotalValue = pair.Price * minVolume
-		fmt.Println(fmt.Sprintf("resTotalValue %f", resTotalValue))
-		fmt.Println(fmt.Sprintf("minVolume %f", minVolume))
-
 	}
 
 	var finalAskPair exc.PricePair = exc.PricePair{}
@@ -395,9 +392,9 @@ func StartTelegram() {
 }
 
 func sendTelegram(content string) {
-	msg := tgbotapi.NewMessage(945156610, content)
-
-	bot.Send(msg)
+	//pause
+	//msg := tgbotapi.NewMessage(945156610, content)
+	//bot.Send(msg)
 }
 
 ///

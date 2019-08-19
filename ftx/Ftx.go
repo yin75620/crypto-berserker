@@ -163,9 +163,21 @@ type FtxOrder struct {
 	//ReduceOnly bool       `json:"reduceOnly"`
 }
 
+func (fo *FtxOrder) setBy(order exc.ExchangeOrder) {
+	fo.Market = order.Market
+	fo.Side = order.Side
+	fo.Price = order.Price
+	fo.Size = order.Size
+	fo.OrderType = EOrderType(order.OrderType)
+}
+
 //下訂單
 func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) string {
-	request, err := json.Marshal(order)
+
+	fo := FtxOrder{}
+	fo.setBy(order)
+
+	request, err := json.Marshal(fo)
 	if err != nil {
 		log.Fatal(err)
 	}
