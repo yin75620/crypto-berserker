@@ -11,20 +11,18 @@ import (
 	"strconv"
 	"time"
 
+	exc "github.com/yin75620/crypto-berserker/exchange"
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
-type PriceType int
+type PricePair exc.PricePair
+
+type PriceType exc.PriceType
 
 const (
 	Ask PriceType = iota
 	Bid
 )
-
-type PricePair struct {
-	Price  float64
-	Volume float64
-}
 
 type PriceStatus struct {
 	Asks [][]float64 `"json:asks"`
@@ -106,6 +104,13 @@ func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
 	path := fmt.Sprintf("/markets/%s/orderbook?depth=%d", marketName, depth)
 	response := ftx.doGet(path, "")
 	return response
+}
+
+func (ftx *Ftx) GetAskBidPair(marketName string, depth int) (exc.PricePair, exc.PricePair) {
+	resb := ftx.GetOrderBookResponse(marketName, depth)
+	askPair, _ := resb.Result.GetPair(1, Ask)
+	bidPair, _ := resb.Result.GetPair(1, Bid)
+	return askPair, bidPair
 }
 
 func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResponse {

@@ -14,7 +14,8 @@ import (
 
 	gomail "github.com/alexcesaro/mail/gomail"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	fx "github.com/yin75620/crypto-berserker/ftx"
+	exc "github.com/yin75620/crypto-berserker/exchange"
+	ftx "github.com/yin75620/crypto-berserker/ftx"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -46,7 +47,7 @@ const (
 	R_PLUS_SECOND = 2
 )
 
-var ftx = fx.NewFtx(http.DefaultClient)
+var m_ftxClient = ftx.NewFtx(http.DefaultClient)
 
 func main() {
 	StartTelegram()
@@ -54,7 +55,7 @@ func main() {
 	defer logFile.Close()
 	stratStrategy()
 
-	infoStr := string(ftx.GetAccountInfo())
+	infoStr := string(m_ftxClient.GetAccountInfo())
 	sendTelegram(infoStr)
 	/*
 		ticker := time.NewTicker(6 * time.Second)
@@ -96,8 +97,8 @@ func StartLog() *os.File {
 type Quote struct {
 	goalCoin    string
 	currentCoin string
-	askPair     fx.PricePair
-	bidPair     fx.PricePair
+	askPair     exc.PricePair
+	bidPair     exc.PricePair
 	underDot    int
 }
 
@@ -106,29 +107,28 @@ func (q *Quote) MarketName() string {
 	return marketName
 }
 
-func (q *Quote) GetPair(pType fx.PriceType) fx.PricePair {
+func (q *Quote) GetPair(pType exc.PriceType) exc.PricePair {
+	res := exc.PricePair{}
 	switch pType {
-	case fx.Ask:
-		return q.askPair
-	case fx.Bid:
-		return q.bidPair
+	case exc.Ask:
+		res := q.askPair
+	case exc.Bid:
+		res := q.bidPair
 	}
 	log.Fatal("Error: not specific pType")
-	return fx.PricePair{}
+	return res
 }
 
 func NewQuote(goalCoin, currentCoin string) Quote {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	var askPair fx.PricePair
-	var bidPair fx.PricePair
+	var askPair exc.PricePair
+	var bidPair exc.PricePair
 	//偽裝成 USDT
 	if marketName == "USDT/USD" {
-		askPair = fx.PricePair{1.001, 999999}
-		bidPair = fx.PricePair{0.997, 999999}
+		askPair = exc.PricePair{1.001, 999999}
+		bidPair = exc.PricePair{0.997, 999999}
 	} else {
-		res := ftx.GetOrderBookResponse(marketName, 1)
-		askPair, _ = res.Result.GetPair(1, fx.Ask)
-		bidPair, _ = res.Result.GetPair(1, fx.Bid)
+		askPair, bidPair = m_ftxClient.GetAskBidPair(marketName, 1)
 	}
 	var quote Quote = Quote{}
 	quote.askPair = askPair
@@ -183,11 +183,11 @@ func (df *DealFlow) getName() string {
 	return marketName
 }
 
-func (df *DealFlow) getFinalPair(pType fx.PriceType) fx.PricePair {
+func (df *DealFlow) getFinalPair(pType exc.PriceType) exc.PricePair {
 	return df.getFinalPairWithFee(pType, true)
 }
 
-func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.PricePair {
+func (df *DealFlow) getFinalPairWithFee(pType exc.PriceType, hasFee bool) exc.PricePair {
 	var finalPrice float64 = 1
 	var finalFeePrice float64 = 1
 	var finalVolume float64 = math.MaxFloat64
@@ -198,7 +198,7 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 		finalFeePrice = finalFeePrice * pair.Price
 		if hasFee {
 			cacularSymbol := 1.0
-			if pType == fx.Bid {
+			if pType == exc.Bid {
 				cacularSymbol = -1
 			}
 			finalFeePrice = finalFeePrice * (1.0 + TAKER_FEE*cacularSymbol)
@@ -207,12 +207,12 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 		finalVolume = pair.Price * compareVolume
 	}
 
-	var finalAskPair fx.PricePair = fx.PricePair{}
+	var finalAskPair exc.PricePair = exc.PricePair{}
 	finalAskPair.Price = finalFeePrice
 	finalAskPair.Volume = finalVolume / finalPrice
 	return finalAskPair
 }
-func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
+func getLowestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
 	lowest := math.MaxFloat64
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
@@ -226,7 +226,7 @@ func getLowestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
 	return resDealFlow
 }
 
-func getHighestFlow(dealFlows []DealFlow, pType fx.PriceType) DealFlow {
+func getHighestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
 	highest := 0.0
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
@@ -257,16 +257,16 @@ func stratStrategy() int {
 		fbuDealFlow,
 		//futDealFlow,
 	}
-	lowestAskFlow := getLowestFlow(dealFlows, fx.Ask)
-	highestBidFlow := getHighestFlow(dealFlows, fx.Bid)
+	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
+	highestBidFlow := getHighestFlow(dealFlows, exc.Bid)
 	laName := lowestAskFlow.getName()
 	hbName := highestBidFlow.getName()
 
-	laPrice := lowestAskFlow.getFinalPair(fx.Ask).Price
-	hbPrice := highestBidFlow.getFinalPair(fx.Bid).Price
+	laPrice := lowestAskFlow.getFinalPair(exc.Ask).Price
+	hbPrice := highestBidFlow.getFinalPair(exc.Bid).Price
 
-	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
-	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
+	laVolume := lowestAskFlow.getFinalPair(exc.Ask).Volume
+	hbVolume := highestBidFlow.getFinalPair(exc.Bid).Volume
 
 	sourceOrderVolume := math.Min(laVolume, hbVolume)
 
@@ -319,11 +319,11 @@ func stratStrategy() int {
 	if isOrder {
 		const isKeepUSD = true
 		if isKeepUSD {
-			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
-			executeOrder(highestBidFlow, fx.Bid, orderVolume)
+			executeOrder(lowestAskFlow, exc.Ask, orderVolume)
+			executeOrder(highestBidFlow, exc.Bid, orderVolume)
 		} else {
-			executeOrder(highestBidFlow, fx.Bid, orderVolume)
-			executeOrder(lowestAskFlow, fx.Ask, orderVolume)
+			executeOrder(highestBidFlow, exc.Bid, orderVolume)
+			executeOrder(lowestAskFlow, exc.Ask, orderVolume)
 		}
 	}
 
@@ -388,12 +388,12 @@ func sendTelegram(content string) {
 
 ///
 
-func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
+func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 	log.Println(fmt.Sprintf("startVolume:%f", startVolume))
 	side := ""
 	orderSymbol := 1.0
 	switch pType {
-	case fx.Bid:
+	case exc.Bid:
 		side = "sell"
 		orderVolume := startVolume
 		orderSymbol = -1
@@ -404,22 +404,22 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 
 			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
 
-			var myOrder fx.FtxOrder = fx.FtxOrder{
+			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
-				OrderType: fx.MARKET,
+				OrderType: exc.MARKET,
 			}
-			ftx.PostOrder(myOrder)
+			m_ftxClient.PostOrder(myOrder)
 
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
-	case fx.Ask:
+	case exc.Ask:
 		side := "buy"
 		orderVolume := startVolume
 		orderSymbol = 1.0
-		var orders []fx.FtxOrder = []fx.FtxOrder{}
+		var orders []exc.ExchangeOrder = []exc.ExchangeOrder{}
 		for i := 0; i < len(df.quotes); i++ {
 			quote := df.quotes[i]
 			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
@@ -428,12 +428,12 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 
 			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
 
-			var myOrder fx.FtxOrder = fx.FtxOrder{
+			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
-				OrderType: fx.MARKET,
+				OrderType: exc.MARKET,
 			}
 			orders = append(orders, myOrder)
 
@@ -443,7 +443,7 @@ func executeOrder(df DealFlow, pType fx.PriceType, startVolume float64) {
 
 		for i := len(orders) - 1; i >= 0; i-- {
 			order := orders[i]
-			ftx.PostOrder(order)
+			m_ftxClient.PostOrder(order)
 		}
 	}
 }
@@ -456,11 +456,11 @@ func postCoinOrder(goalCoin, currentCoin, side string, price, size float64) {
 }
 
 func postOrder(marketName, side string, price, size float64) {
-	var myOrder fx.FtxOrder = fx.FtxOrder{
+	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 		Market: marketName,
 		Side:   side,
 		Price:  price,
 		Size:   size,
 	}
-	ftx.PostOrder(myOrder)
+	m_ftxClient.PostOrder(myOrder)
 }
