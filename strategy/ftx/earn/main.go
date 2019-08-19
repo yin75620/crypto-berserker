@@ -129,7 +129,7 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 		askPair = exc.PricePair{1.001, 999999}
 		bidPair = exc.PricePair{0.997, 999999}
 	} else {
-		askPair, bidPair = m_ftxClient.GetAskBidPair(marketName, 1)
+		askPair, bidPair = m_ftxClient.GetAskBidPair(exc.CoinPair{BaseCoin: goalCoin, QuotedCoin: currentCoin}, 1)
 	}
 	var quote Quote = Quote{}
 	quote.askPair = askPair

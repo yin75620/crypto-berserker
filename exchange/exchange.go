@@ -1,7 +1,9 @@
 package exchange
 
+import "fmt"
+
 type Exchange interface {
-	GetAskBidPair(marketName string, depth int) (PricePair, PricePair)
+	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 	GetAccountInfo() []byte
 	PostOrder(order ExchangeOrder) string
 }
@@ -32,4 +34,13 @@ type ExchangeOrder struct {
 	Size      float64    `json:"size"`
 	OrderType EOrderType `json:"order_type"`
 	//ReduceOnly bool       `json:"reduceOnly"`
+}
+
+type CoinPair struct {
+	BaseCoin   string //基礎貨幣
+	QuotedCoin string //標價貨幣
+}
+
+func (co *CoinPair) GetMarketName() string {
+	return fmt.Sprintf("%s/%s", co.BaseCoin, co.QuotedCoin)
 }

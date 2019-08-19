@@ -104,8 +104,8 @@ func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
 	return response
 }
 
-func (ftx *Ftx) GetAskBidPair(marketName string, depth int) (exc.PricePair, exc.PricePair) {
-	resb := ftx.GetOrderBookResponse(marketName, depth)
+func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	resb := ftx.GetOrderBookResponse(coinPair.GetMarketName(), depth)
 	askPair, _ := resb.Result.GetPair(1, Ask)
 	bidPair, _ := resb.Result.GetPair(1, Bid)
 	return askPair, bidPair
