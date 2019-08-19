@@ -1,6 +1,8 @@
 package exchange
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Exchange interface {
 	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)

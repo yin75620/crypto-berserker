@@ -2,39 +2,41 @@ package bitmax
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/setting"
 )
 
+func NewBitmax(c *http.Client) *Bitmax {
+	bitmax := &Bitmax{}
+	bitmax.client = c
+	return bitmax
+}
+
 type Bitmax struct {
-	client *http.Client
+	client       *http.Client
+	accountGroup int
 }
 
 var (
-	apiURL     = "https://bitmax.io/api/v1/products"
-	apiVersion = "v1"
-	apiPrefix  = "/api/"
+	apiURL    = "https://bitmax.io/"
+	apiPrefix = "api/v1/"
 )
 
+/*
 func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
-	coinPair.get
-	resb := ftx.GetOrderBookResponse(marketName, depth)
-	askPair, _ := resb.Result.GetPair(1, Ask)
-	bidPair, _ := resb.Result.GetPair(1, Bid)
-	return askPair, bidPair
-}
+
+}*/
 
 func (bm *Bitmax) GetAccountInfo() []byte {
-	return ftx.doGet("account", "")
+	return bm.doAuthRequest("GET", "balance", "")
 }
 
+/*
 //下訂單
 func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) string {
 
@@ -57,14 +59,32 @@ func (bm *Bitmax) GetDepth(marketName string, depth int) OrderBookResponse {
 	var bookResponse OrderBookResponse
 	json.Unmarshal(response, &bookResponse)
 	return bookResponse
+}*/
+
+func (bm *Bitmax) doNormalRequest(method, apiName, body string) []byte {
+	return bm.doRequest(method, apiName, body, false)
 }
 
-func (bm *Bitmax) doRequest(method, apiName, body string) []byte {
+func (bm *Bitmax) doAuthRequest(method, apiName, body string) []byte {
+	return bm.doRequest(method, apiName, body, true)
+}
+
+func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool) []byte {
 	client := bm.client
 
 	var res []byte
 
-	fullUrl := fmt.Sprintf("%s/%s", apiURL, apiName)
+	accountGroupStr := ""
+	if needAuth {
+		if bm.accountGroup != 0 {
+			accountGroupStr = fmt.Sprintf("%d/", bm.accountGroup)
+		} else {
+			bm.doNormalRequest("GET", "user/info", "")
+		}
+	}
+
+	fullUrl := fmt.Sprintf("%s%s%s%s", apiURL, accountGroupStr, apiPrefix, apiName)
+	fmt.Println(fullUrl)
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
@@ -93,13 +113,16 @@ func (bm *Bitmax) doRequest(method, apiName, body string) []byte {
 }
 
 func addHeader(header *http.Header, reqMethod, path, body string) {
-	nanos := time.Now().UnixNano() / 1000000
-	ts := strconv.FormatInt(nanos, 10)
+	ts := exc.GetTimeSpanStr(exc.GetTimeSpan())
 
-	header.Add("FTX-KEY", bsk.FTX_KEY)
-	header.Add("FTX-TS", ts)
-	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
-	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
-	header.Add("FTX-SIGN", sign)
-	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
+	header.Add("x-auth-key", setting.BITMAX_KEY)
+	header.Add("x-auth-timestamp", ts)
+
+	if body != "" {
+		body = fmt.Sprintf("+%s", body)
+	}
+	payload := fmt.Sprintf("%s+%s%s", ts, path, body)
+	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.BITMAX_API_SECRET_KEY, payload)
+	header.Add("x-auth-signature", sign)
+	header.Add("x-auth-coid", setting.BITMAX_COID)
 }

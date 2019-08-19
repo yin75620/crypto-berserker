@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	bsk "github.com/yin75620/crypto-berserker/setting"
@@ -230,13 +228,12 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 }
 
 func addHeader(header *http.Header, reqMethod, path, body string) {
-	nanos := time.Now().UnixNano() / 1000000
-	ts := strconv.FormatInt(nanos, 10)
+	ts := exc.GetTimeSpanStr(exc.GetTimeSpan())
 
 	header.Add("FTX-KEY", bsk.FTX_KEY)
 	header.Add("FTX-TS", ts)
 	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
-	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
+	sign, _ := exc.GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
 	header.Add("FTX-SIGN", sign)
 	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
 }
