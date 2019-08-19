@@ -36,23 +36,10 @@ func (ps *PriceStatus) GetPair(depth int, pType PriceType) (exc.PricePair, error
 }
 
 func (ps *PriceStatus) getAskPricePair(depth int) (exc.PricePair, error) {
-	return getPricePair(depth, ps.Asks)
+	return exc.GetPricePair(depth, ps.Asks)
 }
 func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
-	return getPricePair(depth, ps.Bids)
-}
-
-func getPricePair(depth int, prices [][]float64) (exc.PricePair, error) {
-	var res = exc.PricePair{}
-	size := len(prices)
-	if depth > size {
-		return res, errors.New("depth can't over size")
-	}
-
-	index := depth - 1
-	res.Price = prices[index][0] // first prize, second volume
-	res.Volume = prices[index][1]
-	return res, nil
+	return exc.GetPricePair(depth, ps.Bids)
 }
 
 type OrderBookResponse struct {
