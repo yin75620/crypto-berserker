@@ -37,7 +37,7 @@ const (
 //當const 用
 var (
 	// 數量, 利潤, 加速, 價值(美元計價)
-	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -4.0, 650}
+	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -2.0, 650}
 	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0, 300}
 )
 
