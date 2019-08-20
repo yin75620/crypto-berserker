@@ -274,6 +274,12 @@ func stratStrategy() int {
 	laPrice := lowestAskFlow.getFinalPair(fx.Ask).Price
 	hbPrice := highestBidFlow.getFinalPair(fx.Bid).Price
 
+	// 出現錯誤，放慢速度
+	if laPrice <= 0 {
+		log.Println("laPrice <= 0")
+		return 60
+	}
+
 	laVolume := lowestAskFlow.getFinalPair(fx.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(fx.Bid).Volume
 
