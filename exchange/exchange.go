@@ -18,6 +18,11 @@ const (
 	Bid
 )
 
+const (
+	Sell = "sell"
+	Buy  = "buy"
+)
+
 type PricePair struct {
 	Price  float64
 	Volume float64

@@ -48,14 +48,12 @@ func transToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
 	res := [][]float64{}
 	for _, array := range askStrArrays {
 		askFloatArray := []float64{}
-		fmt.Println(array)
 		sArray := array.([]interface{})
 		for _, s := range sArray {
 			res, _ := strconv.ParseFloat(s.(string), 64)
 			askFloatArray = append(askFloatArray, res)
 		}
 		res = append(res, askFloatArray)
-		fmt.Println(askFloatArray)
 	}
 	return res
 }
@@ -79,10 +77,7 @@ func (qr *QuoteResponse) getBidPricePair(depth int) (exc.PricePair, error) {
 
 func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	path := fmt.Sprintf("depth?symbol=%s&n=%d", coinPair.GetSymbal(), depth)
-	fmt.Println(path)
 	resByte := bm.doNormalRequest("GET", path, "")
-
-	fmt.Println(string(resByte))
 
 	var resJson map[string]interface{}
 
@@ -90,8 +85,6 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println(resJson)
 
 	quoteResponse := QuoteResponse{}
 	quoteResponse.setBy(resJson)
@@ -108,75 +101,74 @@ func (bm *Bitmax) GetAccountInfo() []byte {
 }
 
 type BitmaxOrder struct {
-	Coid        string `json:"coid"`        //"xxx...xxx"     a unique identifier of length 32
-	Time        int64  `json:"time"`        // 1528988100000   milliseconds since UNIX epoch in UTC
-	Symbol      string `json:"symbol"`      //"ETH/BTC"
-	OrderPrice  string `json:"orderPrice"`  //"13.5"          optional, limit price of the order. This field is required for limit orders and stop limit orders.
-	StopPrice   string `json:"stopPrice"`   //"15.7"          optional, stop price of the order. This field is required for stop market orders and stop limit orders.
-	OrderQty    string `json:"orderQty"`    //"3.5"
-	OrderType   string `json:"orderType"`   //"limit"         order type, you shall specify one of the following: "limit", "market", "stop_market", "stop_limit".
-	Side        string `json:"side"`        //"buy"           "buy" or "sell"
-	PostOnly    bool   `json:"postOnly"`    //true            Optional, if true, the order will either be posted to the limit order book or be cancelled, i.e. the order cannot take liquidity; default value is false
-	TimeInForce string `json:"timeInForce"` //"GTC"           Optional, default is "GTC". Currently, we support "GTC" (good-till-canceled) and "IOC" (immediate-or-cancel).
+	Coid       string `json:"coid"`       //"xxx...xxx"     a unique identifier of length 32
+	Time       int64  `json:"time"`       // 1528988100000   milliseconds since UNIX epoch in UTC
+	Symbol     string `json:"symbol"`     //"ETH/BTC"
+	OrderPrice string `json:"orderPrice"` //"13.5"          optional, limit price of the order. This field is required for limit orders and stop limit orders.
+	//StopPrice  string `json:"stopPrice"`  //"15.7"          optional, stop price of the order. This field is required for stop market orders and stop limit orders.
+	OrderQty  string `json:"orderQty"`  //"3.5"
+	OrderType string `json:"orderType"` //"limit"         order type, you shall specify one of the following: "limit", "market", "stop_market", "stop_limit".
+	Side      string `json:"side"`      //"buy"           "buy" or "sell"
+	//PostOnly    bool   `json:"postOnly"`    //true            Optional, if true, the order will either be posted to the limit order book or be cancelled, i.e. the order cannot take liquidity; default value is false
+	//TimeInForce string `json:"timeInForce"` //"GTC"           Optional, default is "GTC". Currently, we support "GTC" (good-till-canceled) and "IOC" (immediate-or-cancel).
 }
 
 func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
-	bo.Coid = ""
+	bo.Coid = exc.Uuid(32)
 	bo.Time = 0
 	bo.Symbol = order.Market
-	bo.OrderPrice = order.Price
-	//bo.StopPrice = ""
-	bo.OrderQty = order.Size
-	bo.OrderType = order.OrderType
+	bo.OrderPrice = fmt.Sprintf("%g", order.Price)
+	//bo.StopPrice = "0"
+	bo.OrderQty = fmt.Sprintf("%g", order.Size)
+	bo.OrderType = string(order.OrderType)
 	bo.Side = order.Side
 }
 
 //下訂單
 func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) string {
 
-	fo := exc.ExchangeOrder{}
-	fo.setBy(order)
+	ts := exc.GetTimeSpan()
+	coid := exc.Uuid(32)
+	bo := BitmaxOrder{}
+	bo.setBy(order)
+	bo.Time = ts
+	bo.Coid = coid
 
-	request, err := json.Marshal(fo)
+	request, err := json.Marshal(bo)
 	if err != nil {
 		log.Fatal(err)
 	}
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
-	response := ftx.doPost("orders", body)
+
+	response := bm.doOrderRequest("order", body, ts, coid)
+
 	log.Println(fmt.Sprintf("%s", response))
 	return string(response)
 }
 
 func (bm *Bitmax) doNormalRequest(method, apiName, body string) []byte {
-	return bm.doRequest(method, apiName, body, false)
+	ts := exc.GetTimeSpan()
+	return bm.doRequest(method, apiName, body, false, ts, "")
 }
 
 func (bm *Bitmax) doAuthRequest(method, apiName, body string) []byte {
-	return bm.doRequest(method, apiName, body, true)
+	ts := exc.GetTimeSpan()
+	return bm.doRequest(method, apiName, body, true, ts, "")
 }
 
-func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool) []byte {
+func (bm *Bitmax) doOrderRequest(apiName, body string, ts int64, coid string) []byte {
+	return bm.doRequest("POST", apiName, body, true, ts, coid)
+}
+
+func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) []byte {
 	client := bm.client
 
 	var res []byte
 
 	accountGroupStr := ""
 	if needAuth {
-		if bm.accountGroup == 0 {
-			type TempUserInfo struct {
-				AccountGroup int `json:"accountGroup"`
-			}
-
-			byt := bm.doNormalRequest("GET", "user/info", "")
-			userInfo := TempUserInfo{}
-			if err := json.Unmarshal(byt, &userInfo); err != nil {
-				panic(err)
-			}
-
-			bm.accountGroup = userInfo.AccountGroup
-		}
-		accountGroupStr = fmt.Sprintf("%d/", bm.accountGroup)
+		accountGroupStr = bm.auth()
 	}
 
 	fullUrl := fmt.Sprintf("%s%s%s%s", apiURL, accountGroupStr, apiPrefix, apiName)
@@ -188,7 +180,7 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool) []byte 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	addHeader(&req.Header, method, apiName, body)
+	addHeader(&req.Header, method, apiName, ts, coid)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -208,17 +200,37 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool) []byte 
 	return sitemap
 }
 
-func addHeader(header *http.Header, reqMethod, path, body string) {
-	ts := exc.GetTimeSpanStr(exc.GetTimeSpan())
+func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid string) {
+	strTs := exc.GetTimeSpanStr(ts)
 
 	header.Add("x-auth-key", setting.BITMAX_KEY)
-	header.Add("x-auth-timestamp", ts)
+	header.Add("x-auth-timestamp", strTs)
 
-	if body != "" {
-		body = fmt.Sprintf("+%s", body)
+	coid := ""
+	if sCoid != "" {
+		coid = fmt.Sprintf("+%s", sCoid)
 	}
-	payload := fmt.Sprintf("%s+%s%s", ts, path, body)
+	payload := fmt.Sprintf("%s+%s%s", strTs, path, coid)
+	fmt.Println(payload)
 	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.BITMAX_API_SECRET_KEY, payload)
 	header.Add("x-auth-signature", sign)
-	header.Add("x-auth-coid", setting.BITMAX_COID)
+	header.Add("x-auth-coid", sCoid)
+}
+
+func (bm *Bitmax) auth() string {
+	if bm.accountGroup == 0 {
+		type TempUserInfo struct {
+			AccountGroup int `json:"accountGroup"`
+		}
+
+		byt := bm.doNormalRequest("GET", "user/info", "")
+		userInfo := TempUserInfo{}
+		if err := json.Unmarshal(byt, &userInfo); err != nil {
+			panic(err)
+		}
+
+		bm.accountGroup = userInfo.AccountGroup
+	}
+	accountGroupStr := fmt.Sprintf("%d/", bm.accountGroup)
+	return accountGroupStr
 }
