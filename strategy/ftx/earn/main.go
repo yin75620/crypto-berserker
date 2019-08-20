@@ -210,9 +210,6 @@ func (df *DealFlow) getFinalPairWithFee(pType fx.PriceType, hasFee bool) fx.Pric
 		minVolume := math.Min(resTotalValue, pair.Volume)
 
 		resTotalValue = pair.Price * minVolume
-		fmt.Println(fmt.Sprintf("resTotalValue %f", resTotalValue))
-		fmt.Println(fmt.Sprintf("minVolume %f", minVolume))
-
 	}
 
 	var finalAskPair fx.PricePair = fx.PricePair{}
