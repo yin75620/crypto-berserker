@@ -41,6 +41,8 @@ var (
 	RANK_N = []float64{PER_ORDER_MAX_VOLUME, 0.001, -2.0, 630}
 )
 
+var marketMap map[string]int = map[string]int{"BTC/USD": 4}
+
 const (
 	R_VOLUME      = 0
 	R_PROFIT      = 1
@@ -147,6 +149,10 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 	}
 
 	quote.underDot = len(lastItem)
+	if val, ok := marketMap[marketName]; ok {
+		quote.underDot = val
+	}
+
 	return quote
 }
 
