@@ -38,9 +38,11 @@ const (
 //當const 用
 var (
 	// 數量, 利潤, 加速, 價值(美元計價)
-	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -4.0, 650}
-	RANK_N = []float64{PER_ORDER_MAX_VOLUME / 2, 0.001, 0.0, 300}
+	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.0048, -3.0, 630}
+	RANK_N = []float64{PER_ORDER_MAX_VOLUME, 0.001, -2.0, 630}
 )
+
+var marketMap map[string]int = map[string]int{"BTC/USD": 4}
 
 const (
 	R_VOLUME      = 0
@@ -146,6 +148,10 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 	}
 
 	quote.underDot = len(lastItem)
+	if val, ok := marketMap[marketName]; ok {
+		quote.underDot = val
+	}
+
 	return quote
 }
 
@@ -273,6 +279,11 @@ func stratStrategy() int {
 
 	laVolume := lowestAskFlow.getFinalPair(exc.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(exc.Bid).Volume
+	// 出現錯誤，放慢速度
+	if laPrice <= 0 {
+		log.Println("laPrice <= 0")
+		return 60
+	}
 
 	laValue := laPrice * laVolume
 	hbValue := hbPrice * hbVolume
