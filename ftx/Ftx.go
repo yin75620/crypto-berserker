@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
 type PriceType exc.PriceType
@@ -47,8 +46,15 @@ type OrderBookResponse struct {
 	Success bool        `json:"success"`
 }
 
+type FtxInit struct {
+	ApiKey       string
+	ApiSecretKey string
+	SubAccount   string
+}
+
 type Ftx struct {
-	client *http.Client
+	client   *http.Client
+	initData FtxInit
 }
 
 var (
@@ -56,9 +62,10 @@ var (
 	apiPrefix = "/api/"
 )
 
-func NewFtx(c *http.Client) *Ftx {
+func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx := &Ftx{}
 	ftx.client = c
+	ftx.initData = initData
 	return ftx
 }
 
@@ -210,7 +217,7 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	addHeader(&req.Header, method, apiName, body)
+	ftx.addHeader(&req.Header, method, apiName, body)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -230,13 +237,15 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	return sitemap
 }
 
-func addHeader(header *http.Header, reqMethod, path, body string) {
+func (ftx *Ftx) addHeader(header *http.Header, reqMethod, path, body string) {
 	ts := exc.GetTimeSpanStr(exc.GetTimeSpan())
 
-	header.Add("FTX-KEY", bsk.FTX_KEY)
+	initData := ftx.initData
+
+	header.Add("FTX-KEY", initData.ApiKey)
 	header.Add("FTX-TS", ts)
 	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
-	sign, _ := exc.GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
+	sign, _ := exc.GetParamHmacSHA256HexSign(initData.ApiSecretKey, payload)
 	header.Add("FTX-SIGN", sign)
-	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
+	header.Add("FTX-SUBACCOUNT", initData.SubAccount)
 }
