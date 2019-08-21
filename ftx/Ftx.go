@@ -66,6 +66,22 @@ func (ftx *Ftx) GetAccountInfo() []byte {
 	return ftx.doGet("account", "")
 }
 
+func (ftx *Ftx) GetStructFills() []FillResponse {
+	res := ftx.GetFills()
+	type tempResponse struct {
+		Result []FillResponse `json:"result"`
+	}
+
+	tempRes := tempResponse{}
+
+	json.Unmarshal(res, &tempRes)
+	return tempRes.Result
+}
+
+func (ftx *Ftx) GetFills() []byte {
+	return ftx.doGet("fills", "")
+}
+
 func (ftx *Ftx) GetCoins() []byte {
 	return ftx.doGet("coins", "")
 }
