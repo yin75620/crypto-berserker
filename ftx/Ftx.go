@@ -8,57 +8,37 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 
-	bsk "github.com/yin75620/crypto-berserker/setting"
+	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
-type PriceType int
+type PriceType exc.PriceType
 
 const (
 	Ask PriceType = iota
 	Bid
 )
 
-type PricePair struct {
-	Price  float64
-	Volume float64
-}
-
 type PriceStatus struct {
 	Asks [][]float64 `"json:asks"`
 	Bids [][]float64 `"json:bids"`
 }
 
-func (ps *PriceStatus) GetPair(depth int, pType PriceType) (PricePair, error) {
+func (ps *PriceStatus) GetPair(depth int, pType PriceType) (exc.PricePair, error) {
 	switch pType {
 	case Ask:
 		return ps.getAskPricePair(depth)
 	case Bid:
 		return ps.getBidPricePair(depth)
 	}
-	return PricePair{}, errors.New("has no match PriceType")
+	return exc.PricePair{}, errors.New("has no match PriceType")
 }
 
-func (ps *PriceStatus) getAskPricePair(depth int) (PricePair, error) {
-	return getPricePair(depth, ps.Asks)
+func (ps *PriceStatus) getAskPricePair(depth int) (exc.PricePair, error) {
+	return exc.GetPricePair(depth, ps.Asks)
 }
-func (ps *PriceStatus) getBidPricePair(depth int) (PricePair, error) {
-	return getPricePair(depth, ps.Bids)
-}
-
-func getPricePair(depth int, prices [][]float64) (PricePair, error) {
-	var res = PricePair{}
-	size := len(prices)
-	if depth > size {
-		return res, errors.New("depth can't over size")
-	}
-
-	index := depth - 1
-	res.Price = prices[index][0] // first prize, second volume
-	res.Volume = prices[index][1]
-	return res, nil
+func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
+	return exc.GetPricePair(depth, ps.Bids)
 }
 
 type OrderBookResponse struct {
@@ -66,8 +46,15 @@ type OrderBookResponse struct {
 	Success bool        `json:"success"`
 }
 
+type FtxInit struct {
+	ApiKey       string
+	ApiSecretKey string
+	SubAccount   string
+}
+
 type Ftx struct {
-	client *http.Client
+	client   *http.Client
+	initData FtxInit
 }
 
 var (
@@ -75,9 +62,10 @@ var (
 	apiPrefix = "/api/"
 )
 
-func NewFtx(c *http.Client) *Ftx {
+func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx := &Ftx{}
 	ftx.client = c
+	ftx.initData = initData
 	return ftx
 }
 
@@ -124,6 +112,13 @@ func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
 	return response
 }
 
+func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	resb := ftx.GetOrderBookResponse(coinPair.GetMarketName(), depth)
+	askPair, _ := resb.Result.GetPair(1, Ask)
+	bidPair, _ := resb.Result.GetPair(1, Bid)
+	return askPair, bidPair
+}
+
 func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResponse {
 	response := ftx.GetOrderBook(marketName, depth)
 	var bookResponse OrderBookResponse
@@ -132,13 +127,13 @@ func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResp
 }
 
 // 看看 Api提供的交易對
-func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) PricePair {
+func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.GetPair(depth, pType)
 	return res
 }
 
-func (ftx *Ftx) GetAskPair(marketName string, depth int) PricePair {
+func (ftx *Ftx) GetAskPair(marketName string, depth int) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getAskPricePair(depth)
 	return res
@@ -149,7 +144,7 @@ func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
 	return res.Price
 }
 
-func (ftx *Ftx) GetBidPair(marketName string, depth int) PricePair {
+func (ftx *Ftx) GetBidPair(marketName string, depth int) exc.PricePair {
 	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
 	res, _ := bookResponse.Result.getBidPricePair(depth)
 	return res
@@ -176,9 +171,21 @@ type FtxOrder struct {
 	//ReduceOnly bool       `json:"reduceOnly"`
 }
 
+func (fo *FtxOrder) setBy(order exc.ExchangeOrder) {
+	fo.Market = order.Market
+	fo.Side = order.Side
+	fo.Price = order.Price
+	fo.Size = order.Size
+	fo.OrderType = EOrderType(order.OrderType)
+}
+
 //下訂單
-func (ftx *Ftx) PostOrder(order FtxOrder) string {
-	request, err := json.Marshal(order)
+func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) string {
+
+	fo := FtxOrder{}
+	fo.setBy(order)
+
+	request, err := json.Marshal(fo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,7 +217,7 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	addHeader(&req.Header, method, apiName, body)
+	ftx.addHeader(&req.Header, method, apiName, body)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -230,14 +237,15 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	return sitemap
 }
 
-func addHeader(header *http.Header, reqMethod, path, body string) {
-	nanos := time.Now().UnixNano() / 1000000
-	ts := strconv.FormatInt(nanos, 10)
+func (ftx *Ftx) addHeader(header *http.Header, reqMethod, path, body string) {
+	ts := exc.GetTimeSpanStr(exc.GetTimeSpan())
 
-	header.Add("FTX-KEY", bsk.FTX_KEY)
+	initData := ftx.initData
+
+	header.Add("FTX-KEY", initData.ApiKey)
 	header.Add("FTX-TS", ts)
 	payload := fmt.Sprintf("%s%s%s%s", ts, reqMethod, apiPrefix+path, body)
-	sign, _ := GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, payload)
+	sign, _ := exc.GetParamHmacSHA256HexSign(initData.ApiSecretKey, payload)
 	header.Add("FTX-SIGN", sign)
-	header.Add("FTX-SUBACCOUNT", bsk.FTX_SUBACCOUNT)
+	header.Add("FTX-SUBACCOUNT", initData.SubAccount)
 }
