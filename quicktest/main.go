@@ -1,15 +1,12 @@
 package main
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"time"
-
-	"github.com/yin75620/crypto-berserker/ftx"
 )
 
 type LoginRequest struct {
@@ -25,41 +22,16 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	timerTest()
+	nameTest()
 }
 
-func codeText() {
-	res, _ := ftx.GetParamHmacSHA256HexSign("Y2QTHI23f23f23jfjas23f23To0RfUwX3H42fvN-", "1557246346499"+ftx.WEBSOCKET_LOGIN_KEY_WORD)
-	log.Println(res)
-	loginRequest := LoginRequest{
-		Op: "login",
-		Args: LoginRequestDetail{
-			Key:  "rrrr",
-			Time: "aaaaa",
-			Sign: "ooooo",
-		},
-	}
-
-	loginJson, err := json.Marshal(loginRequest)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	log.Println(string(loginJson))
-}
-
-func orderTest() {
-
-	var ftxClient = ftx.NewFtx(http.DefaultClient)
-
-	var myOrder ftx.FtxOrder = ftx.FtxOrder{
-		Market:    "FTT/USD",
-		Side:      "sell",
-		Price:     1.70,
-		Size:      1,
-		OrderType: ftx.MARKET,
-	}
-	response := ftxClient.PostOrder(myOrder)
-	fmt.Println(response)
+func nameTest() {
+	fmt.Println(os.Args[0])
+	fmt.Println(os.Args[1:])
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter text: ")
+	text, _ := reader.ReadString('\n')
+	fmt.Println(text)
 }
 
 func logTest() {

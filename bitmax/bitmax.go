@@ -97,7 +97,10 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 
 func (bm *Bitmax) GetAccountInfo() []byte {
 	// 這交易所沒有使用者資料
-	return []byte{}
+	// 用 balance 代替
+	//res := bm.doAuthRequest("GET", "balance", "")
+	res := []byte("Bitmax")
+	return res
 }
 
 type BitmaxOrder struct {
