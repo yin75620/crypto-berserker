@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/setting"
 
 	bsk "github.com/yin75620/crypto-berserker/setting"
 )
@@ -18,35 +19,44 @@ type ActionRequest struct {
 	Market  string `json:"market"`
 }
 
+type FillsRequest struct {
+	Op      string `json:"op"`
+	Channel string `json:"channel"`
+}
+
 type LoginRequest struct {
-	Op   string             `json:"op"`
 	Args LoginRequestDetail `json:"args"`
+	Op   string             `json:"op"`
 }
 
 type LoginRequestDetail struct {
 	Key  string `json:"key"`
-	Time int64  `json:"time"` // integer current timestamp (in milliseconds)
 	Sign string `json:"sign"` //SHA256 HMAC of the following string, using your API secret: <time>websocket_login
+	Time int64  `json:"time"` // integer current timestamp (in milliseconds)
 	//Subaccount string `json:"subaccount"` // (optional) subaccount name
 }
 
 const (
-	WEBSOCKET_URL = "wss://ftexchange.com/ws/"
+	//WEBSOCKET_URL = "wss://ftexchange.com/ws/"
+	WEBSOCKET_URL = "wss://ftx.com/ws/"
 )
 
 type Receiver func([]byte)
 
 func getLoginRequest() LoginRequest {
-	ts := exc.GetTimeSpan()
+	var ts int64 = exc.GetTimeSpan()
 	tsStr := exc.GetTimeSpanStr(ts)
-	tsSign, _ := exc.GetParamHmacSHA256HexSign(bsk.FTX_API_SECRET_KEY, tsStr+WEBSOCKET_LOGIN_KEY_WORD)
+	finalStr := tsStr + "websocket_login"
+	log.Println("time+websocket:" + finalStr)
+	tsSign, _ := exc.GetParamHmacSHA256HexSign(setting.FTX_API_SECRET_KEY, finalStr)
+	log.Println("sign:" + tsSign)
 
 	loginRequest := LoginRequest{
 		Op: "login",
 		Args: LoginRequestDetail{
 			Key:  bsk.FTX_KEY,
-			Time: ts,
 			Sign: tsSign,
+			Time: ts,
 		},
 	}
 	return loginRequest
@@ -61,7 +71,7 @@ func sendRequest(actionObj interface{}, recevier Receiver) {
 	//defer c.Close()
 
 	actionJson, _ := json.Marshal(actionObj)
-	log.Println(actionJson)
+	log.Println(string(actionJson))
 	send(c, actionJson)
 
 	done := make(chan struct{})
@@ -95,25 +105,34 @@ func send(c *websocket.Conn, json []byte) {
 }
 
 func WsTest() {
+	/*
+		actionRequest := ActionRequest{
+			Op:      "subscribe",
+			Channel: "orderbook",
+			Market:  "BTC/USD",
+		}
+		sendRequest(actionRequest, func(recv []byte) {
+			log.Printf("actionRecv: %s", recv)
+		})
+	*/
 	loginReq := getLoginRequest()
 	sendRequest(loginReq, func(recv []byte) {
-		log.Printf("loginRecv: %s", recv)
+		log.Printf(": %s", recv)
 	})
-
-	actionRequest := ActionRequest{
-		Op:      "subscribe",
-		Channel: "orderbook",
-		Market:  "FTT/USD",
-	}
-	sendRequest(actionRequest, func(recv []byte) {
-		log.Printf("actionRecv: %s", recv)
-	})
+	/*
+		fillsRequest := FillsRequest{
+			Op:      "subcribe",
+			Channel: "fills",
+		}
+		sendRequest(fillsRequest, func(recv []byte) {
+			log.Printf("fillsRequestRecv: %s", recv)
+		})*/
 
 	///開啟伺服器讓程式留著
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World")
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":18080", nil))
 	///
 }
