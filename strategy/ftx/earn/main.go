@@ -17,6 +17,7 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ftx "github.com/yin75620/crypto-berserker/ftx"
 	"github.com/yin75620/crypto-berserker/setting"
+	"gopkg.in/ini.v1"
 )
 
 const (
@@ -27,28 +28,25 @@ const (
 )
 
 const (
-	TAKER_FEE            = 0.000665
-	RANGE_PREMIUM        = 0.2 //20%
-	PER_ORDER_MAX_VOLUME = 400 //有人搶就全力對搶
-	PROFIT_THRESHOLD     = 0.001
-	//LEAST_VOLUME         = 10
+	TAKER_FEE         = 0.000665
+	RANGE_PREMIUM     = 0.2 //20%
+	PROFIT_THRESHOLD  = 0.001
 	LEAST_TOTAL_VALUE = 20 //20US
 )
 
 //當const 用
 var (
 	// 數量, 利潤, 加速, 價值(美元計價)
-	RANK_S = []float64{PER_ORDER_MAX_VOLUME, 0.006, -3.0, 1000}
-	RANK_N = []float64{PER_ORDER_MAX_VOLUME, 0.003, -2.0, 300}
+	RANK_S = []float64{0.006, -3.0, 1000}
+	RANK_N = []float64{0.003, -2.0, 300}
 )
 
 var marketMap map[string]int = map[string]int{"BTC/USD": 4}
 
 const (
-	R_VOLUME      = 0
-	R_PROFIT      = 1
-	R_PLUS_SECOND = 2
-	R_TOTAL_VALUE = 3
+	R_PROFIT      = 0
+	R_PLUS_SECOND = 1
+	R_TOTAL_VALUE = 2
 )
 
 var m_ftxClient = ftx.NewFtx(http.DefaultClient,
@@ -57,7 +55,25 @@ var m_ftxClient = ftx.NewFtx(http.DefaultClient,
 		setting.FTX_API_SECRET_KEY,
 		setting.FTX_SUBACCOUNT})
 
+func iniSetting() {
+	cfg, err := ini.Load("ftx_main.ini")
+	if err != nil {
+		fmt.Printf("Fail to read file: %v", err)
+		os.Exit(1)
+	}
+
+	S_MIN_PROFIT := cfg.Section("rank_s").Key("min_profit").float64()
+	S_MIN_PROFIT := cfg.Section("rank_s").Key("plus_second").float64()
+	S_MIN_PROFIT := cfg.Section("rank_s").Key("total_value_us").float64()
+
+	S_MIN_PROFIT := cfg.Section("rank_n").Key("min_profit").float64()
+
+	RANK_S = []float64{0.006, -3.0, 1000}
+	RANK_N = []float64{0.003, -2.0, 300}
+}
+
 func main() {
+	iniSetting()
 	StartTelegram()
 	var logFile *os.File = StartLog()
 	defer logFile.Close()
@@ -322,7 +338,7 @@ func stratStrategy() int {
 		currentOrderTotalValue = RANK_S[R_TOTAL_VALUE]
 	}
 
-	wnatOrderTotalValue := currentOrderTotalValue * (1 + (10 * rand.Float64() / 100.0)) // 隨機 +10%
+	wnatOrderTotalValue := currentOrderTotalValue * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
 	wnatOrderTotalValue = math.Floor(wnatOrderTotalValue)
 
 	orderTotalValue := math.Min(wnatOrderTotalValue, minSourceTotalValue)
