@@ -13,9 +13,7 @@ import (
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	ftx "github.com/yin75620/crypto-berserker/ftx"
 	"github.com/yin75620/crypto-berserker/message_tool"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 const (
@@ -53,12 +51,6 @@ const (
 	R_TOTAL_VALUE = 2
 )
 
-var m_ftxClient = ftx.NewFtx(http.DefaultClient,
-	ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		setting.FTX_SUBACCOUNT})
-
 func iniSetting() {
 	/*cfg, err := ini.Load("ftx_main.ini")
 	if err != nil {
@@ -76,13 +68,13 @@ func iniSetting() {
 	RANK_N = []float64{0.003, -2.0, 300}*/
 }
 
-type FlowStrings struct {
-	coins []string
+type FlowString struct {
+	Coins []string
 }
 
 type Triangular struct {
 	exchangeClient exc.Exchange
-	flowStrings    [][]string
+	FlowString     []FlowString
 }
 
 func NewTriangular(exchange exc.Exchange) *Triangular {
@@ -91,9 +83,9 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 	return t
 }
 
-func (tri *Triangular) SetDealCoin(dealcoins [][]string) {
-	for _, value := range dealcoins {
-		tri.flowStrings = append(tri.flowStrings, value)
+func (tri *Triangular) SetDealCoin(FlowString []FlowString) {
+	for _, value := range FlowString {
+		tri.FlowString = append(tri.FlowString, value)
 	}
 
 }
@@ -302,8 +294,8 @@ var m_isFullPower = false
 func (tri *Triangular) stratStrategy() int {
 	dealFlows := []DealFlow{}
 
-	for _, flowString := range tri.flowStrings {
-		fuDealFlow := tri.NewDealFlow(flowString[0], flowString[1:])
+	for _, flowString := range tri.FlowString {
+		fuDealFlow := tri.NewDealFlow(flowString.Coins[0], flowString.Coins[1:])
 		dealFlows = append(dealFlows, fuDealFlow)
 	}
 

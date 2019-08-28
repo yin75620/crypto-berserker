@@ -22,9 +22,9 @@ var mTriFtx = Triangular.NewTriangular(mFtx)
 
 func main() {
 
-	m_tri.SetDealCoin([][]string{
-		[]string{"FTT", "USDT"},
-		[]string{"FTT", "BTC", "USDT"},
+	m_tri.SetDealCoin([]Triangular.FlowString{
+		Triangular.FlowString{Coins: []string{"FTT", "USDT"}},
+		Triangular.FlowString{Coins: []string{"FTT", "BTC", "USDT"}},
 	})
 	m_tri.Start()
 
