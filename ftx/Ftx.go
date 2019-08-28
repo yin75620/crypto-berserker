@@ -180,7 +180,7 @@ func (fo *FtxOrder) setBy(order exc.ExchangeOrder) {
 }
 
 //下訂單
-func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) string {
+func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 	fo := FtxOrder{}
 	fo.setBy(order)
@@ -193,7 +193,18 @@ func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) string {
 	log.Println(fmt.Sprintf("body:%s", body))
 	response := ftx.doPost("orders", body)
 	log.Println(fmt.Sprintf("%s", response))
-	return string(response)
+
+	//{"error":"Not enough balances","success":false}
+	var jsonResponse map[string]interface{}
+	json.Unmarshal(response, &jsonResponse)
+	success := jsonResponse["success"].(bool)
+	message := jsonResponse["error"].(string)
+	var resErr error = nil
+	if !success {
+		resErr = errors.New(message)
+	}
+
+	return string(response), resErr
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {
