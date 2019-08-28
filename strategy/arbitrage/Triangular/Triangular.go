@@ -366,13 +366,13 @@ func (tri *Triangular) stratStrategy() int {
 	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	if !canOrder(profit, orderTotalValue) {
+	/*if !canOrder(profit, orderTotalValue) {
 		// 無利可圖，重設偵測
 		m_isFullPower = false
 		m_expectedTotalValue = 0
 		m_expectedLowestProfit = 0
 		return 0
-	}
+	}*/
 
 	laOrderVolume := orderTotalValue / laPrice
 	hbOrderVolume := orderTotalValue / hbPrice
@@ -444,7 +444,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				Size:      orderVolume,
 				OrderType: exc.MARKET,
 			}
-			tri.exchangeClient.PostOrder(myOrder)
+			tri.PostOrderRefry(myOrder)
 
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
@@ -476,24 +476,20 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 		for i := len(orders) - 1; i >= 0; i-- {
 			order := orders[i]
-			tri.exchangeClient.PostOrder(order)
+			tri.PostOrderRefry(order)
 		}
 	}
 }
 
-///
-//交易
-func (tri *Triangular) postCoinOrder(goalCoin, currentCoin, side string, price, size float64) {
-	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	tri.postOrder(marketName, side, price, size)
-}
-
-func (tri *Triangular) postOrder(marketName, side string, price, size float64) {
-	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market: marketName,
-		Side:   side,
-		Price:  price,
-		Size:   size,
+func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
+	//最多重試三次
+	const RETRY_TIMES = 3
+	for i := 0; i < RETRY_TIMES; i++ {
+		_, err := tri.exchangeClient.PostOrder(order)
+		if err == nil {
+			break
+		}
+		log.Println(fmt.Sprintf("retry Count:%d", i))
 	}
-	tri.exchangeClient.PostOrder(myOrder)
+
 }

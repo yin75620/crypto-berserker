@@ -133,7 +133,7 @@ func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
 }
 
 //下訂單
-func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) string {
+func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 	ts := exc.GetTimeSpan()
 	coid := exc.Uuid(32)
@@ -152,7 +152,21 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) string {
 	response := bm.doOrderRequest("order", body, ts, coid)
 
 	log.Println(fmt.Sprintf("%s", response))
-	return string(response)
+
+	//{"code":6010,"message":"Not enough balance."}
+	var jsonResponse map[string]interface{}
+	if err := json.Unmarshal(response, &jsonResponse); err != nil {
+		panic(err)
+	}
+	message := jsonResponse["message"].(string)
+	code := jsonResponse["code"].(float64)
+
+	var resErr error = nil
+	if code != 0 {
+		resErr = errors.New(message)
+	}
+
+	return string(response), resErr
 }
 
 func (bm *Bitmax) doNormalRequest(method, apiName, body string) []byte {

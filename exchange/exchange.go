@@ -8,7 +8,7 @@ import (
 type Exchange interface {
 	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 	GetAccountInfo() []byte
-	PostOrder(order ExchangeOrder) string
+	PostOrder(order ExchangeOrder) (string, error)
 }
 
 type PriceType int
