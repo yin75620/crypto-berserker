@@ -24,6 +24,10 @@ func sendMail(content string) {
 	}
 }
 
+const (
+	PAUSE_SEND_TELEGRAM = false
+)
+
 var bot *tgbotapi.BotAPI
 
 func StartTelegram() {
@@ -31,7 +35,9 @@ func StartTelegram() {
 }
 
 func SendTelegram(content string) {
-	//pause
+	if PAUSE_SEND_TELEGRAM {
+		return
+	}
 	msg := tgbotapi.NewMessage(945156610, content)
 	bot.Send(msg)
 }
