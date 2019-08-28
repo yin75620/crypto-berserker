@@ -103,6 +103,11 @@ func (bm *Bitmax) GetAccountInfo() []byte {
 	return res
 }
 
+func (bm *Bitmax) GetProducts() []byte {
+	res := bm.doNormalRequest("GET", "products", "")
+	return res
+}
+
 type BitmaxOrder struct {
 	Coid       string `json:"coid"`       //"xxx...xxx"     a unique identifier of length 32
 	Time       int64  `json:"time"`       // 1528988100000   milliseconds since UNIX epoch in UTC

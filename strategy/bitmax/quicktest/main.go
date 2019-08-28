@@ -18,6 +18,11 @@ const (
 var m_bitmaxClient = bitmax.NewBitmax(http.DefaultClient)
 
 func main() {
+	res := m_bitmaxClient.GetProducts()
+	fmt.Println(fmt.Sprintf("res:%s", string(res)))
+}
+
+func test1() {
 	res := m_bitmaxClient.GetAccountInfo()
 
 	fmt.Println(string(res))
@@ -36,5 +41,4 @@ func main() {
 		OrderType: exc.LIMIT,
 	}
 	m_bitmaxClient.PostOrder(myOrder)
-
 }
