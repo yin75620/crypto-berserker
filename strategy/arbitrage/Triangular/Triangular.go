@@ -1,4 +1,4 @@
-package main
+package Triangular
 
 import (
 	"fmt"
@@ -12,32 +12,33 @@ import (
 	"strings"
 	"time"
 
-	gomail "github.com/alexcesaro/mail/gomail"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	ftx "github.com/yin75620/crypto-berserker/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
+	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
 const (
 	USD  = "USD"
 	USDT = "USDT"
+	USDC = "USDC"
 	BTC  = "BTC"
 	FTT  = "FTT"
+	PAX  = "PAX"
+	BTMX = "BTMX"
+	ETH  = "ETH"
+	LTC  = "LTC"
+	XRP  = "XRP"
 )
 
-const (
-	TAKER_FEE         = 0.000665
-	RANGE_PREMIUM     = 0.2 //20%
-	PROFIT_THRESHOLD  = 0.001
-	LEAST_TOTAL_VALUE = 20 //20US
+var (
+	mRangePremium    float64 = 0.1 //10%
+	mLeastTotalValue float64 = 10  //10US
 )
 
 //當const 用
 var (
 	// 數量, 利潤, 加速, 價值(美元計價)
 	RANK_S = []float64{0.006, -3.0, 1000}
-	RANK_N = []float64{0.003, -2.0, 300}
+	RANK_N = []float64{0.001, -2.0, 300}
 )
 
 var marketMap map[string]int = map[string]int{"BTC/USD": 4}
@@ -48,25 +49,51 @@ const (
 	R_TOTAL_VALUE = 2
 )
 
-var m_ftxClient = ftx.NewFtx(http.DefaultClient,
-	ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		setting.FTX_SUBACCOUNT})
+type TriangularInit struct {
+	RangePremium    float64
+	LeastTotalValue float64
+	// 利潤, 加速, 價值(美元計價)
+	RANK_S []float64 //{0.006, -3.0, 1000}
+	RANK_N []float64 //{0.003, -2.0, 300}
+}
 
-func main() {
-	StartTelegram()
+type CoinStrip struct {
+	Coins []string
+}
+
+type Triangular struct {
+	exchangeClient exc.Exchange
+	CoinStrip      []CoinStrip
+}
+
+func NewTriangular(exchange exc.Exchange) *Triangular {
+	var t = &Triangular{}
+	t.exchangeClient = exchange
+	return t
+}
+
+func (tri *Triangular) SetCoinBunch(CoinStrip []CoinStrip) {
+	for _, value := range CoinStrip {
+		tri.CoinStrip = append(tri.CoinStrip, value)
+	}
+}
+
+func (tri *Triangular) SetInit(init TriangularInit) {
+	mRangePremium = init.RangePremium       //10%
+	mLeastTotalValue = init.LeastTotalValue //10US
+	RANK_N = init.RANK_N
+	RANK_S = init.RANK_S
+}
+
+func (tri *Triangular) Start() {
+	message_tool.StartTelegram()
 	var logFile *os.File = StartLog()
 	defer logFile.Close()
-	stratStrategy()
+	tri.stratStrategy()
 
-	infoStr := string(m_ftxClient.GetAccountInfo())
-	sendTelegram(infoStr)
-	/*
-		ticker := time.NewTicker(6 * time.Second)
-		for _ = range ticker.C {
-			stratStrategy()
-		}*/
+	infoStr := string(tri.exchangeClient.GetAccountInfo())
+	message_tool.SendTelegram(infoStr)
+
 	var delay_time int = 5
 	d := time.Duration(time.Second * time.Duration(delay_time))
 
@@ -75,7 +102,7 @@ func main() {
 
 	for {
 		<-t.C
-		plusSecond := stratStrategy()
+		plusSecond := tri.stratStrategy()
 		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
 	}
 
@@ -123,7 +150,7 @@ func (q *Quote) GetPair(pType exc.PriceType) exc.PricePair {
 	return exc.PricePair{}
 }
 
-func NewQuote(goalCoin, currentCoin string) Quote {
+func (tri *Triangular) NewQuote(goalCoin, currentCoin string) Quote {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
 	var askPair exc.PricePair
 	var bidPair exc.PricePair
@@ -132,7 +159,7 @@ func NewQuote(goalCoin, currentCoin string) Quote {
 		askPair = exc.PricePair{1.001, 999999}
 		bidPair = exc.PricePair{0.997, 999999}
 	} else {
-		askPair, bidPair = m_ftxClient.GetAskBidPair(exc.CoinPair{BaseCoin: goalCoin, QuotedCoin: currentCoin}, 1)
+		askPair, bidPair = tri.exchangeClient.GetAskBidPair(exc.CoinPair{BaseCoin: goalCoin, QuotedCoin: currentCoin}, 1)
 	}
 	var quote Quote = Quote{}
 	quote.askPair = askPair
@@ -166,17 +193,20 @@ func strToFloat64(str string, len int) float64 {
 }
 
 type DealFlow struct {
-	quotes []Quote
+	quotes   []Quote
+	takerFee float64
 }
 
-func NewDealFlow(goalCoin string, stepCoins ...string) DealFlow {
-	var dealFlow DealFlow = DealFlow{}
+func (tri *Triangular) NewDealFlow(goalCoin string, stepCoins []string) DealFlow {
+	dealFlow := DealFlow{}
+	dealFlow.takerFee = tri.exchangeClient.GetFee().Taker
+
 	tempGoalCoin := goalCoin
 	stepLen := len(stepCoins)
 	dealFlow.quotes = make([]Quote, stepLen)
 	for i := 0; i < stepLen; i++ {
 		stepCoin := stepCoins[i]
-		quote := NewQuote(tempGoalCoin, stepCoin)
+		quote := tri.NewQuote(tempGoalCoin, stepCoin)
 		dealFlow.quotes[i] = quote
 		tempGoalCoin = stepCoin
 	}
@@ -209,7 +239,7 @@ func (df *DealFlow) getFinalPairWithFee(pType exc.PriceType, hasFee bool) exc.Pr
 			if pType == exc.Bid {
 				cacularSymbol = -1
 			}
-			finalFeePrice = finalFeePrice * (1.0 + TAKER_FEE*cacularSymbol)
+			finalFeePrice = finalFeePrice * (1.0 + df.takerFee*cacularSymbol)
 		}
 
 		// 上次總價值 與這次量相比 (這樣單位才一致)
@@ -258,15 +288,12 @@ var (
 
 var m_isFullPower = false
 
-func stratStrategy() int {
-	fuDealFlow := NewDealFlow(FTT, USD)
-	fbuDealFlow := NewDealFlow(FTT, BTC, USD)
-	//futDealFlow := NewDealFlow(FTT, USDT, USD)
+func (tri *Triangular) stratStrategy() int {
+	dealFlows := []DealFlow{}
 
-	dealFlows := []DealFlow{
-		fuDealFlow,
-		fbuDealFlow,
-		//futDealFlow,
+	for _, coinStrip := range tri.CoinStrip {
+		fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
+		dealFlows = append(dealFlows, fuDealFlow)
 	}
 
 	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
@@ -342,11 +369,11 @@ func stratStrategy() int {
 	if isOrder {
 		const isKeepUSD = true
 		if isKeepUSD {
-			executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
-			executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
+			tri.executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
+			tri.executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
 		} else {
-			executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
-			executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
+			tri.executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
+			tri.executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
 		}
 	}
 
@@ -356,7 +383,7 @@ func stratStrategy() int {
 		orderTotalValue,
 		profit,
 		m_expectedTotalValue)
-	sendTelegram(content)
+	message_tool.SendTelegram(content)
 
 	resPlusSecond := RANK_N[R_PLUS_SECOND]
 	if m_isFullPower {
@@ -371,47 +398,19 @@ func canOrder(profit, orderTotalValue float64) bool {
 	if profit < 0 {
 		log.Println("No profit")
 		return false
-	} else if profit < PROFIT_THRESHOLD {
+	} else if profit < RANK_N[R_PROFIT] {
 		log.Println("No enough profit")
 		return false
-	} else if orderTotalValue < LEAST_TOTAL_VALUE {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", LEAST_TOTAL_VALUE))
+	} else if orderTotalValue < mLeastTotalValue {
+		log.Println(fmt.Sprintf("orderTotalValue < %f", mLeastTotalValue))
 		return false
 	}
 	return true
 }
 
-/// message
-func sendMail(content string) {
-	msg := gomail.NewMessage()
-	msg.SetAddressHeader("From", "yin75620@gmail.com", "Golang")
-	msg.SetHeader("To", "yin75620@gmail.com")
-	msg.AddHeader("To", "yin75620@gmail.com")
-	msg.SetHeader("Subject", "Hello!")
-	msg.SetBody("text/plain", "Hello Has Profit")
-	msg.AddAlternative("text/html", content)
-
-	m := gomail.NewMailer("smtp.gmail.com", "yin75620", setting.GMAIL_PASSWORD, 25)
-	if err := m.Send(msg); err != nil {
-		log.Println(err)
-	}
-}
-
-var bot *tgbotapi.BotAPI
-
-func StartTelegram() {
-	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
-}
-
-func sendTelegram(content string) {
-	//pause
-	//msg := tgbotapi.NewMessage(945156610, content)
-	//bot.Send(msg)
-}
-
 ///
 
-func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
+func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 	log.Println(fmt.Sprintf("startVolume:%f", startVolume))
 	side := ""
 	orderSymbol := 1.0
@@ -425,7 +424,7 @@ func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
@@ -434,7 +433,7 @@ func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 				Size:      orderVolume,
 				OrderType: exc.MARKET,
 			}
-			m_ftxClient.PostOrder(myOrder)
+			tri.PostOrderRefry(myOrder)
 
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
@@ -449,7 +448,7 @@ func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
@@ -466,24 +465,20 @@ func executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
 
 		for i := len(orders) - 1; i >= 0; i-- {
 			order := orders[i]
-			m_ftxClient.PostOrder(order)
+			tri.PostOrderRefry(order)
 		}
 	}
 }
 
-///
-//交易
-func postCoinOrder(goalCoin, currentCoin, side string, price, size float64) {
-	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
-	postOrder(marketName, side, price, size)
-}
-
-func postOrder(marketName, side string, price, size float64) {
-	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market: marketName,
-		Side:   side,
-		Price:  price,
-		Size:   size,
+func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
+	//最多重試三次
+	const RETRY_TIMES = 3
+	for i := 0; i < RETRY_TIMES; i++ {
+		_, err := tri.exchangeClient.PostOrder(order)
+		if err == nil {
+			break
+		}
+		log.Println(fmt.Sprintf("retry Count:%d", i))
 	}
-	m_ftxClient.PostOrder(myOrder)
+
 }

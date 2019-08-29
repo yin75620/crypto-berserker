@@ -2,280 +2,137 @@ package ftx
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"sort"
-	"strings"
-	"sync"
-	"time"
+	"net/http"
 
-	. "github.com/nntaoli-project/GoEx"
+	"github.com/gorilla/websocket"
+	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/setting"
+
+	bsk "github.com/yin75620/crypto-berserker/setting"
 )
 
-type WsResponse struct {
-	Ch   string
-	Ts   int64
-	Tick json.RawMessage
+type ActionRequest struct {
+	Op      string `json:"op"`
+	Channel string `json:"channel"`
+	Market  string `json:"market"`
 }
 
-type TradeResponse struct {
-	Id   int64
-	Ts   int64
-	Data []struct {
-		Id        int64
-		Amount    float64
-		Price     float64
-		Direction string
-		Ts        int64
+type FillsRequest struct {
+	Op      string `json:"op"`
+	Channel string `json:"channel"`
+}
+
+type LoginRequest struct {
+	Args LoginRequestDetail `json:"args"`
+	Op   string             `json:"op"`
+}
+
+type LoginRequestDetail struct {
+	Key  string `json:"key"`
+	Sign string `json:"sign"` //SHA256 HMAC of the following string, using your API secret: <time>websocket_login
+	Time int64  `json:"time"` // integer current timestamp (in milliseconds)
+	//Subaccount string `json:"subaccount"` // (optional) subaccount name
+}
+
+const (
+	//WEBSOCKET_URL = "wss://ftexchange.com/ws/"
+	WEBSOCKET_URL = "wss://ftx.com/ws/"
+)
+
+type Receiver func([]byte)
+
+func getLoginRequest() LoginRequest {
+	var ts int64 = exc.GetTimeSpan()
+	tsStr := exc.GetTimeSpanStr(ts)
+	finalStr := tsStr + "websocket_login"
+	log.Println("time+websocket:" + finalStr)
+	tsSign, _ := exc.GetParamHmacSHA256HexSign(setting.FTX_API_SECRET_KEY, finalStr)
+	log.Println("sign:" + tsSign)
+
+	loginRequest := LoginRequest{
+		Op: "login",
+		Args: LoginRequestDetail{
+			Key:  bsk.FTX_KEY,
+			Sign: tsSign,
+			Time: ts,
+		},
 	}
+	return loginRequest
 }
 
-//"id": 1539842340,
-//"mrid": 268041138,
-//"open": 6740.47,
-//"close": 7800,
-//"high": 7800,
-//"low": 6726.13,
-//"amount": 477.1200312075244664773339914558562673572,
-//"vol": 32414,
-//"count": 1716
-//}
-type DetailResponse struct {
-	Id     int64
-	Open   float64
-	Close  float64
-	High   float64
-	Low    float64
-	Amount float64
-	Vol    float64
-	Count  int64
-}
+func sendRequest(actionObj interface{}, recevier Receiver) {
 
-type DepthResponse struct {
-	Bids [][]float64
-	Asks [][]float64
-}
-
-type FtxWs struct {
-	*WsBuilder
-	sync.Once
-	wsConn *WsConn
-
-	tickerCallback func(*FutureTicker)
-	depthCallback  func(*Depth)
-	tradeCallback  func(*Trade, string)
-}
-
-func NewFtxWs() *FtxWs {
-	FtxWs := &FtxWs{WsBuilder: NewWsBuilder()}
-	FtxWs.WsBuilder = FtxWs.WsBuilder.
-		WsUrl("wss://ftexchange.com/ws/").
-		//Heartbeat([]byte("{\"event\": \"ping\"} "), 30*time.Second).
-		//Heartbeat(func() []byte { return []byte("{\"op\":\"ping\"}") }(), 5*time.Second).
-		ErrorHandleFunc(func(err error) {
-			log.Println("ws internal error:", err)
-		}).
-		ReconnectIntervalTime(24 * time.Hour).
-		UnCompressFunc(GzipUnCompress).
-		ProtoHandleFunc(FtxWs.handle)
-	return FtxWs
-}
-
-func (FtxWs *FtxWs) SetCallbacks(tickerCallback func(*FutureTicker),
-	depthCallback func(*Depth),
-	tradeCallback func(*Trade, string)) {
-	FtxWs.tickerCallback = tickerCallback
-	FtxWs.depthCallback = depthCallback
-	FtxWs.tradeCallback = tradeCallback
-}
-
-func (FtxWs *FtxWs) SubscribeTicker(pair CurrencyPair, contract string) error {
-	if FtxWs.tickerCallback == nil {
-		return errors.New("please set ticker callback func")
+	c, _, err := websocket.DefaultDialer.Dial(WEBSOCKET_URL, nil)
+	if err != nil {
+		log.Fatal("dial:", err)
 	}
-	return FtxWs.subscribe(map[string]interface{}{
-		"id":  "ticker_1",
-		"sub": fmt.Sprintf("market.%s_%s.detail", pair.CurrencyA.Symbol, FtxWs.adaptContractSymbol(contract))})
+	//defer c.Close()
+
+	actionJson, _ := json.Marshal(actionObj)
+	log.Println(string(actionJson))
+	send(c, actionJson)
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+			log.Printf("recv: %s", message)
+			recevier(message)
+		}
+	}()
 }
 
-func (FtxWs *FtxWs) SubscribeDepth(pair CurrencyPair, contract string, size int) error {
-	if FtxWs.depthCallback == nil {
-		return errors.New("please set depth callback func")
+func send(c *websocket.Conn, json []byte) {
+	err := c.WriteMessage(websocket.TextMessage, json)
+	if err != nil {
+		log.Println(err)
+		return
 	}
-	return FtxWs.subscribe(map[string]interface{}{
-		"id":  "depth_2",
-		"sub": fmt.Sprintf("market.%s_%s.depth.step0", pair.CurrencyA.Symbol, FtxWs.adaptContractSymbol(contract))})
-}
-
-func (FtxWs *FtxWs) SubscribeTrade(pair CurrencyPair, contract string) error {
-	if FtxWs.tradeCallback == nil {
-		return errors.New("please set trade callback func")
+	_, msg, err := c.ReadMessage()
+	if err != nil {
+		log.Println("read:", err)
+		return
 	}
-	return FtxWs.subscribe(map[string]interface{}{
-		"id":  "trade_3",
-		"sub": fmt.Sprintf("market.%s_%s.trade.detail", pair.CurrencyA.Symbol, FtxWs.adaptContractSymbol(contract))})
+	log.Printf("receive: %s\n", msg)
 }
 
-func (FtxWs *FtxWs) subscribe(sub map[string]interface{}) error {
-	log.Println(sub)
-	FtxWs.connectWs()
-	return FtxWs.wsConn.Subscribe(sub)
-}
-
-func (FtxWs *FtxWs) connectWs() {
-	FtxWs.Do(func() {
-		FtxWs.wsConn = FtxWs.WsBuilder.Build()
-		FtxWs.wsConn.ReceiveMessage()
+func WsTest() {
+	/*
+		actionRequest := ActionRequest{
+			Op:      "subscribe",
+			Channel: "orderbook",
+			Market:  "BTC/USD",
+		}
+		sendRequest(actionRequest, func(recv []byte) {
+			log.Printf("actionRecv: %s", recv)
+		})
+	*/
+	loginReq := getLoginRequest()
+	sendRequest(loginReq, func(recv []byte) {
+		log.Printf(": %s", recv)
 	})
-}
-
-func (FtxWs *FtxWs) handle(msg []byte) error {
-	//心跳
-	if strings.Contains(string(msg), "ping") {
-		var ping struct {
-			Ping int64
+	/*
+		fillsRequest := FillsRequest{
+			Op:      "subcribe",
+			Channel: "fills",
 		}
-		json.Unmarshal(msg, &ping)
-		pong := struct {
-			Pong int64 `json:"pong"`
-		}{ping.Ping}
+		sendRequest(fillsRequest, func(recv []byte) {
+			log.Printf("fillsRequestRecv: %s", recv)
+		})*/
 
-		FtxWs.wsConn.SendJsonMessage(pong)
-		FtxWs.wsConn.UpdateActiveTime()
-		return nil
-	}
+	///開啟伺服器讓程式留著
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello World")
+	})
 
-	var resp WsResponse
-	err := json.Unmarshal(msg, &resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.Ch == "" {
-		log.Println(string(msg))
-		return nil
-	}
-
-	pair, contract, err := FtxWs.parseCurrencyAndContract(resp.Ch)
-	if err != nil {
-		return err
-	}
-
-	if strings.HasSuffix(resp.Ch, "trade.detail") {
-		var tradeResp TradeResponse
-		err := json.Unmarshal(resp.Tick, &tradeResp)
-		if err != nil {
-			return err
-		}
-		trades := FtxWs.parseTrade(tradeResp)
-		for _, v := range trades {
-			v.Pair = pair
-			FtxWs.tradeCallback(&v, contract)
-		}
-		return nil
-	}
-
-	if strings.Contains(resp.Ch, ".depth.") {
-		var depResp DepthResponse
-		err := json.Unmarshal(resp.Tick, &depResp)
-		if err != nil {
-			return err
-		}
-
-		dep := FtxWs.parseDepth(depResp)
-		dep.ContractType = contract
-		dep.Pair = pair
-		dep.UTime = time.Unix(resp.Ts/1000, 0)
-
-		FtxWs.depthCallback(&dep)
-		return nil
-	}
-
-	if strings.HasSuffix(resp.Ch, ".detail") {
-		var detail DetailResponse
-		err := json.Unmarshal(resp.Tick, &detail)
-		if err != nil {
-			return err
-		}
-		ticker := FtxWs.parseTicker(detail)
-		ticker.ContractType = contract
-		ticker.Pair = pair
-		FtxWs.tickerCallback(&ticker)
-		return nil
-	}
-
-	return nil
-}
-
-func (FtxWs *FtxWs) parseTicker(r DetailResponse) FutureTicker {
-	return FutureTicker{Ticker: &Ticker{High: r.High, Low: r.Low, Vol: r.Amount}}
-}
-
-func (FtxWs *FtxWs) parseDepth(r DepthResponse) Depth {
-	var dep Depth
-	for _, bid := range r.Bids {
-		dep.BidList = append(dep.BidList, DepthRecord{bid[0], bid[1]})
-	}
-
-	for _, ask := range r.Asks {
-		dep.AskList = append(dep.AskList, DepthRecord{ask[0], ask[1]})
-	}
-
-	sort.Sort(sort.Reverse(dep.BidList))
-	sort.Sort(sort.Reverse(dep.AskList))
-	return dep
-}
-
-func (FtxWs *FtxWs) parseCurrencyAndContract(ch string) (CurrencyPair, string, error) {
-	el := strings.Split(ch, ".")
-	if len(el) < 2 {
-		return UNKNOWN_PAIR, "", errors.New(ch)
-	}
-	cs := strings.Split(el[1], "_")
-	contract := ""
-	switch cs[1] {
-	case "CQ":
-		contract = QUARTER_CONTRACT
-	case "NW":
-		contract = NEXT_WEEK_CONTRACT
-	case "CW":
-		contract = THIS_WEEK_CONTRACT
-	}
-	return NewCurrencyPair(NewCurrency(cs[0], ""), USD), contract, nil
-}
-
-func (FtxWs *FtxWs) parseTrade(r TradeResponse) []Trade {
-	var trades []Trade
-	for _, v := range r.Data {
-		trades = append(trades, Trade{
-			Tid:    v.Id,
-			Price:  v.Price,
-			Amount: v.Amount,
-			Type:   AdaptTradeSide(v.Direction),
-			Date:   v.Ts})
-	}
-	return trades
-}
-
-func (FtxWs *FtxWs) adaptContractSymbol(contract string) string {
-	log.Println(contract)
-	switch contract {
-	case QUARTER_CONTRACT:
-		return "CQ"
-	case NEXT_WEEK_CONTRACT:
-		return "NW"
-	case THIS_WEEK_CONTRACT:
-		return "CW"
-	}
-	return ""
-}
-
-func (FtxWs *FtxWs) adaptTime(tm string) int64 {
-	format := "2006-01-02 15:04:05"
-	day := time.Now().Format("2006-01-02")
-	local, _ := time.LoadLocation("Asia/Chongqing")
-	t, _ := time.ParseInLocation(format, day+" "+tm, local)
-	return t.UnixNano() / 1e6
-
+	log.Fatal(http.ListenAndServe(":18080", nil))
+	///
 }
