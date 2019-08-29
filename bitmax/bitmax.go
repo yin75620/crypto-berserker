@@ -157,11 +157,11 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 		log.Fatal(err)
 	}
 	body := string(request)
-	log.Println(fmt.Sprintf("body:%s", body))
+	//log.Println(fmt.Sprintf("body:%s", body))
 
 	response := bm.doOrderRequest("order", body, ts, coid)
 
-	log.Println(fmt.Sprintf("%s", response))
+	//log.Println(fmt.Sprintf("%s", response))
 
 	//{"code":6010,"message":"Not enough balance."}
 	type OrderResponse struct {
@@ -207,7 +207,7 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 	}
 
 	fullUrl := fmt.Sprintf("%s%s%s%s", apiURL, accountGroupStr, apiPrefix, apiName)
-	fmt.Println(fullUrl)
+
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
@@ -231,7 +231,7 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 		return res
 	}
 
-	fmt.Printf("%s", sitemap)
+	//fmt.Printf("%s", sitemap)
 	return sitemap
 }
 
@@ -246,7 +246,7 @@ func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid stri
 		coid = fmt.Sprintf("+%s", sCoid)
 	}
 	payload := fmt.Sprintf("%s+%s%s", strTs, path, coid)
-	fmt.Println(payload)
+	//fmt.Println(payload)
 	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.BITMAX_API_SECRET_KEY, payload)
 	header.Add("x-auth-signature", sign)
 	header.Add("x-auth-coid", sCoid)
