@@ -157,11 +157,11 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 		log.Fatal(err)
 	}
 	body := string(request)
-	//log.Println(fmt.Sprintf("body:%s", body))
+	log.Println(fmt.Sprintf("body:%s", body))
 
 	response := bm.doOrderRequest("order", body, ts, coid)
 
-	//log.Println(fmt.Sprintf("%s", response))
+	log.Println(fmt.Sprintf("%s", response))
 
 	//{"code":6010,"message":"Not enough balance."}
 	type OrderResponse struct {
