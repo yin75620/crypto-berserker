@@ -297,7 +297,7 @@ func stratStrategy() int {
 	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
 	log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
 
-	profit := hbPrice - laPrice
+	profit := (hbPrice - laPrice) / laPrice
 
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
