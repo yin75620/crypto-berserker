@@ -9,6 +9,7 @@ type Exchange interface {
 	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 	GetAccountInfo() []byte
 	PostOrder(order ExchangeOrder) (string, error)
+	GetFee() Fee
 }
 
 type PriceType int

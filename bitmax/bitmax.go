@@ -30,6 +30,16 @@ var (
 	apiPrefix = "api/v1/"
 )
 
+// implement exchange
+func (bm *Bitmax) GetFee() exc.Fee {
+	fee := exc.Fee{}
+	fee.Deposit = 0
+	fee.WithDrawl = 0
+	fee.Taker = 0.0004
+	fee.Deposit = 0.0004
+	return fee
+}
+
 type QuoteResponse struct {
 	MarketName string      `json:"s"`
 	Asks       [][]float64 `json:"asks,string"`
@@ -154,16 +164,19 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 	log.Println(fmt.Sprintf("%s", response))
 
 	//{"code":6010,"message":"Not enough balance."}
-	var jsonResponse map[string]interface{}
-	if err := json.Unmarshal(response, &jsonResponse); err != nil {
+	type OrderResponse struct {
+		Code    float64 `json:"code"`
+		Message string  `json:"message"`
+	}
+	orderResponse := OrderResponse{}
+
+	if err := json.Unmarshal(response, &orderResponse); err != nil {
 		panic(err)
 	}
-	message := jsonResponse["message"].(string)
-	code := jsonResponse["code"].(float64)
 
 	var resErr error = nil
-	if code != 0 {
-		resErr = errors.New(message)
+	if orderResponse.Code != 0 {
+		resErr = errors.New(orderResponse.Message)
 	}
 
 	return string(response), resErr

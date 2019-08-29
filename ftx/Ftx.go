@@ -69,6 +69,16 @@ func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	return ftx
 }
 
+// implement exchange
+func (ftx *Ftx) GetFee() exc.Fee {
+	fee := exc.Fee{}
+	fee.Deposit = 0
+	fee.WithDrawl = 0
+	fee.Taker = 0.00063175
+	fee.Deposit = 0.0001805
+	return fee
+}
+
 func (ftx *Ftx) GetAccountInfo() []byte {
 	return ftx.doGet("account", "")
 }
@@ -195,13 +205,17 @@ func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) (string, error) {
 	log.Println(fmt.Sprintf("%s", response))
 
 	//{"error":"Not enough balances","success":false}
-	var jsonResponse map[string]interface{}
-	json.Unmarshal(response, &jsonResponse)
-	success := jsonResponse["success"].(bool)
-	message := jsonResponse["error"].(string)
+	type OrderResponse struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+	}
+	orderResponse := OrderResponse{}
+
+	json.Unmarshal(response, &orderResponse)
+
 	var resErr error = nil
-	if !success {
-		resErr = errors.New(message)
+	if !orderResponse.Success {
+		resErr = errors.New(orderResponse.Error)
 	}
 
 	return string(response), resErr

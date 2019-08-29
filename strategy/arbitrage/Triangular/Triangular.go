@@ -29,18 +29,16 @@ const (
 	XRP  = "XRP"
 )
 
-const (
-	TAKER_FEE         = 0.000665
-	RANGE_PREMIUM     = 0.2 //20%
-	PROFIT_THRESHOLD  = 0.001
-	LEAST_TOTAL_VALUE = 20 //20US
+var (
+	mRangePremium    float64 = 0.1 //10%
+	mLeastTotalValue float64 = 10  //10US
 )
 
 //當const 用
 var (
 	// 數量, 利潤, 加速, 價值(美元計價)
 	RANK_S = []float64{0.006, -3.0, 1000}
-	RANK_N = []float64{0.003, -2.0, 300}
+	RANK_N = []float64{0.001, -2.0, 300}
 )
 
 var marketMap map[string]int = map[string]int{"BTC/USD": 4}
@@ -51,30 +49,21 @@ const (
 	R_TOTAL_VALUE = 2
 )
 
-func iniSetting() {
-	/*cfg, err := ini.Load("ftx_main.ini")
-	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
-	}
-
-	S_MIN_PROFIT := cfg.Section("rank_s").Key("min_profit").float64()
-	S_MIN_PROFIT := cfg.Section("rank_s").Key("plus_second").float64()
-	S_MIN_PROFIT := cfg.Section("rank_s").Key("total_value_us").float64()
-
-	S_MIN_PROFIT := cfg.Section("rank_n").Key("min_profit").float64()
-
-	RANK_S = []float64{0.006, -3.0, 1000}
-	RANK_N = []float64{0.003, -2.0, 300}*/
+type TriangularInit struct {
+	RangePremium    float64
+	LeastTotalValue float64
+	// 利潤, 加速, 價值(美元計價)
+	RANK_S []float64 //{0.006, -3.0, 1000}
+	RANK_N []float64 //{0.003, -2.0, 300}
 }
 
-type FlowString struct {
+type CoinStrip struct {
 	Coins []string
 }
 
 type Triangular struct {
 	exchangeClient exc.Exchange
-	FlowString     []FlowString
+	CoinStrip      []CoinStrip
 }
 
 func NewTriangular(exchange exc.Exchange) *Triangular {
@@ -83,15 +72,20 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 	return t
 }
 
-func (tri *Triangular) SetDealCoin(FlowString []FlowString) {
-	for _, value := range FlowString {
-		tri.FlowString = append(tri.FlowString, value)
+func (tri *Triangular) SetCoinBunch(CoinStrip []CoinStrip) {
+	for _, value := range CoinStrip {
+		tri.CoinStrip = append(tri.CoinStrip, value)
 	}
+}
 
+func (tri *Triangular) SetInit(init TriangularInit) {
+	mRangePremium = init.RangePremium       //10%
+	mLeastTotalValue = init.LeastTotalValue //10US
+	RANK_N = init.RANK_N
+	RANK_S = init.RANK_S
 }
 
 func (tri *Triangular) Start() {
-	iniSetting()
 	message_tool.StartTelegram()
 	var logFile *os.File = StartLog()
 	defer logFile.Close()
@@ -199,11 +193,14 @@ func strToFloat64(str string, len int) float64 {
 }
 
 type DealFlow struct {
-	quotes []Quote
+	quotes   []Quote
+	takerFee float64
 }
 
 func (tri *Triangular) NewDealFlow(goalCoin string, stepCoins []string) DealFlow {
-	var dealFlow DealFlow = DealFlow{}
+	dealFlow := DealFlow{}
+	dealFlow.takerFee = tri.exchangeClient.GetFee().Taker
+
 	tempGoalCoin := goalCoin
 	stepLen := len(stepCoins)
 	dealFlow.quotes = make([]Quote, stepLen)
@@ -242,7 +239,7 @@ func (df *DealFlow) getFinalPairWithFee(pType exc.PriceType, hasFee bool) exc.Pr
 			if pType == exc.Bid {
 				cacularSymbol = -1
 			}
-			finalFeePrice = finalFeePrice * (1.0 + TAKER_FEE*cacularSymbol)
+			finalFeePrice = finalFeePrice * (1.0 + df.takerFee*cacularSymbol)
 		}
 
 		// 上次總價值 與這次量相比 (這樣單位才一致)
@@ -294,8 +291,8 @@ var m_isFullPower = false
 func (tri *Triangular) stratStrategy() int {
 	dealFlows := []DealFlow{}
 
-	for _, flowString := range tri.FlowString {
-		fuDealFlow := tri.NewDealFlow(flowString.Coins[0], flowString.Coins[1:])
+	for _, coinStrip := range tri.CoinStrip {
+		fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
 		dealFlows = append(dealFlows, fuDealFlow)
 	}
 
@@ -358,13 +355,13 @@ func (tri *Triangular) stratStrategy() int {
 	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	/*if !canOrder(profit, orderTotalValue) {
+	if !canOrder(profit, orderTotalValue) {
 		// 無利可圖，重設偵測
 		m_isFullPower = false
 		m_expectedTotalValue = 0
 		m_expectedLowestProfit = 0
 		return 0
-	}*/
+	}
 
 	laOrderVolume := orderTotalValue / laPrice
 	hbOrderVolume := orderTotalValue / hbPrice
@@ -401,11 +398,11 @@ func canOrder(profit, orderTotalValue float64) bool {
 	if profit < 0 {
 		log.Println("No profit")
 		return false
-	} else if profit < PROFIT_THRESHOLD {
+	} else if profit < RANK_N[R_PROFIT] {
 		log.Println("No enough profit")
 		return false
-	} else if orderTotalValue < LEAST_TOTAL_VALUE {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", LEAST_TOTAL_VALUE))
+	} else if orderTotalValue < mLeastTotalValue {
+		log.Println(fmt.Sprintf("orderTotalValue < %f", mLeastTotalValue))
 		return false
 	}
 	return true
@@ -427,7 +424,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
@@ -451,7 +448,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*RANGE_PREMIUM)
+			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
