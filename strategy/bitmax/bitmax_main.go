@@ -19,35 +19,49 @@ var mBitmax = bitmax.NewBitmax(http.DefaultClient)
 
 var m_tri = Tri.NewTriangular(mBitmax)
 
-var mFtx = ftx.NewFtx(http.DefaultClient,
-	ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		setting.FTX_SUBACCOUNT})
-var mTriFtx = Tri.NewTriangular(mFtx)
+const (
+	FTX    = "FTX"
+	BITMAX = "BITMAX"
+)
+
+var mSwitchExchange = BITMAX
+var mSubAccount = setting.FTX_SUBACCOUNT
+
+const (
+	version = "1.0.1"
+)
 
 func main() {
+
+	log.Println(version)
 
 	tInit, bunch := iniSetting()
 	s, _ := json.Marshal(tInit)
 	log.Println(string(s))
-	m_tri.SetInit(tInit)
 
 	s2, _ := json.Marshal(bunch)
 	log.Println(string(s2))
-	m_tri.SetCoinBunch(bunch)
 
-	/*m_tri.SetCoinBunch([]Tri.CoinStrip{
-		Tri.CoinStrip{Coins: []string{"FTT", "USDT"}},
-		Tri.CoinStrip{Coins: []string{"FTT", "BTC", "USDT"}},
-	})
-	m_tri.SetInit(Tri.TriangularInit{
-		RangePremium:    0.1,
-		LeastTotalValue: 10,
-		RANK_S:          []float64{0.006, -3.0, 1000},
-		RANK_N:          []float64{0.001, -2.0, 300},
-	})*/
-	m_tri.Start()
+	log.Println(mSwitchExchange)
+
+	tri := m_tri
+
+	if mSwitchExchange == FTX {
+		var mFtx = ftx.NewFtx(http.DefaultClient,
+			ftx.FtxInit{
+				setting.FTX_KEY,
+				setting.FTX_API_SECRET_KEY,
+				mSubAccount})
+		var mTriFtx = Tri.NewTriangular(mFtx)
+
+		tri = mTriFtx
+	} else {
+		tri = m_tri
+	}
+
+	tri.SetInit(tInit)
+	tri.SetCoinBunch(bunch)
+	tri.Start()
 
 }
 
@@ -57,6 +71,9 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinStrip) {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
+
+	mSwitchExchange = cfg.Section("").Key("ExchangeName").String()
+	mSubAccount = cfg.Section("FTX").Key("SubAccount").String()
 
 	resInit := Tri.TriangularInit{
 		RangePremium:    cfg.Section("").Key("RangePremium").MustFloat64(),
