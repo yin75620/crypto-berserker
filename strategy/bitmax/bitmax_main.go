@@ -28,7 +28,7 @@ var mSwitchExchange = BITMAX
 var mSubAccount = setting.FTX_SUBACCOUNT
 
 const (
-	version = "1.0.1"
+	version = "1.0.0-0001"
 )
 
 func main() {
