@@ -32,6 +32,7 @@ const (
 var (
 	mRangePremium    float64 = 0.1 //10%
 	mLeastTotalValue float64 = 10  //10US
+	mDelayTimeSec    int     = 5
 )
 
 //當const 用
@@ -52,6 +53,7 @@ const (
 type TriangularInit struct {
 	RangePremium    float64
 	LeastTotalValue float64
+	DelayTime       int
 	// 利潤, 加速, 價值(美元計價)
 	RANK_S []float64 //{0.006, -3.0, 1000}
 	RANK_N []float64 //{0.003, -2.0, 300}
@@ -81,6 +83,7 @@ func (tri *Triangular) SetCoinBunch(CoinStrip []CoinStrip) {
 func (tri *Triangular) SetInit(init TriangularInit) {
 	mRangePremium = init.RangePremium       //10%
 	mLeastTotalValue = init.LeastTotalValue //10US
+	mDelayTimeSec = init.DelayTime
 	RANK_N = init.RANK_N
 	RANK_S = init.RANK_S
 }
@@ -94,7 +97,7 @@ func (tri *Triangular) Start() {
 	infoStr := string(tri.exchangeClient.GetAccountInfo())
 	message_tool.SendTelegram(infoStr)
 
-	var delay_time int = 5
+	var delay_time int = mDelayTimeSec
 	d := time.Duration(time.Second * time.Duration(delay_time))
 
 	t := time.NewTimer(d)

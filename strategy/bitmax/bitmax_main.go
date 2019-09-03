@@ -78,6 +78,7 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinStrip) {
 	resInit := Tri.TriangularInit{
 		RangePremium:    cfg.Section("").Key("RangePremium").MustFloat64(),
 		LeastTotalValue: cfg.Section("").Key("LeastTotalValue").MustFloat64(),
+		DelayTime:       cfg.Section("").Key("DelayTime").MustInt(),
 		RANK_S: []float64{
 			cfg.Section("RankS").Key("MinProfit").MustFloat64(),
 			cfg.Section("RankS").Key("PlusSecond").MustFloat64(),
