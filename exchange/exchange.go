@@ -37,6 +37,7 @@ const (
 )
 
 type ExchangeOrder struct {
+	Pair      CoinPair
 	Market    string     `json:"market"`
 	Side      string     `json:"side"`
 	Price     float64    `json:"price"`
@@ -56,6 +57,10 @@ func (co *CoinPair) GetMarketName() string {
 
 func (co *CoinPair) GetSymbal() string {
 	return fmt.Sprintf("%s-%s", co.BaseCoin, co.QuotedCoin)
+}
+
+func (co *CoinPair) GetLinkMakertName() string {
+	return fmt.Sprint("%s%s", co.BaseCoin, co.QuotedCoin)
 }
 
 type PriceStatus interface {

@@ -80,6 +80,12 @@ func (tri *Triangular) SetCoinBunch(CoinStrip []CoinStrip) {
 	}
 }
 
+func (tri *Triangular) SetCoinArrays(coinArrays [][]string) {
+	for _, value := range coinArrays {
+		tri.CoinStrip = append(tri.CoinStrip, CoinStrip{Coins: value})
+	}
+}
+
 func (tri *Triangular) SetInit(init TriangularInit) {
 	mRangePremium = init.RangePremium       //10%
 	mLeastTotalValue = init.LeastTotalValue //10US
