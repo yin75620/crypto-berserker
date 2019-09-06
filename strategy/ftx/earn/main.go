@@ -15,7 +15,7 @@ import (
 	gomail "github.com/alexcesaro/mail/gomail"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	ftx "github.com/yin75620/crypto-berserker/ftx"
+	ftx "github.com/yin75620/crypto-berserker/exchange/ftx"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 

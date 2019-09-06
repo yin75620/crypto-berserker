@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/maicoin"
+	"github.com/yin75620/crypto-berserker/exchange/maicoin"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
 

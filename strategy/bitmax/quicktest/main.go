@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	bitmax "github.com/yin75620/crypto-berserker/bitmax"
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	bitmax "github.com/yin75620/crypto-berserker/exchange/bitmax"
 )
 
 const (
