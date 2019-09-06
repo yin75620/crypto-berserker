@@ -308,14 +308,17 @@ var MAX_FAIL_COUNT = 3
 func (tri *Triangular) stratStrategy() int {
 
 	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println(err) // 這已經是頂層的 UI 介面了，想以自己的方式呈現錯誤
+		err := recover()
+		if err == nil {
+			return
 		}
+		log.Println(err) // 這已經是頂層的 UI 介面了，想以自己的方式呈現錯誤
 		mFailCount = mFailCount + 1
 		if mFailCount < MAX_FAIL_COUNT {
 			//再重來一次
 			tri.stratStrategy()
 		}
+		log.Println(mFailCount)
 		// 失敗次數太多，直接結束
 	}()
 
