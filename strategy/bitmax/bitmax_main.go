@@ -11,6 +11,7 @@ import (
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/bitmax"
 	"github.com/yin75620/crypto-berserker/ftx"
+	"github.com/yin75620/crypto-berserker/maicoin"
 	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
@@ -22,13 +23,14 @@ var m_tri = Tri.NewTriangular(mBitmax)
 const (
 	FTX    = "FTX"
 	BITMAX = "BITMAX"
+	MAX    = "MAX"
 )
 
 var mSwitchExchange = BITMAX
 var mSubAccount = setting.FTX_SUBACCOUNT
 
 const (
-	version = "1.0.0-0001"
+	version = "1.0.1-0002"
 )
 
 func main() {
@@ -55,6 +57,10 @@ func main() {
 		var mTriFtx = Tri.NewTriangular(mFtx)
 
 		tri = mTriFtx
+	} else if mSwitchExchange == MAX {
+		var mMai = maicoin.NewMaicoin(http.DefaultClient)
+		var mTriMai = Tri.NewTriangular(mMai)
+		tri = mTriMai
 	} else {
 		tri = m_tri
 	}

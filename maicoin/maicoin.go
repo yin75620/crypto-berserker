@@ -72,11 +72,13 @@ func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
 }
 
 type QuoteResponse struct {
-	Timestamp int64 `"json:timestamp"`
-	PriceStatus
+	Timestamp float64     `"json:timestamp"`
+	Asks      [][]float64 `json:"asks,string"`
+	Bids      [][]float64 `json:"asks,string"`
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
+	qr.Timestamp = json["timestamp"].(float64)
 
 	askStrArrays := json["asks"].([]interface{})
 	qr.Asks = transToFloatTwoArray(askStrArrays)
@@ -116,18 +118,21 @@ func (qr *QuoteResponse) getBidPricePair(depth int) (exc.PricePair, error) {
 
 func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	market := coinPair.GetLinkMakertName()
+	fmt.Println(market)
 	resByte := bm.doBodyRequest("GET", "depth",
 		JArray{
 			"market": market,
 			"limit":  depth,
 		})
 
-	quoteResponse := QuoteResponse{}
-
-	err := json.Unmarshal(resByte, &quoteResponse)
+	var resJson map[string]interface{}
+	err := json.Unmarshal(resByte, &resJson)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	quoteResponse := QuoteResponse{}
+	quoteResponse.setBy(resJson)
 
 	askPair, _ := quoteResponse.GetPair(1, exc.Ask)
 	bidPair, _ := quoteResponse.GetPair(1, exc.Bid)
@@ -170,7 +175,7 @@ type maicoinOrder struct {
 }
 
 func (mai *maicoinOrder) setBy(order exc.ExchangeOrder) {
-	mai.Market = order.Pair.GetLinkMakertName()
+	mai.Market = order.CoinPair.GetLinkMakertName()
 	mai.Side = order.Side
 	mai.Volume = order.Size
 	mai.Price = order.Price
@@ -192,7 +197,7 @@ func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 	log.Println(fmt.Sprintf("body:%s", body))
 
 	jarray := JArray{}
-	json.Unmarshal([]byte(body), jarray)
+	json.Unmarshal([]byte(request), &jarray)
 
 	response := bm.doBodyRequest("POST", "orders", jarray)
 
@@ -246,6 +251,8 @@ func (bm *maicoin) doRequest(method, apiName string, body JArray) []byte {
 		log.Fatal(err)
 	}
 	sendBody := string(jsonBody)
+
+	log.Println(sendBody)
 
 	var res []byte
 	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)

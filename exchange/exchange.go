@@ -3,6 +3,7 @@ package exchange
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type Exchange interface {
@@ -37,7 +38,7 @@ const (
 )
 
 type ExchangeOrder struct {
-	Pair      CoinPair
+	CoinPair  CoinPair
 	Market    string     `json:"market"`
 	Side      string     `json:"side"`
 	Price     float64    `json:"price"`
@@ -60,7 +61,7 @@ func (co *CoinPair) GetSymbal() string {
 }
 
 func (co *CoinPair) GetLinkMakertName() string {
-	return fmt.Sprint("%s%s", co.BaseCoin, co.QuotedCoin)
+	return strings.ToLower(fmt.Sprintf("%s%s", co.BaseCoin, co.QuotedCoin))
 }
 
 type PriceStatus interface {

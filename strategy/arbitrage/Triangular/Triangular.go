@@ -159,6 +159,11 @@ func (q *Quote) GetPair(pType exc.PriceType) exc.PricePair {
 	return exc.PricePair{}
 }
 
+func (q *Quote) GetCoinPair() exc.CoinPair {
+	res := exc.CoinPair{BaseCoin: q.goalCoin, QuotedCoin: q.currentCoin}
+	return res
+}
+
 func (tri *Triangular) NewQuote(goalCoin, currentCoin string) Quote {
 	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
 	var askPair exc.PricePair
@@ -457,6 +462,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				Price:     myOrderPrice,
 				Size:      orderVolume,
 				OrderType: exc.MARKET,
+				CoinPair:  quote.GetCoinPair(),
 			}
 			tri.PostOrderRefry(myOrder)
 
@@ -481,6 +487,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				Price:     myOrderPrice,
 				Size:      orderVolume,
 				OrderType: exc.MARKET,
+				CoinPair:  quote.GetCoinPair(),
 			}
 			orders = append(orders, myOrder)
 
