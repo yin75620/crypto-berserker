@@ -6,16 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
-type JArray map[string]interface{}
+type JArray exc.JArray
 
 func NewMaicoin(c *http.Client) *maicoin {
 	maicoin := &maicoin{}
@@ -42,78 +40,15 @@ func (bm *maicoin) GetFee() exc.Fee {
 	return fee
 }
 
-type PriceType exc.PriceType
-
-const (
-	Ask PriceType = iota
-	Bid
-)
-
-type PriceStatus struct {
-	Asks [][]float64 `"json:asks"`
-	Bids [][]float64 `"json:bids"`
-}
-
-func (ps *PriceStatus) GetPair(depth int, pType PriceType) (exc.PricePair, error) {
-	switch pType {
-	case Ask:
-		return ps.getAskPricePair(depth)
-	case Bid:
-		return ps.getBidPricePair(depth)
-	}
-	return exc.PricePair{}, errors.New("has no match PriceType")
-}
-
-func (ps *PriceStatus) getAskPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, ps.Asks)
-}
-func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, ps.Bids)
-}
-
 type QuoteResponse struct {
-	Timestamp float64     `"json:timestamp"`
-	Asks      [][]float64 `json:"asks,string"`
-	Bids      [][]float64 `json:"asks,string"`
+	Timestamp float64 `"json:timestamp"`
+	exc.PriceStatus
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.Timestamp = json["timestamp"].(float64)
 
-	askStrArrays := json["asks"].([]interface{})
-	qr.Asks = transToFloatTwoArray(askStrArrays)
-	qr.Bids = transToFloatTwoArray(json["bids"].([]interface{}))
-}
-
-func transToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
-	res := [][]float64{}
-	for _, array := range askStrArrays {
-		askFloatArray := []float64{}
-		sArray := array.([]interface{})
-		for _, s := range sArray {
-			res, _ := strconv.ParseFloat(s.(string), 64)
-			askFloatArray = append(askFloatArray, res)
-		}
-		res = append(res, askFloatArray)
-	}
-	return res
-}
-
-func (qr *QuoteResponse) GetPair(depth int, pType exc.PriceType) (exc.PricePair, error) {
-	switch pType {
-	case exc.Ask:
-		return qr.getAskPricePair(depth)
-	case exc.Bid:
-		return qr.getBidPricePair(depth)
-	}
-	return exc.PricePair{}, errors.New("has no match PriceType")
-}
-
-func (qr *QuoteResponse) getAskPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, qr.Asks)
-}
-func (qr *QuoteResponse) getBidPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, qr.Bids)
+	qr.PriceStatus.SetByJArray(json)
 }
 
 func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
@@ -203,8 +138,8 @@ func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 	log.Println(fmt.Sprintf("%s", response))
 
-	//{"error":{"code":1001,"message":"market does not have a valid value"}}
-	/*type OrderResponse struct {
+	//{"error":{"code":2016,"message":"Failed to create order. Reason: btc_amount_too_small"}}
+	type OrderResponse struct {
 		Code    float64 `json:"code"`
 		Message string  `json:"message"`
 	}
@@ -217,9 +152,7 @@ func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 	var resErr error = nil
 	if orderResponse.Code != 0 {
 		resErr = errors.New(orderResponse.Message)
-	}*/
-
-	var resErr error = nil
+	}
 
 	return string(response), resErr
 }
@@ -266,22 +199,7 @@ func (bm *maicoin) doRequest(method, apiName string, body JArray) []byte {
 	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, ts, sendBody)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-		return res
-	}
-
-	defer resp.Body.Close()
-	sitemap, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Printf("%s", err)
-		return res
-	}
-
-	fmt.Printf("%s", sitemap)
-	return sitemap
+	return exc.SendRequest(client, req)
 }
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, sendBody string) {

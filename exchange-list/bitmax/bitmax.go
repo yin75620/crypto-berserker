@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
@@ -26,8 +24,8 @@ type Bitmax struct {
 }
 
 var (
-	apiURL    = "https://bitmax.io/"
-	apiPrefix = "api/v1/"
+	apiURL    = "https://bitmax.io"
+	apiPrefix = "/api/v1/"
 )
 
 // implement exchange
@@ -41,48 +39,16 @@ func (bm *Bitmax) GetFee() exc.Fee {
 }
 
 type QuoteResponse struct {
-	MarketName string      `json:"s"`
-	Asks       [][]float64 `json:"asks,string"`
-	Bids       [][]float64 `json:"asks,string"`
+	exc.PriceStatus
+	MarketName string `json:"s"`
+	//Asks       [][]float64
+	//Bids       [][]float64
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.MarketName = json["s"].(string)
 
-	askStrArrays := json["asks"].([]interface{})
-	qr.Asks = transToFloatTwoArray(askStrArrays)
-	qr.Bids = transToFloatTwoArray(json["bids"].([]interface{}))
-}
-
-func transToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
-	res := [][]float64{}
-	for _, array := range askStrArrays {
-		askFloatArray := []float64{}
-		sArray := array.([]interface{})
-		for _, s := range sArray {
-			res, _ := strconv.ParseFloat(s.(string), 64)
-			askFloatArray = append(askFloatArray, res)
-		}
-		res = append(res, askFloatArray)
-	}
-	return res
-}
-
-func (qr *QuoteResponse) GetPair(depth int, pType exc.PriceType) (exc.PricePair, error) {
-	switch pType {
-	case exc.Ask:
-		return qr.getAskPricePair(depth)
-	case exc.Bid:
-		return qr.getBidPricePair(depth)
-	}
-	return exc.PricePair{}, errors.New("has no match PriceType")
-}
-
-func (qr *QuoteResponse) getAskPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, qr.Asks)
-}
-func (qr *QuoteResponse) getBidPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, qr.Bids)
+	qr.PriceStatus.SetByJArray(json)
 }
 
 func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
@@ -217,22 +183,7 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, ts, coid)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-		return res
-	}
-
-	defer resp.Body.Close()
-	sitemap, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Printf("%s", err)
-		return res
-	}
-
-	//fmt.Printf("%s", sitemap)
-	return sitemap
+	return exc.SendRequest(client, req)
 }
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid string) {

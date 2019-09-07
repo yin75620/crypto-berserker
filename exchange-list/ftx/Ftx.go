@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -14,36 +13,9 @@ import (
 
 type PriceType exc.PriceType
 
-const (
-	Ask PriceType = iota
-	Bid
-)
-
-type PriceStatus struct {
-	Asks [][]float64 `"json:asks"`
-	Bids [][]float64 `"json:bids"`
-}
-
-func (ps *PriceStatus) GetPair(depth int, pType PriceType) (exc.PricePair, error) {
-	switch pType {
-	case Ask:
-		return ps.getAskPricePair(depth)
-	case Bid:
-		return ps.getBidPricePair(depth)
-	}
-	return exc.PricePair{}, errors.New("has no match PriceType")
-}
-
-func (ps *PriceStatus) getAskPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, ps.Asks)
-}
-func (ps *PriceStatus) getBidPricePair(depth int) (exc.PricePair, error) {
-	return exc.GetPricePair(depth, ps.Bids)
-}
-
 type OrderBookResponse struct {
-	Result  PriceStatus `json:"result"`
-	Success bool        `json:"success"`
+	Result  exc.PriceStatus `json:"result"`
+	Success bool            `json:"success"`
 }
 
 type FtxInit struct {
@@ -57,17 +29,17 @@ type Ftx struct {
 	initData FtxInit
 }
 
-var (
-	apiURL    = "https://ftx.com/api"
-	apiPrefix = "/api/"
-)
-
 func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx := &Ftx{}
 	ftx.client = c
 	ftx.initData = initData
 	return ftx
 }
+
+var (
+	apiURL    = "https://ftx.com/api"
+	apiPrefix = "/api/"
+)
 
 // implement exchange
 func (ftx *Ftx) GetFee() exc.Fee {
@@ -112,20 +84,10 @@ func (ftx *Ftx) GetMarket(name string) []byte {
 	return ftx.doGet(path, "")
 }
 
-func (ftx *Ftx) GetTopOrderBook(marketName string) []byte {
-	return ftx.GetOrderBook(marketName, 1)
-}
-
-func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
-	path := fmt.Sprintf("/markets/%s/orderbook?depth=%d", marketName, depth)
-	response := ftx.doGet(path, "")
-	return response
-}
-
 func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	resb := ftx.GetOrderBookResponse(coinPair.GetMarketName(), depth)
-	askPair, _ := resb.Result.GetPair(1, Ask)
-	bidPair, _ := resb.Result.GetPair(1, Bid)
+	askPair, _ := resb.Result.GetPair(1, exc.Ask)
+	bidPair, _ := resb.Result.GetPair(1, exc.Bid)
 	return askPair, bidPair
 }
 
@@ -136,33 +98,10 @@ func (ftx *Ftx) GetOrderBookResponse(marketName string, depth int) OrderBookResp
 	return bookResponse
 }
 
-// 看看 Api提供的交易對
-func (ftx *Ftx) GetPair(marketName string, depth int, pType PriceType) exc.PricePair {
-	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
-	res, _ := bookResponse.Result.GetPair(depth, pType)
-	return res
-}
-
-func (ftx *Ftx) GetAskPair(marketName string, depth int) exc.PricePair {
-	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
-	res, _ := bookResponse.Result.getAskPricePair(depth)
-	return res
-}
-
-func (ftx *Ftx) GetAsk(marketName string, depth int) float64 {
-	res := ftx.GetAskPair(marketName, depth)
-	return res.Price
-}
-
-func (ftx *Ftx) GetBidPair(marketName string, depth int) exc.PricePair {
-	var bookResponse OrderBookResponse = ftx.GetOrderBookResponse(marketName, depth)
-	res, _ := bookResponse.Result.getBidPricePair(depth)
-	return res
-}
-
-func (ftx *Ftx) GetBid(marketName string, depth int) float64 {
-	res := ftx.GetBidPair(marketName, depth)
-	return res.Price
+func (ftx *Ftx) GetOrderBook(marketName string, depth int) []byte {
+	path := fmt.Sprintf("/markets/%s/orderbook?depth=%d", marketName, depth)
+	response := ftx.doGet(path, "")
+	return response
 }
 
 type EOrderType string
@@ -244,22 +183,7 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	req.Header.Set("Content-Type", "application/json")
 	ftx.addHeader(&req.Header, method, apiName, body)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-		return res
-	}
-
-	defer resp.Body.Close()
-	sitemap, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Printf("%s", err)
-		return res
-	}
-
-	fmt.Printf("%s", sitemap)
-	return sitemap
+	return exc.SendRequest(client, req)
 }
 
 func (ftx *Ftx) addHeader(header *http.Header, reqMethod, path, body string) {

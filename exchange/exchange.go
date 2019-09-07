@@ -1,8 +1,10 @@
 package exchange
 
 import (
-	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"strings"
 )
 
@@ -64,21 +66,22 @@ func (co *CoinPair) GetLinkMakertName() string {
 	return strings.ToLower(fmt.Sprintf("%s%s", co.BaseCoin, co.QuotedCoin))
 }
 
-type PriceStatus interface {
-	GetPair(depth int, pType PriceType) (PricePair, error)
-	getAskPricePair(depth int) (PricePair, error)
-	getBidPricePair(depth int) (PricePair, error)
-}
-
-func GetPricePair(depth int, prices [][]float64) (PricePair, error) {
-	var res = PricePair{}
-	size := len(prices)
-	if depth > size {
-		return res, errors.New("depth can't over size")
+func SendRequest(client *http.Client, req *http.Request) []byte {
+	var res []byte
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return res
 	}
 
-	index := depth - 1
-	res.Price = prices[index][0] // first prize, second volume
-	res.Volume = prices[index][1]
-	return res, nil
+	defer resp.Body.Close()
+	sitemap, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+		fmt.Printf("%s", err)
+		return res
+	}
+
+	log.Printf("%s", sitemap)
+	return sitemap
 }
