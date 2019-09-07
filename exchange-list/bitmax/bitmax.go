@@ -45,8 +45,6 @@ func (bm *Bitmax) GetName() string {
 type QuoteResponse struct {
 	exc.PriceStatus
 	MarketName string `json:"s"`
-	//Asks       [][]float64
-	//Bids       [][]float64
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
@@ -77,8 +75,6 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 
 func (bm *Bitmax) GetAccountInfo() []byte {
 	// 這交易所沒有使用者資料
-	// 用 balance 代替
-	//res := bm.doAuthRequest("GET", "balance", "")
 	res := []byte("Bitmax")
 	return res
 }
@@ -103,7 +99,7 @@ type BitmaxOrder struct {
 
 func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
 	bo.Coid = exc.Uuid(32)
-	bo.Time = 0
+	bo.Time = exc.GetTimeSpan()
 	bo.Symbol = order.Market
 	bo.OrderPrice = fmt.Sprintf("%g", order.Price)
 	//bo.StopPrice = "0"
@@ -115,12 +111,8 @@ func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
 //下訂單
 func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 
-	ts := exc.GetTimeSpan()
-	coid := exc.Uuid(32)
 	bo := BitmaxOrder{}
 	bo.setBy(order)
-	bo.Time = ts
-	bo.Coid = coid
 
 	request, err := json.Marshal(bo)
 	if err != nil {
@@ -129,7 +121,7 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
 
-	response := bm.doOrderRequest("order", body, ts, coid)
+	response := bm.doOrderRequest("order", body, bo.Time, bo.Coid)
 
 	log.Println(fmt.Sprintf("%s", response))
 
