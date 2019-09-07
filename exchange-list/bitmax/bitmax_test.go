@@ -1,11 +1,11 @@
-package main
+package bitmax
 
 import (
 	"fmt"
 	"net/http"
+	"testing"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	bitmax "github.com/yin75620/crypto-berserker/exchange/bitmax"
 )
 
 const (
@@ -15,14 +15,14 @@ const (
 	FTT  = "FTT"
 )
 
-var m_bitmaxClient = bitmax.NewBitmax(http.DefaultClient)
+var m_bitmaxClient = NewBitmax(http.DefaultClient)
 
-func main() {
+func TestProducts(t *testing.T) {
 	res := m_bitmaxClient.GetProducts()
 	fmt.Println(fmt.Sprintf("res:%s", string(res)))
 }
 
-func test1() {
+func TestAccount(t *testing.T) {
 	res := m_bitmaxClient.GetAccountInfo()
 
 	fmt.Println(string(res))

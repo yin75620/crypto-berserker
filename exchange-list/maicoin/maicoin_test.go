@@ -1,19 +1,17 @@
-package main
+package maicoin
 
 import (
-	"fmt"
 	"net/http"
+	"testing"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/exchange/maicoin"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
 
-var mMai = maicoin.NewMaicoin(http.DefaultClient)
+var mMai = NewMaicoin(http.DefaultClient)
 var mTri = Tri.NewTriangular(mMai)
 
-func main() {
-	fmt.Println("TEST")
+func TestOrder(t *testing.T) {
 
 	/*mTri.SetCoinArrays([][]string{
 		[]string{"BTC", "TWD"},
@@ -21,7 +19,7 @@ func main() {
 	})*/
 	//mTri.Start()
 
-	var mm = maicoin.NewMaicoin(http.DefaultClient)
+	var mm = NewMaicoin(http.DefaultClient)
 	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 		Market:    "btcusdt",
 		Side:      exc.Buy,
