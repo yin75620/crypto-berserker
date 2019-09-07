@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
-	"github.com/yin75620/crypto-berserker/exchange/bitmax"
-	"github.com/yin75620/crypto-berserker/exchange/ftx"
-	"github.com/yin75620/crypto-berserker/exchange/maicoin"
+	"github.com/yin75620/crypto-berserker/exchange-list/bitmax"
+	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
+	"github.com/yin75620/crypto-berserker/exchange-list/maicoin"
 	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )

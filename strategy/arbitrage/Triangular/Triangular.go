@@ -125,7 +125,9 @@ func (tri *Triangular) Start() {
 }
 
 func StartLog() *os.File {
-	logFile, err := os.OpenFile("earn.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	fileName := fmt.Sprintf("%s.log", time.Now().Format("2019-06-20"))
+
+	logFile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}

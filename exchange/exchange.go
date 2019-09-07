@@ -82,6 +82,6 @@ func SendRequest(client *http.Client, req *http.Request) []byte {
 		return res
 	}
 
-	log.Printf("%s", sitemap)
+	//log.Printf("%s", sitemap)
 	return sitemap
 }

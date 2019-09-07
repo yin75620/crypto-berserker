@@ -53,7 +53,6 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 
 func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	market := coinPair.GetLinkMakertName()
-	fmt.Println(market)
 	resByte := bm.doBodyRequest("GET", "depth",
 		JArray{
 			"market": market,
@@ -206,7 +205,6 @@ func addHeader(header *http.Header, reqMethod, path string, ts int64, sendBody s
 
 	header.Add("X-MAX-ACCESSKEY", setting.MAICOIN_KEY)
 	payload := base64.StdEncoding.EncodeToString([]byte(sendBody))
-	fmt.Println(payload)
 	sign, _ := exc.GetParamHmacSHA256HexSign(setting.MAICOIN_SECRET_KEY, payload)
 	header.Add("X-MAX-PAYLOAD", payload)
 	header.Add("X-MAX-SIGNATURE", sign)
