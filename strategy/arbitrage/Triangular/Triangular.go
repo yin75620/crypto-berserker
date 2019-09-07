@@ -412,7 +412,8 @@ func (tri *Triangular) stratStrategy() int {
 		}
 	}
 
-	content := fmt.Sprintf("%s\r\n %s,\r\n orderTotalValue:%g \r\n profit:%g \r\n m_expectedTotalValue:%g",
+	content := fmt.Sprintf("%s, %s\r\n %s,\r\n orderTotalValue:%g \r\n profit:%g \r\n m_expectedTotalValue:%g",
+		tri.exchangeClient.GetName(),
 		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", laPrice, laOrderVolume, laName),
 		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", hbPrice, hbOrderVolume, hbName),
 		orderTotalValue,

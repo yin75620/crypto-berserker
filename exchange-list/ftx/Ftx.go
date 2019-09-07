@@ -51,6 +51,10 @@ func (ftx *Ftx) GetFee() exc.Fee {
 	return fee
 }
 
+func (ftx *Ftx) GetName() string {
+	return "FTX"
+}
+
 func (ftx *Ftx) GetAccountInfo() []byte {
 	return ftx.doGet("account", "")
 }

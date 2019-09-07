@@ -39,6 +39,9 @@ func (bm *maicoin) GetFee() exc.Fee {
 	fee.Deposit = 0.00075
 	return fee
 }
+func (bm *maicoin) GetName() string {
+	return "MAX"
+}
 
 type QuoteResponse struct {
 	Timestamp float64 `"json:timestamp"`

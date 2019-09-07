@@ -13,6 +13,7 @@ type Exchange interface {
 	GetAccountInfo() []byte
 	PostOrder(order ExchangeOrder) (string, error)
 	GetFee() Fee
+	GetName() string
 }
 
 type PriceType int

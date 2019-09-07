@@ -38,6 +38,10 @@ func (bm *Bitmax) GetFee() exc.Fee {
 	return fee
 }
 
+func (bm *Bitmax) GetName() string {
+	return "BITMAX"
+}
+
 type QuoteResponse struct {
 	exc.PriceStatus
 	MarketName string `json:"s"`
