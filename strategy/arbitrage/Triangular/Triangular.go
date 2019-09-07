@@ -125,7 +125,7 @@ func (tri *Triangular) Start() {
 }
 
 func StartLog() *os.File {
-	fileName := fmt.Sprintf("%s.log", time.Now().Format("2019-06-20"))
+	fileName := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02"))
 
 	logFile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

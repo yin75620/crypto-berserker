@@ -22,7 +22,12 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	nameTest()
+	timeTest()
+}
+
+func timeTest() {
+	fileName := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02"))
+	fmt.Println(fileName)
 }
 
 func nameTest() {
