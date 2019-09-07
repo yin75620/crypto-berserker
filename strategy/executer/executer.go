@@ -12,6 +12,7 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange-list/bitmax"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	"github.com/yin75620/crypto-berserker/exchange-list/maicoin"
+	"github.com/yin75620/crypto-berserker/exchange-list/okex"
 	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
@@ -24,6 +25,7 @@ const (
 	FTX    = "FTX"
 	BITMAX = "BITMAX"
 	MAX    = "MAX"
+	OKEX   = "OKEX"
 )
 
 var mSwitchExchange = BITMAX
@@ -59,6 +61,10 @@ func main() {
 		tri = mTriFtx
 	} else if mSwitchExchange == MAX {
 		var mMai = maicoin.NewMaicoin(http.DefaultClient)
+		var mTriMai = Tri.NewTriangular(mMai)
+		tri = mTriMai
+	} else if mSwitchExchange == OKEX {
+		var mMai = okex.NewOkex(http.DefaultClient)
 		var mTriMai = Tri.NewTriangular(mMai)
 		tri = mTriMai
 	} else {

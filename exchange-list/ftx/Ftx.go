@@ -47,7 +47,7 @@ func (ftx *Ftx) GetFee() exc.Fee {
 	fee.Deposit = 0
 	fee.WithDrawl = 0
 	fee.Taker = 0.00063175
-	fee.Deposit = 0.0001805
+	fee.Maker = 0.0001805
 	return fee
 }
 

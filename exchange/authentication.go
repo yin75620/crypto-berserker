@@ -19,6 +19,14 @@ func GetTimeSpan() int64 {
 	return nanos
 }
 
+func GetUTC() string {
+	utcTime := time.Now().UTC()
+	iso := utcTime.String()
+	isoBytes := []byte(iso)
+	iso = string(isoBytes[:10]) + "T" + string(isoBytes[11:23]) + "Z"
+	return iso
+}
+
 func GetParamHmacSHA256HexSign(secret, params string) (string, error) {
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, err := mac.Write([]byte(params))

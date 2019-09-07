@@ -36,7 +36,7 @@ func (bm *maicoin) GetFee() exc.Fee {
 	fee.Deposit = 0
 	fee.WithDrawl = 0
 	fee.Taker = 0.00075
-	fee.Deposit = 0.00075
+	fee.Maker = 0.00075
 	return fee
 }
 func (bm *maicoin) GetName() string {

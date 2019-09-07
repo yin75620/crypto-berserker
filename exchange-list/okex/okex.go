@@ -1,4 +1,4 @@
-package bitmax
+package okex
 
 import (
 	"bytes"
@@ -12,49 +12,50 @@ import (
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
-func NewBitmax(c *http.Client) *Bitmax {
-	bitmax := &Bitmax{}
-	bitmax.client = c
-	return bitmax
+func NewOkex(c *http.Client) *Okex {
+	Okex := &Okex{}
+	Okex.client = c
+	return Okex
 }
 
-type Bitmax struct {
+type Okex struct {
 	client       *http.Client
 	accountGroup int
 }
 
 var (
-	apiURL    = "https://bitmax.io/"
-	apiPrefix = "api/v1/"
+	apiURL    = "https://www.okex.com"
+	apiPrefix = "/api/spot/v3/" //幣幣交易
 )
 
 // implement exchange
-func (bm *Bitmax) GetFee() exc.Fee {
+func (bm *Okex) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0
 	fee.WithDrawl = 0
-	fee.Taker = 0.0004
-	fee.Maker = 0.0004
+	fee.Taker = 0.0015
+	fee.Maker = 0.0015
 	return fee
 }
 
-func (bm *Bitmax) GetName() string {
-	return "BITMAX"
+func (bm *Okex) GetName() string {
+	return "Okex"
 }
 
 type QuoteResponse struct {
 	exc.PriceStatus
-	MarketName string `json:"s"`
+	timeStamp string `json:"timeStamp"`
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
-	qr.MarketName = json["s"].(string)
+	qr.timeStamp = json["timestamp"].(string)
 
 	qr.PriceStatus.SetByJArray(json)
 }
 
-func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
-	path := fmt.Sprintf("depth?symbol=%s&n=%d", coinPair.GetSymbal(), depth)
+func (bm *Okex) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	path := fmt.Sprintf("instruments/%s/book?size=%d",
+		coinPair.GetSymbal(), depth)
 	resByte := bm.doNormalRequest("GET", path, "")
 
 	var resJson map[string]interface{}
@@ -73,18 +74,17 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 	return askPair, bidPair
 }
 
-func (bm *Bitmax) GetAccountInfo() []byte {
-	// 這交易所沒有使用者資料
-	res := []byte("Bitmax")
+func (bm *Okex) GetAccountInfo() []byte {
+	res := bm.doNormalRequest("GET", "accounts", "")
 	return res
 }
 
-func (bm *Bitmax) GetProducts() []byte {
+func (bm *Okex) GetProducts() []byte {
 	res := bm.doNormalRequest("GET", "products", "")
 	return res
 }
 
-type BitmaxOrder struct {
+type OkexOrder struct {
 	Coid       string `json:"coid"`       //"xxx...xxx"     a unique identifier of length 32
 	Time       int64  `json:"time"`       // 1528988100000   milliseconds since UNIX epoch in UTC
 	Symbol     string `json:"symbol"`     //"ETH/BTC"
@@ -97,7 +97,7 @@ type BitmaxOrder struct {
 	//TimeInForce string `json:"timeInForce"` //"GTC"           Optional, default is "GTC". Currently, we support "GTC" (good-till-canceled) and "IOC" (immediate-or-cancel).
 }
 
-func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
+func (bo *OkexOrder) setBy(order exc.ExchangeOrder) {
 	bo.Coid = exc.Uuid(32)
 	bo.Time = exc.GetTimeSpan()
 	bo.Symbol = order.Market
@@ -109,9 +109,9 @@ func (bo *BitmaxOrder) setBy(order exc.ExchangeOrder) {
 }
 
 //下訂單
-func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
+func (bm *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
 
-	bo := BitmaxOrder{}
+	bo := OkexOrder{}
 	bo.setBy(order)
 
 	request, err := json.Marshal(bo)
@@ -144,31 +144,21 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return string(response), resErr
 }
 
-func (bm *Bitmax) doNormalRequest(method, apiName, body string) []byte {
+func (bm *Okex) doNormalRequest(method, apiName, body string) []byte {
 	ts := exc.GetTimeSpan()
 	return bm.doRequest(method, apiName, body, false, ts, "")
 }
 
-func (bm *Bitmax) doAuthRequest(method, apiName, body string) []byte {
-	ts := exc.GetTimeSpan()
-	return bm.doRequest(method, apiName, body, true, ts, "")
-}
-
-func (bm *Bitmax) doOrderRequest(apiName, body string, ts int64, coid string) []byte {
+func (bm *Okex) doOrderRequest(apiName, body string, ts int64, coid string) []byte {
 	return bm.doRequest("POST", apiName, body, true, ts, coid)
 }
 
-func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) []byte {
+func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) []byte {
 	client := bm.client
 
 	var res []byte
 
-	accountGroupStr := ""
-	if needAuth {
-		accountGroupStr = bm.auth()
-	}
-
-	fullUrl := fmt.Sprintf("%s%s%s%s", apiURL, accountGroupStr, apiPrefix, apiName)
+	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
 
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
@@ -177,42 +167,38 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	addHeader(&req.Header, method, apiName, ts, coid)
+	addHeader(&req.Header, method, apiName, ts, body)
+
+	sendRes := exc.SendRequest(client, req)
+	//{"code":6010,"message":"Not enough balance."}
+	type OrderResponse struct {
+		Code    float64 `json:"code"`
+		Message string  `json:"message"`
+	}
+	orderResponse := OrderResponse{}
+
+	json.Unmarshal(sendRes, &orderResponse)
+
+	var resErr error = nil
+	if orderResponse.Code != 0 {
+		resErr = errors.New(orderResponse.Message)
+		panic(resErr)
+	}
 
 	return exc.SendRequest(client, req)
 }
 
-func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid string) {
-	strTs := exc.GetTimeSpanStr(ts)
+func addHeader(header *http.Header, reqMethod, path string, ts int64, body string) {
+	signPath := fmt.Sprintf("%v%v", apiPrefix, path)
+	//exc.GetTimeSpan()
 
-	header.Add("x-auth-key", setting.BITMAX_KEY)
-	header.Add("x-auth-timestamp", strTs)
+	tsStr := exc.GetUTC() // exc.GetTimeSpanStr(ts)
+	total := tsStr + reqMethod + signPath + string(body)
+	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.OKEX_SECRET_KEY, total)
 
-	coid := ""
-	if sCoid != "" {
-		coid = fmt.Sprintf("+%s", sCoid)
-	}
-	payload := fmt.Sprintf("%s+%s%s", strTs, path, coid)
-	//fmt.Println(payload)
-	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.BITMAX_API_SECRET_KEY, payload)
-	header.Add("x-auth-signature", sign)
-	header.Add("x-auth-coid", sCoid)
-}
+	header.Add("OK-ACCESS-KEY", setting.OKEX_KEY)
+	header.Add("OK-ACCESS-SIGN", sign)
+	header.Add("OK-ACCESS-TIMESTAMP", tsStr)
+	header.Add("OK-ACCESS-PASSPHRASE", setting.OKEX_PASSPHASE)
 
-func (bm *Bitmax) auth() string {
-	if bm.accountGroup == 0 {
-		type TempUserInfo struct {
-			AccountGroup int `json:"accountGroup"`
-		}
-
-		byt := bm.doNormalRequest("GET", "user/info", "")
-		userInfo := TempUserInfo{}
-		if err := json.Unmarshal(byt, &userInfo); err != nil {
-			panic(err)
-		}
-
-		bm.accountGroup = userInfo.AccountGroup
-	}
-	accountGroupStr := fmt.Sprintf("%d/", bm.accountGroup)
-	return accountGroupStr
 }
