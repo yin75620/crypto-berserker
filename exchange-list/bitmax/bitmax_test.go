@@ -33,12 +33,12 @@ func TestAccount(t *testing.T) {
 	fmt.Println(fmt.Sprintf("res2:%g", res2.Price))
 	fmt.Println(fmt.Sprintf("res2:%g", res2.Volume))
 
-	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market:    "FTT/USDT",
-		Side:      exc.Buy,
-		Price:     1.3,
-		Size:      1,
-		OrderType: exc.LIMIT,
-	}
-	m_bitmaxClient.PostOrder(myOrder)
+	// var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
+	// 	Market:    "FTT/USDT",
+	// 	Side:      exc.Buy,
+	// 	Price:     1.3,
+	// 	Size:      1,
+	// 	OrderType: exc.LIMIT,
+	// }
+	// m_bitmaxClient.PostOrder(myOrder)
 }

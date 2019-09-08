@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -26,8 +28,38 @@ func main() {
 }
 
 func dotTest() {
-	askVolumeStr := fmt.Sprintf("%f", 2.000200)
+	askVolumeStr := strToFloat64(fmt.Sprintf("%.3f", 2.000690), 10)
+
 	fmt.Println(askVolumeStr)
+
+	//fmt.Println(FloatFloor(1.3251, 0))
+	fmt.Println(FloatFloorByFloat(1.3251876, 0.0001))
+}
+
+func FloatFloorByFloat(f float64, unit float64) float64 {
+	if unit == 0 {
+		return f //不運算
+	}
+	val := f / unit
+	val = math.Floor(val)
+	res := val * unit / math.Pow10(-int(math.Log10(unit))) //為了不要出現浮點數
+	return res
+}
+
+func FloatFloor(f float64, count int) float64 {
+	val := f * math.Pow10(count)
+	val = math.Floor(val)
+	res := val / math.Pow10(count)
+	return res
+}
+
+func strToFloat64(str string, len int) float64 {
+	lenstr := "%." + strconv.Itoa(len) + "f"
+	value, _ := strconv.ParseFloat(str, 64)
+	value = math.Floor(math.Pow10(len)*value) / math.Pow10(len) // 無條件捨去
+	nstr := fmt.Sprintf(lenstr, value)
+	val, _ := strconv.ParseFloat(nstr, 64)
+	return val
 }
 
 func timeTest() {
