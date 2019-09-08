@@ -9,6 +9,11 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/yin75620/crypto-berserker/setting"
+
+	"github.com/bitontop/gored/exchange"
+	"github.com/bitontop/gored/exchange/liquid"
 )
 
 type LoginRequest struct {
@@ -24,7 +29,17 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	dotTest()
+	LiquidTest()
+}
+
+func LiquidTest() {
+	config := exchange.Config{}
+	config.API_KEY = string(setting.LIQUID_KEY)
+	config.API_SECRET = setting.LIQUID_SECRET_KEY
+	config.Source = "MICROSERVICE_API"
+	config.ExName = "LIQUID"
+	liq := liquid.CreateLiquid(&config)
+	liq.UpdateAllBalances()
 }
 
 func dotTest() {
