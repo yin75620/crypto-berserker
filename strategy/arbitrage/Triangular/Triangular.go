@@ -8,11 +8,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/jmath"
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
@@ -133,7 +132,6 @@ type Quote struct {
 	currentCoin string
 	askPair     exc.PricePair
 	bidPair     exc.PricePair
-	underDot    int
 }
 
 func (q *Quote) MarketName() string {
@@ -173,30 +171,7 @@ func (tri *Triangular) NewQuote(goalCoin, currentCoin string) Quote {
 	quote.bidPair = bidPair
 	quote.goalCoin = goalCoin
 	quote.currentCoin = currentCoin
-	askVolumeStr := fmt.Sprintf("%g", askPair.Volume)
-
-	// 找出小數點後有幾位
-	array := strings.Split(askVolumeStr, ".")
-	lastItem := ""
-	if strings.Index(askVolumeStr, ".") > 0 {
-		lastItem = array[len(array)-1]
-	}
-
-	quote.underDot = len(lastItem)
-	if val, ok := marketMap[marketName]; ok {
-		quote.underDot = val
-	}
-
 	return quote
-}
-
-func strToFloat64(str string, len int) float64 {
-	lenstr := "%." + strconv.Itoa(len) + "f"
-	value, _ := strconv.ParseFloat(str, 64)
-	value = math.Floor(math.Pow10(len)*value) / math.Pow10(len) // 無條件捨去
-	nstr := fmt.Sprintf(lenstr, value)
-	val, _ := strconv.ParseFloat(nstr, 64)
-	return val
 }
 
 type DealFlow struct {
@@ -447,7 +422,9 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 		orderVolume := startVolume
 		orderSymbol = -1
 		for _, quote := range df.quotes {
-			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+			var merketInfo = tri.exchangeClient.GetMarketInfo(quote.GetCoinPair())
+			unit := merketInfo.VolumeIncrement
+			orderVolume = jmath.FloatFloorByFloat(orderVolume, unit)
 
 			orderPrice := quote.GetPair(pType).Price
 
@@ -472,7 +449,9 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 		var orders []exc.ExchangeOrder = []exc.ExchangeOrder{}
 		for i := 0; i < len(df.quotes); i++ {
 			quote := df.quotes[i]
-			orderVolume = strToFloat64(fmt.Sprintf("%g", orderVolume), quote.underDot)
+			var merketInfo = tri.exchangeClient.GetMarketInfo(quote.GetCoinPair())
+			unit := merketInfo.VolumeIncrement
+			orderVolume = jmath.FloatFloorByFloat(orderVolume, unit)
 
 			orderPrice := quote.GetPair(pType).Price
 
