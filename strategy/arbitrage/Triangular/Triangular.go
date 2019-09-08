@@ -435,7 +435,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
-				OrderType: exc.MARKET,
+				OrderType: exc.LIMIT,
 				CoinPair:  quote.GetCoinPair(),
 			}
 			tri.PostOrderRefry(myOrder)
@@ -462,7 +462,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
-				OrderType: exc.MARKET,
+				OrderType: exc.LIMIT,
 				CoinPair:  quote.GetCoinPair(),
 			}
 			orders = append(orders, myOrder)

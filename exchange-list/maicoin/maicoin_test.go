@@ -21,12 +21,12 @@ func TestOrder(t *testing.T) {
 
 	var mm = NewMaicoin(http.DefaultClient)
 	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market:    "btcusdt",
+		Market:    "ethtwd",
 		Side:      exc.Buy,
-		Price:     31,
-		Size:      1,
-		OrderType: exc.LIMIT,
-		CoinPair:  exc.CoinPair{BaseCoin: "USDT", QuotedCoin: "TWD"},
+		Price:     5737.306,
+		Size:      0.253332,
+		OrderType: exc.MARKET,
+		CoinPair:  exc.CoinPair{BaseCoin: "ETH", QuotedCoin: "TWD"},
 	}
 	mm.PostOrder(myOrder)
 
