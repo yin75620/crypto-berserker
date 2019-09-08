@@ -42,6 +42,10 @@ func (bm *Okex) GetName() string {
 	return "Okex"
 }
 
+func (bm *Okex) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+	return exc.MarketInfo{} //not yet implement
+}
+
 type QuoteResponse struct {
 	exc.PriceStatus
 	timeStamp string `json:"timeStamp"`

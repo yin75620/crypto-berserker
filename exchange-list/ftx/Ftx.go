@@ -55,6 +55,15 @@ func (ftx *Ftx) GetName() string {
 	return "FTX"
 }
 
+func (ftx *Ftx) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+	switch name := coinPair.GetMarketName(); name {
+	case "FTT/USD":
+		return exc.MarketInfo{VolumeIncrement: 1}
+	default:
+		return exc.MarketInfo{VolumeIncrement: 0.0001}
+	}
+}
+
 func (ftx *Ftx) GetAccountInfo() []byte {
 	return ftx.doGet("account", "")
 }

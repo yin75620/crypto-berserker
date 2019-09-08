@@ -42,6 +42,10 @@ func (bm *Bitmax) GetName() string {
 	return "BITMAX"
 }
 
+func (bm *Bitmax) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+	return exc.MarketInfo{} //not yet implement
+}
+
 type QuoteResponse struct {
 	exc.PriceStatus
 	MarketName string `json:"s"`

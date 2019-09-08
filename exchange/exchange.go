@@ -9,11 +9,12 @@ import (
 )
 
 type Exchange interface {
-	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 	GetAccountInfo() []byte
 	PostOrder(order ExchangeOrder) (string, error)
 	GetFee() Fee
 	GetName() string
+	GetMarketInfo(coinPair CoinPair) MarketInfo
+	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 }
 
 type PriceType int
@@ -85,4 +86,10 @@ func SendRequest(client *http.Client, req *http.Request) []byte {
 
 	//log.Printf("%s", sitemap)
 	return sitemap
+}
+
+type MarketInfo struct {
+	Name            string
+	PriceIncrement  float64
+	VolumeIncrement float64
 }

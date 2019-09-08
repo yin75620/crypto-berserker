@@ -43,6 +43,10 @@ func (bm *maicoin) GetName() string {
 	return "MAX"
 }
 
+func (bm *maicoin) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+	return exc.MarketInfo{} //not yet implement
+}
+
 type QuoteResponse struct {
 	Timestamp float64 `"json:timestamp"`
 	exc.PriceStatus
