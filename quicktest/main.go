@@ -22,7 +22,12 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	timeTest()
+	dotTest()
+}
+
+func dotTest() {
+	askVolumeStr := fmt.Sprintf("%f", 2.000200)
+	fmt.Println(askVolumeStr)
 }
 
 func timeTest() {
