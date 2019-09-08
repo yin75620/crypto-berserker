@@ -29,19 +29,6 @@ const (
 	XRP  = "XRP"
 )
 
-var (
-	mRangePremium    float64 = 0.1 //10%
-	mLeastTotalValue float64 = 10  //10US
-	mDelayTimeSec    int     = 5
-)
-
-//當const 用
-var (
-	// 數量, 利潤, 加速, 價值(美元計價)
-	RANK_S = []float64{0.006, -3.0, 1000}
-	RANK_N = []float64{0.001, -2.0, 300}
-)
-
 var marketMap map[string]int = map[string]int{"BTC/USD": 4}
 
 const (
@@ -66,10 +53,18 @@ type CoinStrip struct {
 type Triangular struct {
 	exchangeClient exc.Exchange
 	CoinStrip      []CoinStrip
+	Init           TriangularInit
 }
 
 func NewTriangular(exchange exc.Exchange) *Triangular {
-	var t = &Triangular{}
+	var t = &Triangular{
+		Init: TriangularInit{
+			RangePremium:    0.1, //10%
+			LeastTotalValue: 10,  //10 quoteCoin
+			DelayTime:       5,   //5second
+			// 利潤, 加速, 價值(美元計價)
+			RANK_S: []float64{0.006, -3.0, 1000},
+			RANK_N: []float64{0.001, -2.0, 300}}}
 	t.exchangeClient = exchange
 	return t
 }
@@ -87,11 +82,7 @@ func (tri *Triangular) SetCoinArrays(coinArrays [][]string) {
 }
 
 func (tri *Triangular) SetInit(init TriangularInit) {
-	mRangePremium = init.RangePremium       //10%
-	mLeastTotalValue = init.LeastTotalValue //10US
-	mDelayTimeSec = init.DelayTime
-	RANK_N = init.RANK_N
-	RANK_S = init.RANK_S
+	tri.Init = init
 }
 
 func (tri *Triangular) Start() {
@@ -103,7 +94,7 @@ func (tri *Triangular) Start() {
 	infoStr := string(tri.exchangeClient.GetAccountInfo())
 	message_tool.SendTelegram(infoStr)
 
-	var delay_time int = mDelayTimeSec
+	var delay_time int = tri.Init.DelayTime
 	d := time.Duration(time.Second * time.Duration(delay_time))
 
 	t := time.NewTimer(d)
@@ -309,20 +300,20 @@ var MAX_FAIL_COUNT = 3
 
 func (tri *Triangular) stratStrategy() int {
 
-	// defer func() {
-	// 	err := recover()
-	// 	if err == nil {
-	// 		return
-	// 	}
-	// 	log.Println(err) // 這已經是頂層的 UI 介面了，想以自己的方式呈現錯誤
-	// 	mFailCount = mFailCount + 1
-	// 	if mFailCount < MAX_FAIL_COUNT {
-	// 		//再重來一次
-	// 		tri.stratStrategy()
-	// 	}
-	// 	log.Println(mFailCount)
-	// 	// 失敗次數太多，直接結束
-	// }()
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		log.Println(err) // 這已經是頂層的 UI 介面了，想以自己的方式呈現錯誤
+		mFailCount = mFailCount + 1
+		if mFailCount < MAX_FAIL_COUNT {
+			//再重來一次
+			tri.stratStrategy()
+		}
+		log.Println(mFailCount)
+		// 失敗次數太多，直接結束
+	}()
 
 	dealFlows := []DealFlow{}
 
@@ -363,13 +354,13 @@ func (tri *Triangular) stratStrategy() int {
 
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
-	currentOrderTotalValue := RANK_N[R_TOTAL_VALUE]
+	currentOrderTotalValue := tri.Init.RANK_N[R_TOTAL_VALUE]
 
 	// 表示有人來搶單拉!!
 	if m_expectedTotalValue != 0 && m_expectedTotalValue > currentOrderTotalValue {
 		m_isFullPower = true
 
-	} else if profit > RANK_S[R_PROFIT] {
+	} else if profit > tri.Init.RANK_S[R_PROFIT] {
 		// 利潤超高 買起來!!!
 		m_isFullPower = true
 	} else if m_expectedLowestProfit != 0 && m_expectedLowestProfit < profit {
@@ -378,7 +369,7 @@ func (tri *Triangular) stratStrategy() int {
 	}
 
 	if m_isFullPower {
-		currentOrderTotalValue = RANK_S[R_TOTAL_VALUE]
+		currentOrderTotalValue = tri.Init.RANK_S[R_TOTAL_VALUE]
 	}
 
 	wnatOrderTotalValue := currentOrderTotalValue * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
@@ -390,7 +381,7 @@ func (tri *Triangular) stratStrategy() int {
 	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	if !canOrder(profit, orderTotalValue) {
+	if !tri.canOrder(profit, orderTotalValue) {
 		// 無利可圖，重設偵測
 		m_isFullPower = false
 		m_expectedTotalValue = 0
@@ -421,24 +412,24 @@ func (tri *Triangular) stratStrategy() int {
 		m_expectedTotalValue)
 	message_tool.SendTelegram(content)
 
-	resPlusSecond := RANK_N[R_PLUS_SECOND]
+	resPlusSecond := tri.Init.RANK_N[R_PLUS_SECOND]
 	if m_isFullPower {
-		resPlusSecond = RANK_S[R_PLUS_SECOND]
+		resPlusSecond = tri.Init.RANK_S[R_PLUS_SECOND]
 	}
 
 	return int(resPlusSecond)
 }
 
-func canOrder(profit, orderTotalValue float64) bool {
+func (tri *Triangular) canOrder(profit, orderTotalValue float64) bool {
 	// 有利可圖
 	if profit < 0 {
 		log.Println("No profit")
 		return false
-	} else if profit < RANK_N[R_PROFIT] {
+	} else if profit < tri.Init.RANK_N[R_PROFIT] {
 		log.Println("No enough profit")
 		return false
-	} else if orderTotalValue < mLeastTotalValue {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", mLeastTotalValue))
+	} else if orderTotalValue < tri.Init.LeastTotalValue {
+		log.Println(fmt.Sprintf("orderTotalValue < %f", tri.Init.LeastTotalValue))
 		return false
 	}
 	return true
@@ -460,7 +451,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
+			myOrderPrice := orderPrice * (1 + orderSymbol*tri.Init.RangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
@@ -485,7 +476,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 			orderPrice := quote.GetPair(pType).Price
 
-			myOrderPrice := orderPrice * (1 + orderSymbol*mRangePremium)
+			myOrderPrice := orderPrice * (1 + orderSymbol*tri.Init.RangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 				Market:    quote.MarketName(),
