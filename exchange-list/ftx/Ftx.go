@@ -37,7 +37,7 @@ func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 }
 
 var (
-	apiURL    = "https://ftx.com/api"
+	apiURL    = "https://ftx.com"
 	apiPrefix = "/api/"
 )
 
@@ -186,7 +186,7 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 
 	var res []byte
 
-	fullUrl := fmt.Sprintf("%s/%s", apiURL, apiName)
+	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
