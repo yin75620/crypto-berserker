@@ -171,7 +171,7 @@ type FtxotcOrder struct {
 }
 
 func (fo *FtxotcOrder) setBy(order exc.ExchangeOrder) {
-	fo.Market = order.Market
+	fo.Market = order.CoinPair.GetMarketName()
 	fo.Side = order.Side
 	fo.Price = order.Price
 	fo.Size = order.Size

@@ -42,8 +42,8 @@ const (
 )
 
 type ExchangeOrder struct {
-	CoinPair  CoinPair
-	Market    string     `json:"market"`
+	CoinPair CoinPair
+	//Market    string     `json:"market"`
 	Side      string     `json:"side"`
 	Price     float64    `json:"price"`
 	Size      float64    `json:"size"`

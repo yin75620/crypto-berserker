@@ -104,7 +104,7 @@ type OkexOrder struct {
 func (bo *OkexOrder) setBy(order exc.ExchangeOrder) {
 	bo.Coid = exc.Uuid(32)
 	bo.Time = exc.GetTimeSpan()
-	bo.Symbol = order.Market
+	bo.Symbol = order.CoinPair.GetMarketName()
 	bo.OrderPrice = fmt.Sprintf("%g", order.Price)
 	//bo.StopPrice = "0"
 	bo.OrderQty = fmt.Sprintf("%g", order.Size)
