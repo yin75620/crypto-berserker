@@ -134,11 +134,6 @@ type Quote struct {
 	bidPair     exc.PricePair
 }
 
-func (q *Quote) MarketName() string {
-	marketName := fmt.Sprintf("%s/%s", q.goalCoin, q.currentCoin)
-	return marketName
-}
-
 func (q *Quote) GetPair(pType exc.PriceType) exc.PricePair {
 	switch pType {
 	case exc.Ask:
@@ -198,7 +193,8 @@ func (tri *Triangular) NewDealFlow(goalCoin string, stepCoins []string) DealFlow
 func (df *DealFlow) getName() string {
 	marketName := ""
 	for _, value := range df.quotes {
-		marketName = fmt.Sprintf("%s%s", marketName, value.MarketName())
+		co := value.GetCoinPair()
+		marketName = fmt.Sprintf("%s%s", marketName, co.GetMarketName())
 	}
 	return marketName
 }
@@ -431,7 +427,6 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 			myOrderPrice := orderPrice * (1 + orderSymbol*tri.Init.RangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-				Market:    quote.MarketName(),
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
@@ -458,7 +453,6 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 			myOrderPrice := orderPrice * (1 + orderSymbol*tri.Init.RangePremium)
 
 			var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-				Market:    quote.MarketName(),
 				Side:      side,
 				Price:     myOrderPrice,
 				Size:      orderVolume,
