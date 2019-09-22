@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange-list/bitmax"
+	"github.com/yin75620/crypto-berserker/exchange-list/coinex"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftxotc"
 	"github.com/yin75620/crypto-berserker/exchange-list/maicoin"
@@ -28,6 +29,7 @@ const (
 	MAX    = "MAX"
 	OKEX   = "OKEX"
 	FTXOTC = "FTXOTC"
+	COINEX = "COINEX"
 )
 
 var mSwitchExchange = BITMAX
@@ -74,6 +76,11 @@ func main() {
 			ftxotc.FtxotcInit{
 				setting.FTXOTC_KEY,
 				setting.FTXOTC_SECRET_KEY})
+		var mTriFtx = Tri.NewTriangular(mFtxOtc)
+
+		tri = mTriFtx
+	} else if mSwitchExchange == COINEX {
+		var mFtxOtc = coinex.NewCoinEx(http.DefaultClient)
 		var mTriFtx = Tri.NewTriangular(mFtxOtc)
 
 		tri = mTriFtx

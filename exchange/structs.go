@@ -7,6 +7,13 @@ import (
 
 type JArray map[string]interface{}
 
+func (ja *JArray) Add(other JArray) {
+	// 塞入 body
+	for k, v := range other {
+		(*ja)[k] = v
+	}
+}
+
 type PriceStatus struct {
 	Asks [][]float64 `"json:asks"`
 	Bids [][]float64 `"json:bids"`
