@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
-	"github.com/yin75620/crypto-berserker/exchange-list/bitmax"
+	"github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/coinex"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftxotc"
@@ -18,10 +18,6 @@ import (
 	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
-
-var mBitmax = bitmax.NewBitmax(http.DefaultClient)
-
-var m_tri = Tri.NewTriangular(mBitmax)
 
 const (
 	FTX    = "FTX"
@@ -52,41 +48,30 @@ func main() {
 
 	log.Println(mSwitchExchange)
 
-	tri := m_tri
+	var tri *Tri.Triangular = nil
+	var exchange exchange.Exchange = nil
 
 	if mSwitchExchange == FTX {
-		var mFtx = ftx.NewFtx(http.DefaultClient,
+		exchange = ftx.NewFtx(http.DefaultClient,
 			ftx.FtxInit{
 				setting.FTX_KEY,
 				setting.FTX_API_SECRET_KEY,
 				mSubAccount})
-		var mTriFtx = Tri.NewTriangular(mFtx)
-
-		tri = mTriFtx
 	} else if mSwitchExchange == MAX {
-		var mMai = maicoin.NewMaicoin(http.DefaultClient)
-		var mTriMai = Tri.NewTriangular(mMai)
-		tri = mTriMai
+		exchange = maicoin.NewMaicoin(http.DefaultClient)
 	} else if mSwitchExchange == OKEX {
-		var mMai = okex.NewOkex(http.DefaultClient)
-		var mTriMai = Tri.NewTriangular(mMai)
-		tri = mTriMai
+		exchange = okex.NewOkex(http.DefaultClient)
 	} else if mSwitchExchange == FTXOTC {
-		var mFtxOtc = ftxotc.NewFtxotc(http.DefaultClient,
+		exchange = ftxotc.NewFtxotc(http.DefaultClient,
 			ftxotc.FtxotcInit{
 				setting.FTXOTC_KEY,
 				setting.FTXOTC_SECRET_KEY})
-		var mTriFtx = Tri.NewTriangular(mFtxOtc)
-
-		tri = mTriFtx
 	} else if mSwitchExchange == COINEX {
-		var mFtxOtc = coinex.NewCoinEx(http.DefaultClient)
-		var mTriFtx = Tri.NewTriangular(mFtxOtc)
-
-		tri = mTriFtx
+		exchange = coinex.NewCoinEx(http.DefaultClient)
 	} else {
-		tri = m_tri
 	}
+
+	tri = Tri.NewTriangular(exchange)
 
 	tri.SetInit(tInit)
 	tri.SetCoinBunch(bunch)

@@ -64,7 +64,7 @@ func (ftx *Ftx) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	case "FTT/BTC":
 		return exc.MarketInfo{VolumeIncrement: 1}
 	default:
-
+		return exc.MarketInfo{}
 	}
 }
 
