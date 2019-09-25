@@ -12,11 +12,11 @@ var mftx = NewFtx(http.DefaultClient,
 	FtxInit{
 		setting.FTX_KEY,
 		setting.FTX_API_SECRET_KEY,
-		"Saber"})
+		"apicaller"})
 
 func TestInfo(t *testing.T) {
 
-	mftx.GetAccountInfo()
+	fmt.Println(string(mftx.GetAccountInfo()))
 
 	//ftx.GetMarkets()
 }
@@ -36,4 +36,8 @@ func TestOrder(t *testing.T) {
 
 func TestMarket(t *testing.T) {
 	fmt.Println(string(mftx.GetMarkets()))
+}
+
+func TestBalance(t *testing.T) {
+
 }

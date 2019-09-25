@@ -9,7 +9,7 @@ import (
 )
 
 type Exchange interface {
-	GetAccountInfo() []byte
+	GetAccountInfo() []byte // include balance
 	PostOrder(order ExchangeOrder) (string, error)
 	GetFee() Fee
 	GetName() string

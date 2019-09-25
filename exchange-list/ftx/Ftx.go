@@ -69,7 +69,10 @@ func (ftx *Ftx) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 }
 
 func (ftx *Ftx) GetAccountInfo() []byte {
-	return ftx.doGet("account", "")
+	account := ftx.doGet("account", "")
+	wallet := ftx.doGet("wallet/balances", "")
+
+	return []byte(fmt.Sprintf("%s%s", string(wallet), string(account)))
 }
 
 func (ftx *Ftx) GetStructFills() []FillResponse {
