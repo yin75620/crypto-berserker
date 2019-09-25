@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/yin75620/crypto-berserker/jmath"
 )
 
 type LoginRequest struct {
@@ -32,8 +34,9 @@ func dotTest() {
 
 	fmt.Println(askVolumeStr)
 
-	//fmt.Println(FloatFloor(1.3251, 0))
-	fmt.Println(FloatFloorByFloat(1.3251876, 0.0001))
+	fmt.Println(jmath.FloatFloorByFloat(1.3251, 0))
+	//fmt.Println(jmath.FloatFloorByFloat(1.2541876, 0.0001))
+	fmt.Println(jmath.FloatFloorByFloat(1.3251876110011, 0.0001))
 }
 
 func FloatFloorByFloat(f float64, unit float64) float64 {

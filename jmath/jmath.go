@@ -1,6 +1,8 @@
 package jmath
 
-import "math"
+import (
+	"math"
+)
 
 func FloatFloorByFloat(f float64, unit float64) float64 {
 	if unit == 0 {
@@ -8,7 +10,7 @@ func FloatFloorByFloat(f float64, unit float64) float64 {
 	}
 	val := f / unit
 	val = math.Floor(val)
-	res := val * unit / math.Pow10(-int(math.Log10(unit))) //為了不要出現浮點數
+	res := val * unit
 	return res
 }
 
