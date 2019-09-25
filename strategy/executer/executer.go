@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange"
@@ -32,7 +33,7 @@ var mSwitchExchange = BITMAX
 var mSubAccount = setting.FTX_SUBACCOUNT
 
 const (
-	version = "1.0.1-0006"
+	version = "1.0.1-0007"
 )
 
 func main() {
@@ -70,6 +71,8 @@ func main() {
 		exchange = coinex.NewCoinEx(http.DefaultClient)
 	} else {
 	}
+
+	go dailySendAccountInfo(exchange)
 
 	tri = Tri.NewTriangular(exchange)
 
@@ -117,4 +120,17 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinStrip) {
 		resFlow = append(resFlow, Tri.CoinStrip{Coins: coins})
 	}
 	return resInit, resFlow
+}
+
+// 台灣中午12點會呼叫一次AccountInfo()
+func dailySendAccountInfo(exchange exchange.Exchange) {
+	now := time.Now().UTC()
+	tomorrow := now.AddDate(0, 0, 1)
+	midnoon := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(),
+		4, 0, 0, 0, now.Location())
+	duration := midnoon.Sub(now)
+	time.Sleep(duration)
+	exchange.GetAccountInfo()
+
+	dailySendAccountInfo(exchange)
 }
