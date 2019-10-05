@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yin75620/crypto-berserker/message_tool"
+
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/coinex"
@@ -72,7 +74,7 @@ func main() {
 	} else {
 	}
 
-	go dailySendAccountInfo(exchange)
+	//go dailySendAccountInfo(exchange)
 
 	tri = Tri.NewTriangular(exchange)
 
@@ -130,7 +132,9 @@ func dailySendAccountInfo(exchange exchange.Exchange) {
 		4, 0, 0, 0, now.Location())
 	duration := midnoon.Sub(now)
 	time.Sleep(duration)
-	exchange.GetAccountInfo()
+	content := exchange.GetAccountInfo()
+	message_tool.StartTelegram()
+	message_tool.SendTelegram(string(content))
 
 	dailySendAccountInfo(exchange)
 }
