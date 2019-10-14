@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/exchange-list/binance"
 	"github.com/yin75620/crypto-berserker/exchange-list/coinex"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftxotc"
@@ -23,19 +24,20 @@ import (
 )
 
 const (
-	FTX    = "FTX"
-	BITMAX = "BITMAX"
-	MAX    = "MAX"
-	OKEX   = "OKEX"
-	FTXOTC = "FTXOTC"
-	COINEX = "COINEX"
+	FTX     = "FTX"
+	BITMAX  = "BITMAX"
+	MAX     = "MAX"
+	OKEX    = "OKEX"
+	FTXOTC  = "FTXOTC"
+	COINEX  = "COINEX"
+	BINANCE = "BINANCE"
 )
 
 var mSwitchExchange = BITMAX
 var mSubAccount = setting.FTX_SUBACCOUNT
 
 const (
-	version = "1.0.1-0008"
+	version = "1.0.1-0009"
 )
 
 func main() {
@@ -71,6 +73,9 @@ func main() {
 				setting.FTXOTC_SECRET_KEY})
 	} else if mSwitchExchange == COINEX {
 		exchange = coinex.NewCoinEx(http.DefaultClient)
+	} else if mSwitchExchange == BINANCE {
+		exchange = binance.NewBinance(http.DefaultClient)
+
 	} else {
 	}
 

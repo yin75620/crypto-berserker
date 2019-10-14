@@ -113,7 +113,7 @@ func (bn *binance) doRequest(method, apiName string, body exc.JArray) []byte {
 	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
 	fmt.Println(fullUrl)
 
-	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(sendBody)))
+	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte("")))
 	if err != nil {
 		log.Println(err)
 		return res
