@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/thrasher-corp/gocryptotrader/common"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
 )
@@ -92,8 +95,8 @@ func (bn *binance) doRequest(method, apiName string, body exc.JArray) []byte {
 
 	ts := exc.GetTimeSpan()
 	objBody := exc.JArray{
-		"access_id": "",
-		"tonce":     ts,
+		"recvWindow": strconv.FormatInt(common.RecvWindow(5*time.Second), 10),
+		"timestamp":  ts,
 	}
 
 	objBody.Add(body)
@@ -110,7 +113,7 @@ func (bn *binance) doRequest(method, apiName string, body exc.JArray) []byte {
 	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
 	fmt.Println(fullUrl)
 
-	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte("")))
+	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(sendBody)))
 	if err != nil {
 		log.Println(err)
 		return res
@@ -124,7 +127,7 @@ func (bn *binance) doRequest(method, apiName string, body exc.JArray) []byte {
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, sendBody string) {
 
-	header.Add("X-MAX-ACCESSKEY", setting.MAICOIN_KEY)
+	header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
 	payload := base64.StdEncoding.EncodeToString([]byte(sendBody))
 	sign, _ := exc.GetParamHmacSHA256HexSign(setting.MAICOIN_SECRET_KEY, payload)
 	header.Add("X-MAX-PAYLOAD", payload)
