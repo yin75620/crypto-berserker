@@ -384,11 +384,17 @@ func (tri *Triangular) stratStrategy() int {
 	if isOrder {
 		const isKeepUSD = true
 		if isKeepUSD {
-			tri.executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
-			tri.executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
+			laChannel := tri.executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
+			hbChannel := tri.executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
+			//等上面兩個交易都完成，再繼續
+			<-laChannel
+			<-hbChannel
 		} else {
-			tri.executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
-			tri.executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
+			hbChannel := tri.executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
+			laChannel := tri.executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
+			//等上面兩個交易都完成，再繼續
+			<-laChannel
+			<-hbChannel
 		}
 	}
 
@@ -426,8 +432,11 @@ func (tri *Triangular) canOrder(profit, orderTotalValue float64) bool {
 
 ///
 
-func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) {
+func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolume float64) chan int {
 	log.Println(fmt.Sprintf("startVolume:%f", startVolume))
+
+	allFinishChannel := make(chan int)
+
 	side := ""
 	orderSymbol := 1.0
 	switch pType {
@@ -435,6 +444,7 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 		side = "sell"
 		orderVolume := startVolume
 		orderSymbol = -1
+		finishChannel := make(chan int, len(df.quotes))
 		for _, quote := range df.quotes {
 			var merketInfo = tri.exchangeClient.GetMarketInfo(quote.GetCoinPair())
 			unit := merketInfo.VolumeIncrement
@@ -451,15 +461,28 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 				OrderType: exc.LIMIT,
 				CoinPair:  quote.GetCoinPair(),
 			}
-			tri.PostOrderRefry(myOrder)
+			go func() {
+				tri.PostOrderRefry(myOrder)
+				finishChannel <- 0
+			}()
 
 			orderVolume = orderVolume * quote.GetPair(pType).Price
 		}
+
+		go func() {
+			// 等待完成
+			for i := 0; i < len(df.quotes); i++ {
+				<-finishChannel
+			}
+			allFinishChannel <- 0
+		}()
+
 	case exc.Ask:
 		side := "buy"
 		orderVolume := startVolume
 		orderSymbol = 1.0
 		var orders []exc.ExchangeOrder = []exc.ExchangeOrder{}
+		finishChannel := make(chan int, len(df.quotes))
 		for i := 0; i < len(df.quotes); i++ {
 			quote := df.quotes[i]
 			var merketInfo = tri.exchangeClient.GetMarketInfo(quote.GetCoinPair())
@@ -485,9 +508,23 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 		for i := len(orders) - 1; i >= 0; i-- {
 			order := orders[i]
-			tri.PostOrderRefry(order)
+			go func() {
+				tri.PostOrderRefry(order)
+				finishChannel <- 0
+			}()
 		}
+
+		go func() {
+			//等待完成
+			for i := len(orders) - 1; i >= 0; i-- {
+				<-finishChannel
+			}
+			allFinishChannel <- 0
+		}()
+
 	}
+
+	return allFinishChannel
 }
 
 func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {

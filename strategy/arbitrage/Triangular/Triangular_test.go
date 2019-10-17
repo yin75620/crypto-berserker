@@ -16,13 +16,15 @@ var mMai = maicoin.NewMaicoin(http.DefaultClient)
 var mFtx = ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 	setting.FTX_KEY,
 	setting.FTX_API_SECRET_KEY,
-	"apicaller"})
+	"MOONORDOOM2"})
 var mTri *Triangular = NewTriangular(mFtx)
 
 func TestExecuteOrder(t *testing.T) {
 	dealFlow := mTri.NewDealFlow("FTT", []string{"USD"})
 	mTri.Init.RangePremium = 0.02
-	mTri.executeOrder(dealFlow, exc.Ask, 1.8546)
+	c := mTri.executeOrder(dealFlow, exc.Ask, 1.0)
+	<-c
+
 }
 
 func TestDealFlow(t *testing.T) {
