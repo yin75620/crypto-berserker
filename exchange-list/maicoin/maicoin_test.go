@@ -21,7 +21,7 @@ func TestOrder(t *testing.T) {
 
 	var mm = NewMaicoin(http.DefaultClient)
 	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market:    "ethtwd",
+		//Market:    "ethtwd",
 		Side:      exc.Buy,
 		Price:     5737.306,
 		Size:      0.253332,
