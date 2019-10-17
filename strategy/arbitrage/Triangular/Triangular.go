@@ -174,6 +174,11 @@ type DealFlow struct {
 	takerFee float64
 }
 
+type QuoteChannelRes struct {
+	index int
+	quote Quote
+}
+
 func (tri *Triangular) NewDealFlow(goalCoin string, stepCoins []string) DealFlow {
 	dealFlow := DealFlow{}
 	dealFlow.takerFee = tri.exchangeClient.GetFee().Taker
@@ -181,12 +186,25 @@ func (tri *Triangular) NewDealFlow(goalCoin string, stepCoins []string) DealFlow
 	tempGoalCoin := goalCoin
 	stepLen := len(stepCoins)
 	dealFlow.quotes = make([]Quote, stepLen)
+
+	finishChannel := make(chan QuoteChannelRes, stepLen)
 	for i := 0; i < stepLen; i++ {
 		stepCoin := stepCoins[i]
-		quote := tri.NewQuote(tempGoalCoin, stepCoin)
-		dealFlow.quotes[i] = quote
+		go func(tempGoalCoin string, stepCoin string, index int) {
+			quote := tri.NewQuote(tempGoalCoin, stepCoin)
+			//dealFlow.quotes[i] = quote
+			//tempGoalCoin = stepCoin
+			finishChannel <- QuoteChannelRes{index: index, quote: quote}
+		}(tempGoalCoin, stepCoin, i)
 		tempGoalCoin = stepCoin
 	}
+
+	// 等待全部完成再回傳
+	for i := 0; i < stepLen; i++ {
+		res := <-finishChannel
+		dealFlow.quotes[res.index] = res.quote
+	}
+
 	return dealFlow
 }
 
