@@ -171,10 +171,18 @@ func (bm *maicoin) doBodyRequest(method, apiName string, body JArray) []byte {
 	return bm.doRequest(method, apiName, body)
 }
 
+var mlastTs int64 = 0
+
 func (bm *maicoin) doRequest(method, apiName string, body JArray) []byte {
 	client := bm.client
 
+	// 防止相同 ts 就失敗的問題。
 	ts := exc.GetTimeSpan()
+	if ts == mlastTs {
+		ts = ts + 1
+	}
+	mlastTs = ts
+
 	objBody := JArray{
 		"path":  apiPrefix + apiName,
 		"nonce": ts,
