@@ -18,11 +18,15 @@ type JArray exc.JArray
 func NewMaicoin(c *http.Client) *maicoin {
 	maicoin := &maicoin{}
 	maicoin.client = c
+	socket := NewSocket()
+	socket.Strat()
+	maicoin.websocket = socket
 	return maicoin
 }
 
 type maicoin struct {
-	client *http.Client
+	client    *http.Client
+	websocket *MaincoinWebSocket
 }
 
 var (
@@ -59,6 +63,22 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 }
 
 func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	isNeedUpdate := false
+	if isNeedUpdate {
+		// get price from web
+		return bm.GetAskBidPairFromWeb(coinPair, depth)
+	}
+
+	bm.websocket.SubScribeOrderBook(coinPair.GetLinkMakertName())
+
+	// get price from cache
+	//websocket.getPrice()
+}
+
+func (bm *maicoin) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	// get price from cache
+	// get price from web
+
 	market := coinPair.GetLinkMakertName()
 	resByte := bm.doBodyRequest("GET", "depth",
 		JArray{

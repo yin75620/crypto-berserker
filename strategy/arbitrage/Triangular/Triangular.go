@@ -103,7 +103,7 @@ func (tri *Triangular) Start() {
 		<-t.C
 		plusSecond := tri.stratStrategy()
 		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
-	}
+	} 
 
 	///開啟伺服器讓程式留著
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {

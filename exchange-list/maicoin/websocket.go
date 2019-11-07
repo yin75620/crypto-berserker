@@ -5,20 +5,30 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/maicoin/types"
 )
 
 const WEBSOCKET_URL = "wss://max-ws.maicoin.com"
 
-func Start() {
+type MaincoinWebSocket struct {
+	conn *websocket.Conn
+}
+
+func NewSocket() *MaincoinWebSocket {
+	mws := &MaincoinWebSocket{}
+	return mws
+}
+
+func (mws *MaincoinWebSocket) Strat() {
 	c, _, err := websocket.DefaultDialer.Dial(WEBSOCKET_URL, nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
-	//defer c.Close()
+	mws.conn = c
+}
 
-	market := "btcusdt"
-
+func (mws *MaincoinWebSocket) SubScribeOrderBook(market string) chan exc.OrderBookSocketResponse {
 	req := types.SubscriptionRequest{
 		Cmd:     "subscribe",
 		Channel: "orderbook",
@@ -27,36 +37,43 @@ func Start() {
 		},
 	}
 
-	actionJson, _ := json.Marshal(req)
-	log.Println(string(actionJson))
-	send(c, actionJson)
+	actionJson, err := json.Marshal(req)
+	if err != nil {
+		log.Fatal("json.Marshal:", err)
+	}
+	send(mws.conn, actionJson)
 
-	done := make(chan struct{})
-
+	resChannel := make(chan exc.OrderBookSocketResponse)
 	go func() {
-		defer close(done)
+
 		for {
-			_, message, err := c.ReadMessage()
+			_, message, err := mws.conn.ReadMessage()
 			if err != nil {
 				log.Println("read:", err)
 				return
 			}
+			//recv: {"info":"error","msg":"unknown market btcusdts"}
+			//recv: {"info":"subscribed","channel":"orderbook","market":"btcusdt"}
+			//recv: {"info":"orderbook","timestamp":"1573130643672","action":"add","market":"btcusdt","id":75056203,"side":"buy","volume":"0.78","price":"9142.01","ord_type":"limit"}
 			log.Printf("recv: %s", message)
-			//recevier(message)
+			response := types.OrderBookSocketResponse{}
+			json.Unmarshal([]byte(message), response)
+			resChannel <- response.OrderBookSocketResponse
 		}
 	}()
+	return resChannel
 }
 
 func send(c *websocket.Conn, json []byte) {
 	err := c.WriteMessage(websocket.TextMessage, json)
 	if err != nil {
-		log.Println(err)
+		log.Println("send error:", err)
 		return
 	}
-	/*_, msg, err := c.ReadMessage()
+	_, msg, err := c.ReadMessage()
 	if err != nil {
 		log.Println("read:", err)
 		return
 	}
-	log.Printf("receive: %s\n", msg)*/
+	log.Printf("receive: %s\n", msg)
 }

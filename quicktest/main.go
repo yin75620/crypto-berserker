@@ -26,7 +26,27 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	dotTest()
+	gorountineTest()
+}
+
+func gorountineTest() {
+	const MAX = 3
+	countChannel := make(chan int)
+	for i := 0; i < MAX; i++ {
+		go func() {
+			d := time.Second * time.Duration(i)
+			time.Sleep(d)
+			fmt.Println("Do samething")
+			countChannel <- 0
+		}()
+	}
+
+	for i := 0; i < MAX; i++ {
+		fmt.Println("ok")
+		<-countChannel
+	}
+
+	fmt.Println("finish")
 }
 
 func dotTest() {
