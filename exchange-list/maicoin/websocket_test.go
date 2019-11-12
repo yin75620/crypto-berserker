@@ -8,11 +8,11 @@ import (
 func TestWsStart(t *testing.T) {
 
 	mws := NewSocket()
-	mws.Strat()
+	//mws.Strat()
 	ch := mws.SubScribeOrderBook("ethtwd")
 
-	mws2 := NewSocket()
-	mws2.Strat()
+	//mws2 := NewSocket()
+	//mws2.Strat()
 	ch2 := mws.SubScribeOrderBook("ethusdt")
 
 	go func() {

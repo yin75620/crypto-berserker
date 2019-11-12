@@ -19,7 +19,7 @@ func NewMaicoin(c *http.Client) *maicoin {
 	maicoin := &maicoin{}
 	maicoin.client = c
 	socket := NewSocket()
-	socket.Strat()
+	//socket.Strat()
 	maicoin.websocket = socket
 	return maicoin
 }
