@@ -68,8 +68,9 @@ func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePai
 		// get price from web
 		return bm.GetAskBidPairFromWeb(coinPair, depth)
 	}
-
-	bm.websocket.SubScribeOrderBook(coinPair.GetLinkMakertName())
+	return bm.GetAskBidPairFromWeb(coinPair, depth)
+	//如何把訂閱回來的價格作為啟動交易的價格
+	// bm.websocket.SubScribeOrderBook(coinPair.GetLinkMakertName())
 
 	// get price from cache
 	//websocket.getPrice()
