@@ -12,36 +12,40 @@ import (
 const WEBSOCKET_URL = "wss://max-ws.maicoin.com"
 
 type MaincoinWebSocket struct {
-	conn *websocket.Conn
+	conn             *websocket.Conn
+	orderbookChannel chan exc.OrderBookSocketResponse
 }
 
 func NewSocket() *MaincoinWebSocket {
 	mws := &MaincoinWebSocket{}
+	mws.orderbookChannel = make(chan exc.OrderBookSocketResponse)
+	mws.conn = createConn()
 	return mws
 }
 
 func (mws *MaincoinWebSocket) SubScribeOrderBook(market string) chan exc.OrderBookSocketResponse {
-	conn := createConn()
-	sendSubcribe(conn, "orderbook", market)
 
-	resChannel := make(chan exc.OrderBookSocketResponse)
-	go func() {
-		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-			//recv: {"info":"error","msg":"unknown market btcusdts"}
-			//recv: {"info":"subscribed","channel":"orderbook","market":"btcusdt"}
-			//recv: {"info":"orderbook","timestamp":"1573130643672","action":"add","market":"btcusdt","id":75056203,"side":"buy","volume":"0.78","price":"9142.01","ord_type":"limit"}
-			log.Printf("recv: %s", message)
-			response := types.OrderBookSocketResponse{}
-			json.Unmarshal(message, &response)
-			resChannel <- response.OrderBookSocketResponse
+	sendSubcribe(mws.conn, "orderbook", market)
+
+	go mws.ReceiveOrderBook()
+	return mws.orderbookChannel
+}
+
+func (mws *MaincoinWebSocket) ReceiveOrderBook() {
+	for {
+		_, message, err := mws.conn.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
+			return
 		}
-	}()
-	return resChannel
+		//recv: {"info":"error","msg":"unknown market btcusdts"}
+		//recv: {"info":"subscribed","channel":"orderbook","market":"btcusdt"}
+		//recv: {"info":"orderbook","timestamp":"1573130643672","action":"add","market":"btcusdt","id":75056203,"side":"buy","volume":"0.78","price":"9142.01","ord_type":"limit"}
+		log.Printf("recv: %s", message)
+		response := types.OrderBookSocketResponse{}
+		json.Unmarshal(message, &response)
+		mws.orderbookChannel <- response.OrderBookSocketResponse
+	}
 }
 
 func createConn() *websocket.Conn {
