@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
@@ -21,12 +22,16 @@ func NewMaicoin(c *http.Client) *maicoin {
 	socket := NewSocket()
 	//socket.Strat()
 	maicoin.websocket = socket
+	maicoin.orderBookers = map[exc.CoinPair]*OrderBooker{}
+	//maicoin.orderBooker.Start()
 	return maicoin
 }
 
 type maicoin struct {
-	client    *http.Client
-	websocket *MaincoinWebSocket
+	client       *http.Client
+	websocket    *MaincoinWebSocket
+	orderBookers map[exc.CoinPair]*OrderBooker
+	mutex        sync.Mutex
 }
 
 var (
@@ -35,7 +40,7 @@ var (
 )
 
 // implement exchange
-func (bm *maicoin) GetFee() exc.Fee {
+func (ma *maicoin) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0
 	fee.WithDrawl = 0
@@ -43,50 +48,59 @@ func (bm *maicoin) GetFee() exc.Fee {
 	fee.Maker = 0.00075
 	return fee
 }
-func (bm *maicoin) GetName() string {
+func (ma *maicoin) GetName() string {
 	return "MAX"
 }
 
-func (bm *maicoin) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+func (ma *maicoin) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{} //not yet implement
 }
 
 type QuoteResponse struct {
 	Timestamp float64 `"json:timestamp"`
 	exc.PriceStatus
+	ErrorInfo exc.ErrorMessage `"json:error"`
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
-	qr.Timestamp = json["timestamp"].(float64)
+	if json["timestamp"] != nil {
+		qr.Timestamp = json["timestamp"].(float64)
+	}
 
 	qr.PriceStatus.SetByJArray(json)
 }
 
-func (bm *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
-	isNeedUpdate := false
-	if isNeedUpdate {
-		// get price from web
-		return bm.GetAskBidPairFromWeb(coinPair, depth)
+// GetAskBidPair Ask Bid
+func (ma *maicoin) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	if _, ok := ma.orderBookers[coinPair]; !ok {
+		ma.mutex.Lock()
+		resChannel := ma.websocket.SubScribeOrderBook(coinPair)
+		ma.orderBookers[coinPair] = NewOrderBooker(ma, coinPair, resChannel)
+		ma.orderBookers[coinPair].Start()
+		ma.mutex.Unlock()
 	}
-	return bm.GetAskBidPairFromWeb(coinPair, depth)
-	//如何把訂閱回來的價格作為啟動交易的價格
-	// bm.websocket.SubScribeOrderBook(coinPair.GetLinkMakertName())
+	orderBooker := ma.orderBookers[coinPair]
+	return orderBooker.BottomAskPair, orderBooker.TopBidPair
 
-	// get price from cache
-	//websocket.getPrice()
 }
 
-func (bm *maicoin) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+func (ma *maicoin) GetNewsetAskBidPair(coinPair exc.CoinPair) (exc.PricePair, exc.PricePair) {
+	return ma.GetAskBidPairFromWeb(coinPair, 1)
+}
+
+// GetAskBidPairFromWeb Ask Bid
+func (ma *maicoin) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	// get price from cache
 	// get price from web
 
 	market := coinPair.GetLinkMakertName()
-	resByte := bm.doBodyRequest("GET", "depth",
+	fmt.Println(market)
+	resByte := ma.doBodyRequest("GET", "depth",
 		JArray{
 			"market": market,
 			"limit":  depth,
 		})
-
+	fmt.Println("resByte", string(resByte))
 	var resJson map[string]interface{}
 	err := json.Unmarshal(resByte, &resJson)
 	if err != nil {
@@ -102,19 +116,19 @@ func (bm *maicoin) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.P
 	return askPair, bidPair
 }
 
-func (bm *maicoin) GetAccountInfo() []byte {
+func (ma *maicoin) GetAccountInfo() []byte {
 	// 這交易所沒有使用者資料
-	res := bm.doNobodyRequest("GET", "members/profile")
+	res := ma.doNobodyRequest("GET", "members/profile")
 	return res
 }
 
-func (bm *maicoin) GetCurrency() []byte {
-	res := bm.doNobodyRequest("GET", "members/accounts")
+func (ma *maicoin) GetCurrency() []byte {
+	res := ma.doNobodyRequest("GET", "members/accounts")
 	return res
 }
 
-func (bm *maicoin) GetFill(marketName string) []byte {
-	res := bm.doBodyRequest("GET", "trades/my",
+func (ma *maicoin) GetFill(marketName string) []byte {
+	res := ma.doBodyRequest("GET", "trades/my",
 		JArray{
 			"market": "usdttwd",
 			"limit":  1,
@@ -122,8 +136,8 @@ func (bm *maicoin) GetFill(marketName string) []byte {
 	return res
 }
 
-func (bm *maicoin) GetProducts() []byte {
-	res := bm.doNobodyRequest("GET", "products")
+func (ma *maicoin) GetProducts() []byte {
+	res := ma.doNobodyRequest("GET", "products")
 	return res
 }
 
@@ -146,7 +160,7 @@ func (mai *maicoinOrder) setBy(order exc.ExchangeOrder) {
 }
 
 //下訂單
-func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
+func (ma *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 	mai := maicoinOrder{}
 	mai.setBy(order)
@@ -161,7 +175,7 @@ func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 	jarray := JArray{}
 	json.Unmarshal([]byte(request), &jarray)
 
-	response := bm.doBodyRequest("POST", "orders", jarray)
+	response := ma.doBodyRequest("POST", "orders", jarray)
 
 	log.Println(fmt.Sprintf("%s", response))
 
@@ -184,18 +198,18 @@ func (bm *maicoin) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return string(response), resErr
 }
 
-func (bm *maicoin) doNobodyRequest(method, apiName string) []byte {
-	return bm.doRequest(method, apiName, JArray{})
+func (ma *maicoin) doNobodyRequest(method, apiName string) []byte {
+	return ma.doRequest(method, apiName, JArray{})
 }
 
-func (bm *maicoin) doBodyRequest(method, apiName string, body JArray) []byte {
-	return bm.doRequest(method, apiName, body)
+func (ma *maicoin) doBodyRequest(method, apiName string, body JArray) []byte {
+	return ma.doRequest(method, apiName, body)
 }
 
 var mlastTs int64 = 0
 
-func (bm *maicoin) doRequest(method, apiName string, body JArray) []byte {
-	client := bm.client
+func (ma *maicoin) doRequest(method, apiName string, body JArray) []byte {
+	client := ma.client
 
 	// 防止相同 ts 就失敗的問題。
 	ts := exc.GetTimeSpan()
