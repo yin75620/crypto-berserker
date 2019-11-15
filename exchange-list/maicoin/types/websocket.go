@@ -18,7 +18,9 @@ type SubscriptionResponse struct {
 
 type OrderBookSocketResponse struct {
 	exc.OrderBookSocketResponse
-	Info string `json:"info,omitempty"`
+	Market string `json:"market,omitempty"`
+	ID     uint64 `json:"id,omitempty"`
+	Info   string `json:"info,omitempty"`
 	//TimeStamp uint64  `json:"timestamp,string,omitempty"`
 	//Action    string  `json:"action,omitempty"`
 	//Market    string  `json:"market,omitempty"`

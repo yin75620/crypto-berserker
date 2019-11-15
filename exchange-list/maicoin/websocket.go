@@ -12,40 +12,38 @@ import (
 const WEBSOCKET_URL = "wss://max-ws.maicoin.com"
 
 type MaincoinWebSocket struct {
-	conn             *websocket.Conn
-	orderbookChannel chan exc.OrderBookSocketResponse
+	conn *websocket.Conn
 }
 
 func NewSocket() *MaincoinWebSocket {
 	mws := &MaincoinWebSocket{}
-	mws.orderbookChannel = make(chan exc.OrderBookSocketResponse)
-	mws.conn = createConn()
 	return mws
 }
 
-func (mws *MaincoinWebSocket) SubScribeOrderBook(market string) chan exc.OrderBookSocketResponse {
+func (mws *MaincoinWebSocket) SubScribeOrderBook(coinPair exc.CoinPair) chan exc.OrderBookSocketResponse {
+	conn := createConn()
+	market := coinPair.GetLinkMakertName()
+	sendSubcribe(conn, "orderbook", market)
 
-	sendSubcribe(mws.conn, "orderbook", market)
-
-	go mws.ReceiveOrderBook()
-	return mws.orderbookChannel
-}
-
-func (mws *MaincoinWebSocket) ReceiveOrderBook() {
-	for {
-		_, message, err := mws.conn.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			return
+	resChannel := make(chan exc.OrderBookSocketResponse)
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+			//recv: {"info":"error","msg":"unknown market btcusdts"}
+			//recv: {"info":"subscribed","channel":"orderbook","market":"btcusdt"}
+			//recv: {"info":"orderbook","timestamp":"1573130643672","action":"add","market":"btcusdt","id":75056203,"side":"buy","volume":"0.78","price":"9142.01","ord_type":"limit"}
+			log.Printf("recv: %s", message)
+			response := types.OrderBookSocketResponse{}
+			json.Unmarshal(message, &response)
+			response.CoinPair.SetByLinkMakertName(response.Market)
+			resChannel <- response.OrderBookSocketResponse
 		}
-		//recv: {"info":"error","msg":"unknown market btcusdts"}
-		//recv: {"info":"subscribed","channel":"orderbook","market":"btcusdt"}
-		//recv: {"info":"orderbook","timestamp":"1573130643672","action":"add","market":"btcusdt","id":75056203,"side":"buy","volume":"0.78","price":"9142.01","ord_type":"limit"}
-		log.Printf("recv: %s", message)
-		response := types.OrderBookSocketResponse{}
-		json.Unmarshal(message, &response)
-		mws.orderbookChannel <- response.OrderBookSocketResponse
-	}
+	}()
+	return resChannel
 }
 
 func createConn() *websocket.Conn {
