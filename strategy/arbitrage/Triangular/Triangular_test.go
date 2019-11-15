@@ -17,7 +17,7 @@ var mFtx = ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 	setting.FTX_KEY,
 	setting.FTX_API_SECRET_KEY,
 	"MOONORDOOM2"})
-var mTri *Triangular = NewTriangular(mFtx)
+var mTri *Triangular = NewTriangular(mMai)
 
 func TestExecuteOrder(t *testing.T) {
 	dealFlow := mTri.NewDealFlow("FTT", []string{"USD"})
@@ -28,7 +28,7 @@ func TestExecuteOrder(t *testing.T) {
 }
 
 func TestDealFlow(t *testing.T) {
-	dealFlow := mTri.NewDealFlow("FTT", []string{"BTC", "USD"})
+	dealFlow := mTri.NewDealFlow("ETH", []string{"USDT", "TWD"})
 	laName := dealFlow.getName()
 
 	laPrice := dealFlow.getFinalPair(exc.Ask).Price

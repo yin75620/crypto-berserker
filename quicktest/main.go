@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/yin75620/crypto-berserker/jmath"
@@ -26,7 +27,14 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	gorountineTest()
+	indexTest()
+}
+
+func indexTest() {
+	s := "abcdjefghij"
+	lastIndex := strings.LastIndex(s, "j")
+	fmt.Println(lastIndex)
+
 }
 
 func gorountineTest() {
