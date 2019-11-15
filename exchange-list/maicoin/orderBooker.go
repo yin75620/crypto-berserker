@@ -43,7 +43,10 @@ func (ob *OrderBooker) Receive() {
 		otherPricePair := res.PricePair()
 		if res.IsAsk() {
 			if ob.TopBidPair.Price > otherPricePair.Price {
-				// nothing
+				if res.IsUpdate() {
+					// 成交最大，直接更新資料
+					isNeedRefresh = true
+				}
 			} else if ob.TopBidPair.Price == otherPricePair.Price {
 				if res.IsUpdate() {
 					ob.TopBidPair.Volume = otherPricePair.Volume
@@ -62,7 +65,10 @@ func (ob *OrderBooker) Receive() {
 			}
 		} else if res.IsBid() {
 			if ob.BottomAskPair.Price < otherPricePair.Price {
-				// nothing
+				if res.IsUpdate() {
+					// 成交最大，直接更新資料
+					isNeedRefresh = true
+				}
 			} else if ob.BottomAskPair.Price == otherPricePair.Price {
 				if res.IsUpdate() {
 					ob.BottomAskPair.Volume = otherPricePair.Volume
