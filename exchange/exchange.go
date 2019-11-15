@@ -60,12 +60,40 @@ func (co *CoinPair) GetMarketName() string {
 	return fmt.Sprintf("%s/%s", co.BaseCoin, co.QuotedCoin)
 }
 
+func (co *CoinPair) SetByMarketName(marketName string) {
+	res := strings.Split(marketName, "/")
+	co.BaseCoin = res[0]
+	co.QuotedCoin = res[1]
+}
+
 func (co *CoinPair) GetSymbal() string {
 	return fmt.Sprintf("%s-%s", co.BaseCoin, co.QuotedCoin)
 }
 
+func (co *CoinPair) SetBySymbal(symbal string) {
+	res := strings.Split(symbal, "-")
+	co.BaseCoin = res[0]
+	co.QuotedCoin = res[1]
+}
+
 func (co *CoinPair) GetLinkMakertName() string {
 	return strings.ToLower(fmt.Sprintf("%s%s", co.BaseCoin, co.QuotedCoin))
+}
+
+func (co *CoinPair) SetByLinkMakertName(linkName string) {
+	quoteCoins := []string{"btc", "usdt", "twd", "usd"}
+	for _, v := range quoteCoins {
+		index := strings.LastIndex(linkName, v)
+		if index == -1 {
+			continue
+		}
+
+		length := len(linkName)
+		co.BaseCoin = strings.ToUpper(linkName[0:index])
+		co.QuotedCoin = strings.ToUpper(linkName[index:length])
+		return
+	}
+	fmt.Println("new linkName:", linkName)
 }
 
 func SendRequest(client *http.Client, req *http.Request) []byte {
