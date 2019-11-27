@@ -86,7 +86,7 @@ func (ob *OrderBooker) Receive() {
 				}
 			}
 		}
-		if ob.BottomAskPair.Volume == 0 || ob.TopBidPair.Volume == 0 || isNeedRefresh {
+		if ob.BottomAskPair.Volume == 0 || ob.TopBidPair.Volume == 0 || isNeedRefresh || res.Volume == 0 {
 			ob.ForceUpdatePricePair()
 		}
 	}

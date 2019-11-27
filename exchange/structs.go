@@ -14,9 +14,14 @@ func (ja *JArray) Add(other JArray) {
 	}
 }
 
+type ErrorMessage struct {
+	Code    int    `"json:code,omitempty"`
+	Message string `"json:message,omitempty"`
+}
+
 type PriceStatus struct {
-	Asks [][]float64 `"json:asks"`
-	Bids [][]float64 `"json:bids"`
+	Asks [][]float64 `"json:asks,string,omitempty"`
+	Bids [][]float64 `"json:bids,string,omitempty"`
 }
 
 func (ps *PriceStatus) GetPair(depth int, pType PriceType) (PricePair, error) {
