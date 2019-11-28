@@ -25,14 +25,16 @@ type FtxInit struct {
 }
 
 type Ftx struct {
-	client   *http.Client
-	initData FtxInit
+	client          *http.Client
+	initData        FtxInit
+	orderBookCenter *OrderBookCenter
 }
 
 func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx := &Ftx{}
 	ftx.client = c
 	ftx.initData = initData
+	ftx.orderBookCenter = NewOrderBookCenter()
 	return ftx
 }
 
@@ -105,6 +107,23 @@ func (ftx *Ftx) GetMarket(name string) []byte {
 }
 
 func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	market := coinPair.GetMarketName()
+	if !ftx.orderBookCenter.IsExist(market) {
+		channel, _ := ftx.orderBookCenter.Register(market)
+		go func() {
+			for {
+				<-channel
+			}
+		}()
+
+		//return ftx.getOrderBookFromWeb(coinPair, depth)
+	}
+
+	booker := ftx.orderBookCenter.GetBooker(market)
+	return booker.GetFirstPricePair()
+}
+
+func (ftx *Ftx) getOrderBookFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	resb := ftx.GetOrderBookResponse(coinPair.GetMarketName(), depth)
 	askPair, _ := resb.Result.GetPair(1, exc.Ask)
 	bidPair, _ := resb.Result.GetPair(1, exc.Bid)
