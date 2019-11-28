@@ -1,6 +1,7 @@
 package ftx
 
 import (
+	"fmt"
 	"sync"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -9,6 +10,7 @@ import (
 
 type OrderBooker struct {
 	MarketName            string
+	lastTime              float64
 	Asks                  map[float64]float64 //price,volume
 	Bids                  map[float64]float64 //price,volume
 	mutex                 sync.Mutex
@@ -38,6 +40,11 @@ func (ob *OrderBooker) Receive() {
 		if res.Market != ob.MarketName {
 			continue
 		}
+
+		if res.Data.Time < ob.lastTime {
+			continue
+		}
+		ob.lastTime = res.Data.Time
 
 		ob.mutex.Lock()
 		if res.IsUpdate() {
@@ -124,18 +131,43 @@ func saveToMap(priceArray [][]float64, myMap *map[float64]float64) {
 }
 
 type OrderBookCenter struct {
-	OrderBookers map[exc.CoinPair]*OrderBooker
+	orderBookers map[string]*OrderBooker
+	webSocket    *FtxWebSocket
+	mutex        sync.Mutex
 }
 
 func NewOrderBookCenter() *OrderBookCenter {
 	obc := &OrderBookCenter{}
+	obc.orderBookers = make(map[string]*OrderBooker)
+	obc.webSocket = NewSocket()
 	return obc
 }
 
-// 給一個幣種，直接開始同步該幣種的最高最低價
-func (obc *OrderBookCenter) Register(coinPair exc.CoinPair) {
-
+func (obc *OrderBookCenter) IsExist(market string) bool {
+	if _, ok := obc.orderBookers[market]; ok {
+		return true
+	}
+	return false
 }
 
-func (obc *OrderBookCenter) AddOrderBooker(orderBooker *OrderBooker) {
+func (obc *OrderBookCenter) GetBooker(market string) *OrderBooker {
+	return obc.orderBookers[market]
+}
+
+// 給一個幣種，直接開始同步該幣種的最高最低價
+func (obc *OrderBookCenter) Register(market string) (chan int, bool) {
+	if _, ok := obc.orderBookers[market]; !ok {
+		resChannel := obc.webSocket.SubScribeOrderBook(market)
+		ob := NewOrderBooker(market, resChannel)
+
+		obc.mutex.Lock()
+		obc.orderBookers[market] = ob
+		obc.mutex.Unlock()
+
+		ob.Start()
+		return ob.UpdateChannel, true
+	} else {
+		fmt.Println("Already Register:", market)
+		return nil, false
+	}
 }
