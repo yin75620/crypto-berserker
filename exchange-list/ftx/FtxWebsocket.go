@@ -36,7 +36,7 @@ func (fws *FtxWebSocket) doSubScribeOrderBook(marketName string, resChannel chan
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("read:", err)
+				log.Println("error:", err)
 				fws.doSubScribeOrderBook(marketName, resChannel)
 				return
 			}
@@ -46,7 +46,6 @@ func (fws *FtxWebSocket) doSubScribeOrderBook(marketName string, resChannel chan
 			json.Unmarshal(message, &response)
 
 			resChannel <- response
-			conn.Close()
 		}
 	}()
 	return resChannel
