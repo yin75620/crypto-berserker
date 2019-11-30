@@ -23,16 +23,21 @@ func NewSocket() *FtxWebSocket {
 }
 
 func (fws *FtxWebSocket) SubScribeOrderBook(marketName string) chan types.OrderBookSocketResponse {
+	resChannel := make(chan types.OrderBookSocketResponse)
+	return fws.doSubScribeOrderBook(marketName, resChannel)
+}
+
+func (fws *FtxWebSocket) doSubScribeOrderBook(marketName string, resChannel chan types.OrderBookSocketResponse) chan types.OrderBookSocketResponse {
 	conn := createConn()
 	market := marketName
 	sendSubcribe(conn, "orderbook", market)
 
-	resChannel := make(chan types.OrderBookSocketResponse)
 	go func() {
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("read:", err)
+				fws.doSubScribeOrderBook(marketName, resChannel)
 				return
 			}
 			//recv: {"channel": "orderbook", "market": "BTC/USD", "type": "update", "data": {"time": 1574775055.2251372, "checksum": 3250722053, "bids": [], "asks": [[7089.5, 0.0], [7124.5, 47.3641]], "action": "update"}}
@@ -41,6 +46,7 @@ func (fws *FtxWebSocket) SubScribeOrderBook(marketName string) chan types.OrderB
 			json.Unmarshal(message, &response)
 
 			resChannel <- response
+			conn.Close()
 		}
 	}()
 	return resChannel
