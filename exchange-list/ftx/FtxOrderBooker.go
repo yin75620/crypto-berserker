@@ -51,6 +51,8 @@ func (ob *OrderBooker) Receive() {
 			updateToMap(res.Data.Asks, &ob.Asks)
 			updateToMap(res.Data.Bids, &ob.Bids)
 		} else {
+			clearMap(&ob.Asks)
+			clearMap(&ob.Bids)
 			saveToMap(res.Data.Asks, &ob.Asks)
 			saveToMap(res.Data.Bids, &ob.Bids)
 		}
@@ -128,6 +130,10 @@ func saveToMap(priceArray [][]float64, myMap *map[float64]float64) {
 			(*myMap)[index] = value
 		}
 	}
+}
+
+func clearMap(myMap *map[float64]float64) {
+	*myMap = map[float64]float64{}
 }
 
 type OrderBookCenter struct {
