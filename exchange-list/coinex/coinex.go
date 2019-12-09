@@ -31,6 +31,12 @@ type CoinEx struct {
 	accessID string
 }
 
+// implement exchange
+func (ce *CoinEx) GetWallet() exc.Wallet {
+	w := exc.Wallet{}
+	return w
+}
+
 func (ce *CoinEx) GetAccountInfo() []byte {
 
 	//return ce.doRequest("GET", "balance/info", exc.JArray{})

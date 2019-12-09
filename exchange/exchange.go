@@ -11,6 +11,7 @@ import (
 type Exchange interface {
 	GetAccountInfo() []byte // include balance
 	PostOrder(order ExchangeOrder) (string, error)
+	GetWallet() Wallet
 	GetFee() Fee
 	GetName() string
 	GetMarketInfo(coinPair CoinPair) MarketInfo

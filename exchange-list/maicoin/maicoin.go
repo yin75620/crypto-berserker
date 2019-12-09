@@ -40,6 +40,11 @@ var (
 )
 
 // implement exchange
+func (ma *maicoin) GetWallet() exc.Wallet {
+	w := exc.Wallet{}
+	return w
+}
+
 func (ma *maicoin) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0

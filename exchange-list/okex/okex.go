@@ -29,6 +29,11 @@ var (
 )
 
 // implement exchange
+func (bm *Okex) GetWallet() exc.Wallet {
+	w := exc.Wallet{}
+	return w
+}
+
 func (bm *Okex) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0

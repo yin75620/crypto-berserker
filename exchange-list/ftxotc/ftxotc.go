@@ -47,6 +47,11 @@ var (
 )
 
 // implement exchange
+func (Ftxotc *Ftxotc) GetWallet() exc.Wallet {
+	w := exc.Wallet{}
+	return w
+}
+
 func (Ftxotc *Ftxotc) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0

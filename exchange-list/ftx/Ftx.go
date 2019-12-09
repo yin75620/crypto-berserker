@@ -77,6 +77,21 @@ func (ftx *Ftx) GetAccountInfo() []byte {
 	return []byte(fmt.Sprintf("%s%s", string(wallet), string(account)))
 }
 
+func (ftx *Ftx) GetWallet() exc.Wallet {
+	type BalanceResponse struct {
+		Result []exc.Balance `json:"result,omitempty"`
+		Sucess string        `json:"success,omitempty"`
+	}
+	response := BalanceResponse{}
+
+	res := ftx.doGet("wallet/balances", "")
+	json.Unmarshal(res, &response)
+
+	w := exc.Wallet{}
+	w.Balances = response.Result
+	return w
+}
+
 func (ftx *Ftx) GetStructFills() []FillResponse {
 	res := ftx.GetFills()
 	type tempResponse struct {

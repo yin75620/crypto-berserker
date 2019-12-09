@@ -93,6 +93,8 @@ func (tri *Triangular) Start() {
 	infoStr := string(tri.exchangeClient.GetAccountInfo())
 	message_tool.SendTelegram(infoStr)
 
+	mPreWallet = tri.exchangeClient.GetWallet()
+
 	var delay_time int = tri.Init.DelayTime
 	d := time.Duration(time.Second * time.Duration(delay_time))
 
@@ -103,7 +105,7 @@ func (tri *Triangular) Start() {
 		<-t.C
 		plusSecond := tri.stratStrategy()
 		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
-	} 
+	}
 
 	///開啟伺服器讓程式留著
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -151,17 +153,10 @@ func (q *Quote) GetCoinPair() exc.CoinPair {
 }
 
 func (tri *Triangular) NewQuote(goalCoin, currentCoin string) Quote {
-	marketName := fmt.Sprintf("%s/%s", goalCoin, currentCoin)
 	var askPair exc.PricePair
 	var bidPair exc.PricePair
-	//偽裝成 USDT
-	if marketName == "USDT/USD" {
-		askPair = exc.PricePair{1.001, 999999}
-		bidPair = exc.PricePair{0.997, 999999}
-	} else {
-		askPair, bidPair = tri.exchangeClient.GetAskBidPair(exc.CoinPair{BaseCoin: goalCoin, QuotedCoin: currentCoin}, 1)
-	}
-	var quote Quote = Quote{}
+	askPair, bidPair = tri.exchangeClient.GetAskBidPair(exc.CoinPair{BaseCoin: goalCoin, QuotedCoin: currentCoin}, 1)
+	var quote Quote
 	quote.askPair = askPair
 	quote.bidPair = bidPair
 	quote.goalCoin = goalCoin
@@ -287,6 +282,12 @@ var m_isFullPower = false
 var mFailCount = 0
 var MAX_FAIL_COUNT = 3
 
+var mFinishCount = 0
+
+const EveryCountCheckWallet = 5
+
+var mPreWallet exc.Wallet
+
 func (tri *Triangular) stratStrategy() int {
 
 	defer func() {
@@ -406,6 +407,23 @@ func (tri *Triangular) stratStrategy() int {
 		profit,
 		m_expectedTotalValue)
 	message_tool.SendTelegram(content)
+
+	mFinishCount = mFinishCount + 1
+	if mFinishCount%EveryCountCheckWallet == 0 {
+		wallet := tri.exchangeClient.GetWallet()
+		//完成N次交易報告資產變化值
+		array := mPreWallet.GetALlBalanceProfit(wallet)
+		sendInfo := fmt.Sprintf("earn:%v", array)
+		log.Println(sendInfo)
+		message_tool.SendTelegram(sendInfo)
+
+		if mPreWallet.IsAllBalanceReduce(wallet) {
+			sendContent := fmt.Sprintf("sustained losses.after %d times", EveryCountCheckWallet)
+			message_tool.SendTelegram(sendContent)
+			log.Fatal(sendContent)
+		}
+		mPreWallet = wallet
+	}
 
 	resPlusSecond := tri.Init.RANK_N[R_PLUS_SECOND]
 	if m_isFullPower {

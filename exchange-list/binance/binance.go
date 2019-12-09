@@ -34,6 +34,12 @@ type binance struct {
 	client *http.Client
 }
 
+// implement exchange
+func (bn *binance) GetWallet() exc.Wallet {
+	w := exc.Wallet{}
+	return w
+}
+
 func (bn *binance) GetAccountInfo() []byte {
 
 	return []byte("Binance")
