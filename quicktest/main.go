@@ -27,7 +27,13 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	indexTest()
+	arrayPrintTest()
+}
+
+func arrayPrintTest() {
+	array := []interface{}{"test", "ABC"}
+	//array := []string{"123", "456"}
+	fmt.Println(fmt.Sprintf("TEST:%v", array))
 }
 
 func indexTest() {
