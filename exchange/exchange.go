@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 )
@@ -35,6 +36,28 @@ type PricePair struct {
 	Volume float64
 }
 
+func LowestPricePair(pps []PricePair) PricePair {
+	minAskPair := PricePair{}
+	minAskPair.Price = math.MaxInt64
+	for _, ask := range pps {
+		if ask.Price < minAskPair.Price {
+			minAskPair = ask
+		}
+	}
+	return minAskPair
+}
+
+func HighestPricePair(pps []PricePair) PricePair {
+	bidPair := PricePair{}
+	bidPair.Price = 0
+	for _, ask := range pps {
+		if ask.Price > bidPair.Price {
+			bidPair = ask
+		}
+	}
+	return bidPair
+}
+
 type EOrderType string
 
 const (
@@ -43,8 +66,9 @@ const (
 )
 
 type ExchangeOrder struct {
-	CoinPair CoinPair
-	//Market    string     `json:"market"`
+	CoinPair CoinPair // will drop this parameter
+	Market   string   `json:"market"` //temp
+	// 預計把上面兩個換成 Commodity
 	Side      string     `json:"side"`
 	Price     float64    `json:"price"`
 	Size      float64    `json:"size"`

@@ -27,7 +27,9 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	arrayPrintTest()
+	aee := 0
+	a := 100 % aee
+	fmt.Print(a)
 }
 
 func arrayPrintTest() {
