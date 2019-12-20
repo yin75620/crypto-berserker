@@ -32,7 +32,7 @@ func (w *Wallet) IsAllBalanceReduce(after Wallet) bool {
 	return true
 }
 
-func (w *Wallet) GetALlBalanceProfit(after Wallet) []Balance {
+func (w *Wallet) GetAllBalanceProfit(after Wallet) []Balance {
 	result := []Balance{}
 	for _, value := range w.Balances {
 		for _, afterValue := range after.Balances {
