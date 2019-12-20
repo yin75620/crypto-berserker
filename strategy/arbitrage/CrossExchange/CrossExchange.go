@@ -14,6 +14,7 @@ import (
 type CrossExchange struct {
 	exchanges        []exc.Exchange
 	DelayMilliSecond int64
+	futuresArray     []exc.Futures
 }
 
 func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
@@ -23,35 +24,51 @@ func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	return &ce
 }
 
+func (ce *CrossExchange) setFuturesArray(futuresArray []exc.Futures) {
+	ce.futuresArray = futuresArray
+}
+
 func (ce *CrossExchange) Start() {
 	slog := simpleLog.StartLog()
 	defer slog.Close()
 
 	d := time.Duration(time.Millisecond * time.Duration(ce.DelayMilliSecond))
+	fmt.Println("d1", d)
 
 	t := time.NewTimer(d)
 	defer t.Stop()
 
 	for {
 		<-t.C
+
 		plusMilliSecond := ce.stratStrategy()
-		t.Reset(time.Second * time.Duration(ce.DelayMilliSecond+plusMilliSecond))
+		fmt.Println("d1.5", plusMilliSecond)
+		t.Reset(time.Millisecond * time.Duration(ce.DelayMilliSecond+plusMilliSecond))
+		fmt.Println("d2", time.Millisecond*time.Duration(ce.DelayMilliSecond+plusMilliSecond))
 	}
 
 }
 
 func (ce *CrossExchange) stratStrategy() int64 {
 
+	var totalWaitTime int64
+	for _, futures := range ce.futuresArray {
+		totalWaitTime += ce.stratFuturesStrategy(futures)
+	}
+	return totalWaitTime
+}
+
+func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
+
 	laName := ""
 	hbName := ""
 
-	cp := exc.CoinPair{}
 	//askPairs := []exc.PricePair{}
 	//bidPairs := []exc.PricePair{}
 	minAskPair := exc.PricePair{Price: math.MaxInt64}
 	maxBidPair := exc.PricePair{Price: 0}
 	for _, exchg := range ce.exchanges {
-		askPair, bidPair := exchg.GetAskBidPair(cp, 1)
+		askPair, bidPair := exchg.GetFuturesAskBidPair(futures)
 		askPair.Price = askPair.Price * (1.0 + exchg.GetFee().Taker)
 		bidPair.Price = bidPair.Price * (1.0 - exchg.GetFee().Taker)
 

@@ -17,6 +17,7 @@ type Exchange interface {
 	GetName() string
 	GetMarketInfo(coinPair CoinPair) MarketInfo
 	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
+	GetFuturesAskBidPair(futures Futures) (PricePair, PricePair)
 }
 
 type PriceType int

@@ -123,8 +123,18 @@ func (ftx *Ftx) GetMarket(name string) []byte {
 
 func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	market := coinPair.GetMarketName()
+	return ftx.getAskBidPairByMarket(market)
+}
+
+func (ftx *Ftx) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
+	market := futures.GetMarketName()
+	return ftx.getAskBidPairByMarket(market)
+}
+
+func (ftx *Ftx) getAskBidPairByMarket(market string) (exc.PricePair, exc.PricePair) {
 	if !ftx.orderBookCenter.IsExist(market) {
 		channel, _ := ftx.orderBookCenter.Register(market)
+		<-channel
 		go func() {
 			for {
 				<-channel

@@ -2,7 +2,9 @@ package exchange
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
+	"time"
 )
 
 type JArray map[string]interface{}
@@ -70,5 +72,29 @@ func transToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
 		}
 		res = append(res, askFloatArray)
 	}
+	return res
+}
+
+type ICommodity interface {
+	GetMarketName()
+}
+
+type Spot struct {
+	//ICommodity
+	CoinPair
+}
+
+type Futures struct {
+	//ICommodity
+	//到期日
+	ExpirationDate time.Time
+	// 商品名
+	TargetName string
+	// 計價貨幣類型
+	QuoteCoin string
+}
+
+func (f *Futures) GetMarketName() string {
+	res := fmt.Sprintf("%s-%d%d", f.TargetName, f.ExpirationDate.Month(), f.ExpirationDate.Day())
 	return res
 }
