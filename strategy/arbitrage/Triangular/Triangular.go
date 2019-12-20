@@ -412,7 +412,7 @@ func (tri *Triangular) stratStrategy() int {
 	if mFinishCount%EveryCountCheckWallet == 0 {
 		wallet := tri.exchangeClient.GetWallet()
 		//完成N次交易報告資產變化值
-		array := mPreWallet.GetALlBalanceProfit(wallet)
+		array := mPreWallet.GetAllBalanceProfit(wallet)
 		sendInfo := fmt.Sprintf("earn:%v", array)
 		log.Println(sendInfo)
 		message_tool.SendTelegram(sendInfo)
