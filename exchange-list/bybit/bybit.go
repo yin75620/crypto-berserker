@@ -12,6 +12,7 @@ import (
 	"sort"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/object_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -114,13 +115,9 @@ func (ce *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sendBody := string(jsonBody)
-
-	log.Println(sendBody)
 
 	var res []byte
 	fullURL := fmt.Sprintf("%s%s", apiURL, apiName)
-	log.Println(fullURL)
 
 	req, err := http.NewRequest(method, fullURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
@@ -131,13 +128,12 @@ func (ce *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
 	if method == "GET" {
 		q := req.URL.Query()
 		for key, obj := range objBody {
-			q.Add(key, toString(obj))
+			q.Add(key, object_tool.ToString(obj))
 		}
 		req.URL.RawQuery = q.Encode()
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	//req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return exc.SendRequest(client, req)
 }
@@ -152,7 +148,7 @@ func GetSignature(params map[string]interface{}, key string) string {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		value := toString(params[k])
+		value := object_tool.ToString(params[k])
 		_val += k + "=" + value + "&"
 	}
 	_val = _val[0 : len(_val)-1]
@@ -160,18 +156,4 @@ func GetSignature(params map[string]interface{}, key string) string {
 	h := hmac.New(sha256.New, []byte(key))
 	io.WriteString(h, _val)
 	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func toString(x interface{}) string {
-	value := ""
-	if w, ok := x.(string); ok {
-		value = w
-	} else if i, ok := x.(int64); ok {
-		value = fmt.Sprintf("%d", i)
-	} else if i, ok := x.(int); ok {
-		value = fmt.Sprintf("%d", i)
-	} else {
-		log.Fatal("undefine type:", x)
-	}
-	return value
 }
