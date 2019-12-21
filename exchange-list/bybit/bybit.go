@@ -31,9 +31,10 @@ func NewBybit(c *http.Client) *Bybit {
 }
 
 type Bybit struct {
-	client    *http.Client
-	apiKey    string
-	secretKey string
+	client          *http.Client
+	apiKey          string
+	secretKey       string
+	orderBookCenter *OrderBookCenter
 }
 
 // implement exchange
@@ -53,8 +54,8 @@ func (ce *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 func (ce *Bybit) GetFee() exc.Fee {
 	fee := exc.Fee{}
-	fee.Taker = 0.0005
-	fee.Maker = 0.0005
+	fee.Taker = 0.0007
+	fee.Maker = 0.0007
 	return fee
 }
 func (ce *Bybit) GetName() string {
