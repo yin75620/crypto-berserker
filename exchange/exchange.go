@@ -106,6 +106,10 @@ func (co *CoinPair) GetLinkMakertName() string {
 	return strings.ToLower(fmt.Sprintf("%s%s", co.BaseCoin, co.QuotedCoin))
 }
 
+func (co *CoinPair) GetLinkMakertNameUpper() string {
+	return strings.ToUpper(fmt.Sprintf("%s%s", co.BaseCoin, co.QuotedCoin))
+}
+
 func (co *CoinPair) SetByLinkMakertName(linkName string) {
 	quoteCoins := []string{"btc", "usdt", "twd", "usd"}
 	for _, v := range quoteCoins {
