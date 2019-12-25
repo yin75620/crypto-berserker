@@ -12,6 +12,7 @@ import (
 	"sort"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/object_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
@@ -23,45 +24,45 @@ var (
 type JArray exc.JArray
 
 func NewBybit(c *http.Client) *Bybit {
-	ce := Bybit{}
-	ce.client = c
-	ce.apiKey = setting.BYBIT_KEY
-	ce.secretKey = setting.BYBIT_SECRET_KEY
-	return &ce
+	bb := Bybit{}
+	bb.client = c
+	bb.apiKey = setting.BYBIT_KEY
+	bb.secretKey = setting.BYBIT_SECRET_KEY
+	return &bb
 }
 
 type Bybit struct {
 	client          *http.Client
 	apiKey          string
 	secretKey       string
-	orderBookCenter *OrderBookCenter
+	orderBookCenter *ob.OrderBookCenter
 }
 
 // implement exchange
-func (ce *Bybit) GetWallet() exc.Wallet {
+func (bb *Bybit) GetWallet() exc.Wallet {
 	w := exc.Wallet{}
 	return w
 }
 
-func (ce *Bybit) GetAccountInfo() []byte {
+func (bb *Bybit) GetAccountInfo() []byte {
 
-	return ce.doRequest("GET", "open-api/wallet/fund/records", exc.JArray{})
+	return bb.doRequest("GET", "open-api/wallet/fund/records", exc.JArray{})
 }
 
-func (ce *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
+func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return "", nil
 }
 
-func (ce *Bybit) GetFee() exc.Fee {
+func (bb *Bybit) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Taker = 0.0007
 	fee.Maker = 0.0007
 	return fee
 }
-func (ce *Bybit) GetName() string {
+func (bb *Bybit) GetName() string {
 	return "Bybit"
 }
-func (ce *Bybit) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+func (bb *Bybit) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
 }
 
@@ -76,9 +77,15 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.TradeData.SetByJArray(json)
 }
 
-func (ce *Bybit) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+/*
+func (bb *Bybit) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
+	market := futures.GetMarketName()
+	return bb.getAskBidPairByMarket(market)
+}*/
+
+func (bb *Bybit) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	reqString := fmt.Sprintf("market/depth?market=%s&limit=%d&merge=0", coinPair.GetLinkMakertName(), depth)
-	resByte := ce.doRequest("GET", reqString, exc.JArray{})
+	resByte := bb.doRequest("GET", reqString, exc.JArray{})
 	//fmt.Println(string(resByte))
 
 	var resJson map[string]interface{}
@@ -96,17 +103,17 @@ func (ce *Bybit) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair,
 	return askPair, bidPair
 }
 
-func (ce *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
-	client := ce.client
+func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
+	client := bb.client
 
 	ts := exc.GetTimeSpan()
 	objBody := exc.JArray{
-		"api_key":   ce.apiKey,
+		"api_key":   bb.apiKey,
 		"timestamp": ts,
 	}
 	objBody.Add(body)
 
-	sign := GetSignature(objBody, ce.secretKey)
+	sign := GetSignature(objBody, bb.secretKey)
 
 	objBody.Add(exc.JArray{
 		"sign": sign,
