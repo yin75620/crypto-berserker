@@ -10,7 +10,7 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
 
-const WEBSOCKET_URL = "wss://stream-testnet.bybit.com/realtime"
+const WEBSOCKET_URL = "wss://stream.bybit.com/realtime"
 
 type ByBitWebSocket struct {
 	//conn *websocket.Conn
@@ -146,7 +146,7 @@ func (dr *DeltaResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 	res := ob.OrderBookerResponseDetail{}
 	res.Time = dr.TimeStamp
 	//res.checksum = dr.Id
-	res.Action = ob.Partial
+	res.Action = ob.Update
 	//res.Market = dr.Symbol
 
 	transToAskBid(&res.Asks, &res.Bids, dr.Data.Delete)
@@ -158,9 +158,9 @@ func (dr *DeltaResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 func transToAskBid(asks, bids *[][]float64, data []OrderBookSocketResponseData) {
 	for _, pItem := range data {
 		if pItem.Side == "Buy" {
-			*asks = append(*asks, []float64{pItem.Price, pItem.Size})
-		} else if pItem.Side == "Sell" {
 			*bids = append(*bids, []float64{pItem.Price, pItem.Size})
+		} else if pItem.Side == "Sell" {
+			*asks = append(*asks, []float64{pItem.Price, pItem.Size})
 		} else {
 			log.Println("unknow pItem.Side:", pItem.Side)
 		}
