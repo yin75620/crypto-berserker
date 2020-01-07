@@ -128,7 +128,11 @@ func (ftx *Ftx) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, 
 
 func (ftx *Ftx) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
 	market := futures.GetMarketName()
-	return ftx.getAskBidPairByMarket(market)
+	ask, bid := ftx.getAskBidPairByMarket(market)
+	// 因為要用美元計價
+	ask.Volume = ask.Volume * ask.Price
+	bid.Volume = bid.Volume * bid.Price
+	return ask, bid
 }
 
 func (ftx *Ftx) getAskBidPairByMarket(market string) (exc.PricePair, exc.PricePair) {
