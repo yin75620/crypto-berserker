@@ -22,3 +22,18 @@ func TestWebsocketInfo(t *testing.T) {
 		fmt.Println("bid", bid)
 	}
 }
+func TestWebsocketInfoFutures(t *testing.T) {
+
+	socket := NewSocket()
+	marketName := "BTC-PERP"
+	ch := socket.SubScribeOrderBook(marketName)
+
+	nob := NewOrderBooker(marketName, ch)
+	nob.Start()
+	for {
+		<-nob.UpdateChannel
+		ask, bid := nob.GetFirstPricePair()
+		fmt.Println("ask", ask)
+		fmt.Println("bid", bid)
+	}
+}

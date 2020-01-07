@@ -28,6 +28,7 @@ func NewBybit(c *http.Client) *Bybit {
 	bb.client = c
 	bb.apiKey = setting.BYBIT_KEY
 	bb.secretKey = setting.BYBIT_SECRET_KEY
+	bb.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	return &bb
 }
 
@@ -77,30 +78,31 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.TradeData.SetByJArray(json)
 }
 
-/*
 func (bb *Bybit) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
-	market := futures.GetMarketName()
+	market := futures.GetLinkMarketName()
 	return bb.getAskBidPairByMarket(market)
-}*/
+}
 
 func (bb *Bybit) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
-	reqString := fmt.Sprintf("market/depth?market=%s&limit=%d&merge=0", coinPair.GetLinkMakertName(), depth)
-	resByte := bb.doRequest("GET", reqString, exc.JArray{})
-	//fmt.Println(string(resByte))
+	market := coinPair.GetLinkMakertNameUpper()
+	return bb.getAskBidPairByMarket(market)
+}
 
-	var resJson map[string]interface{}
-	err := json.Unmarshal(resByte, &resJson)
-	if err != nil {
-		log.Fatal(err)
+func (bb *Bybit) getAskBidPairByMarket(market string) (exc.PricePair, exc.PricePair) {
+	if !bb.orderBookCenter.IsExist(market) {
+		channel, _ := bb.orderBookCenter.Register(market)
+		<-channel
+		go func() {
+			for {
+				<-channel
+			}
+		}()
+
+		//return ftx.getOrderBookFromWeb(coinPair, depth)
 	}
 
-	quoteResponse := QuoteResponse{}
-	quoteResponse.setBy(resJson)
-
-	askPair, _ := quoteResponse.TradeData.GetPair(1, exc.Ask)
-	bidPair, _ := quoteResponse.TradeData.GetPair(1, exc.Bid)
-
-	return askPair, bidPair
+	booker := bb.orderBookCenter.GetBooker(market)
+	return booker.GetFirstPricePair()
 }
 
 func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {

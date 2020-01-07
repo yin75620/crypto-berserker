@@ -24,7 +24,7 @@ func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	return &ce
 }
 
-func (ce *CrossExchange) setFuturesArray(futuresArray []exc.Futures) {
+func (ce *CrossExchange) SetFuturesArray(futuresArray []exc.Futures) {
 	ce.futuresArray = futuresArray
 }
 
@@ -63,34 +63,42 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	laName := ""
 	hbName := ""
 
-	//askPairs := []exc.PricePair{}
-	//bidPairs := []exc.PricePair{}
-	minAskPair := exc.PricePair{Price: math.MaxInt64}
-	maxBidPair := exc.PricePair{Price: 0}
-	for _, exchg := range ce.exchanges {
-		askPair, bidPair := exchg.GetFuturesAskBidPair(futures)
-		askPair.Price = askPair.Price * (1.0 + exchg.GetFee().Taker)
-		bidPair.Price = bidPair.Price * (1.0 - exchg.GetFee().Taker)
-
-		log.Println(fmt.Sprintf("ask price:%f, volume:%f, Exchange:%s", askPair.Price, askPair.Volume, exchg.GetName()))
-		log.Println(fmt.Sprintf("bid price:%f, volume:%f, Exchange:%s", bidPair.Price, bidPair.Volume, exchg.GetName()))
-
-		if askPair.Price < minAskPair.Price {
-			minAskPair = askPair
-			laName = exchg.GetName()
-		}
-
-		if bidPair.Price > maxBidPair.Price {
-			maxBidPair = bidPair
-			hbName = exchg.GetName()
-		}
+	var cp *CrossPair
+	if len(ce.exchanges) < 0 {
+		log.Fatal("has no exchange")
+	} else if len(ce.exchanges) == 1 {
+		cp = NewCrossPair(ce.exchanges[0], ce.exchanges[0])
+		log.Println("Only one exchange")
+	} else if len(ce.exchanges) > 1 {
+		cp = NewCrossPair(ce.exchanges[0], ce.exchanges[1])
 	}
+
+	var execProfit, execMinTotalValue float64
+
+	abProfit, abMinTotalValue := cp.GetProfit(futures, MASB)
+	execProfit = abProfit
+	execMinTotalValue = abMinTotalValue
+
+	baProfit, baMinTotalValue := cp.GetProfit(futures, MBSA)
+	if execProfit < baProfit {
+		execProfit = baProfit
+		execMinTotalValue = baMinTotalValue
+	}
+
+	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
+	m_expectedTotalValue = execMinTotalValue - orderTotalValue
+	m_expectedLowestProfit = execProfit
 
 	// 交易判斷
-	ok, delay, orderTotalValue, profit := canOrder(minAskPair, maxBidPair, laName, hbName)
-	if !ok {
-		return delay
+	// 有利可圖
+	if !hasProfit(execProfit, orderTotalValue) {
+		// 無利可圖，重設偵測
+		m_expectedTotalValue = 0
+		m_expectedLowestProfit = 0
+		return 0
 	}
+
+	// 進行交易
 
 	laOrderVolume := orderTotalValue / minAskPair.Price
 	hbOrderVolume := orderTotalValue / maxBidPair.Price
@@ -127,61 +135,22 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	return plusMilliSecond
 }
 
+const (
+	SETTING_TOTAL_VALUE = 100
+)
+
 var (
 	m_expectedTotalValue   float64 = 0
 	m_expectedLowestProfit float64 = 0
 	m_minProfit            float64 = 0.001
-	m_minVolume            float64 = 20
+	m_minVolume            float64 = 0.00001 //test
 	m_tradingAdjustSpeed   int64   = -1000
 )
 
-func canOrder(lowestAskPair, highestBidPair exc.PricePair, laName, hbName string) (bool, int64, float64, float64) {
-
-	laPrice := lowestAskPair.Price
-	hbPrice := highestBidPair.Price
-
-	laVolume := lowestAskPair.Volume
-	hbVolume := highestBidPair.Volume
-	// 出現錯誤，放慢速度
-	if laPrice <= 0 {
-		log.Println("laPrice <= 0")
-		return false, 60000, 0, 0
-	}
-
-	laValue := laPrice * laVolume
-	hbValue := hbPrice * hbVolume
-
-	minSourceTotalValue := math.Min(laValue, hbValue)
-
-	log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
-	log.Println(fmt.Sprintf("m_expectedTotalValue:%g", m_expectedTotalValue))
-
-	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
-	log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
-
-	profit := (hbPrice - laPrice) / laPrice
-
-	log.Println(fmt.Sprintf("Profit:%f", profit))
-
-	currentOrderTotalValue := 100.0 //ce.Init.RANK_N[R_TOTAL_VALUE]
-
-	wnatOrderTotalValue := currentOrderTotalValue * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
-	wnatOrderTotalValue = math.Floor(wnatOrderTotalValue)
-
-	orderTotalValue := math.Min(wnatOrderTotalValue, minSourceTotalValue)
-
-	m_expectedTotalValue = minSourceTotalValue - orderTotalValue
-	m_expectedLowestProfit = profit
-
-	// 有利可圖
-	if !hasProfit(profit, orderTotalValue) {
-		// 無利可圖，重設偵測
-		m_expectedTotalValue = 0
-		m_expectedLowestProfit = 0
-		return false, 0, 0, 0
-	}
-
-	return true, m_tradingAdjustSpeed, orderTotalValue, profit
+func smallRandom(enter float64) float64 {
+	temp := enter * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
+	result := math.Floor(temp)
+	return result
 }
 
 func hasProfit(profit, orderTotalValue float64) bool {

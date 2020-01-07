@@ -94,7 +94,21 @@ type Futures struct {
 	QuoteCoin string
 }
 
+func (f *Futures) GetLinkMarketName() string {
+	res := ""
+	if f.ExpirationDate.IsZero() {
+		res = fmt.Sprintf("%s%s", f.TargetName, f.QuoteCoin)
+	}
+	return res
+}
+
 func (f *Futures) GetMarketName() string {
-	res := fmt.Sprintf("%s-%d%d", f.TargetName, f.ExpirationDate.Month(), f.ExpirationDate.Day())
+	res := ""
+	if f.ExpirationDate.IsZero() {
+		res = fmt.Sprintf("%s-PERP", f.TargetName)
+	} else {
+		res = fmt.Sprintf("%s-%d%d", f.TargetName, f.ExpirationDate.Month(), f.ExpirationDate.Day())
+	}
+
 	return res
 }

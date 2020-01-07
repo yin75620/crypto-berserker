@@ -1,17 +1,16 @@
-package CrossExchange
+package main
 
 import (
 	"net/http"
-	"testing"
-
-	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	"github.com/yin75620/crypto-berserker/setting"
+	"github.com/yin75620/crypto-berserker/strategy/arbitrage/CrossExchange"
 )
 
-func TestMain(t *testing.T) {
+func main() {
 	exchanges := []exc.Exchange{}
 	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 		setting.FTX_KEY,
@@ -21,7 +20,7 @@ func TestMain(t *testing.T) {
 	exchanges = append(exchanges, ft)
 	exchanges = append(exchanges, bybit)
 
-	ce := NewCrossExchange(exchanges)
+	ce := CrossExchange.NewCrossExchange(exchanges)
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
