@@ -15,6 +15,9 @@ type CrossExchange struct {
 	exchanges        []exc.Exchange
 	DelayMilliSecond int64
 	futuresArray     []exc.Futures
+
+	//execute use
+	positionCrossPairs []CrossPair
 }
 
 func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
@@ -89,6 +92,31 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
+
+		//hasPosition
+		if len(ce.positionCrossPairs) > 0 {
+			if ce.positionCrossPairs[0].GetMatchName() != crossPair.GetName() {
+				continue
+			}
+
+			//找出反向配對，確定利潤
+			pProfit := ce.positionCrossPairs[0].GetProfit()
+			sellProfit := crossPair.GetProfit()
+			fmt.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
+			sum := pProfit + sellProfit
+			const BASE_PROFIT = 0.0001
+			if sum > BASE_PROFIT {
+				fmt.Println(fmt.Sprintf("sum:%f", sum))
+
+				//remove
+				ar := &ce.positionCrossPairs
+				a := *ar
+				i := 0
+				a[i] = a[len(a)-1]        // Copy last element to index i.
+				a[len(a)-1] = CrossPair{} // Erase last element (write zero value).
+				a = a[:len(a)-1]          // Truncate slice.
+			}
+		}
 	}
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
@@ -120,6 +148,8 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		m_expectedTotalValue)
 	log.Println(content)
 
+	ce.positionCrossPairs = append(ce.positionCrossPairs, topCrossPair)
+
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
 }
@@ -133,7 +163,7 @@ var (
 	m_expectedTotalValue   float64 = 0
 	m_expectedLowestProfit float64 = 0
 	m_minProfit            float64 = 0.001
-	m_minVolume            float64 = 100 //鎂
+	m_minVolume            float64 = 1 //鎂
 	m_tradingAdjustSpeed   int64   = -1000
 )
 
