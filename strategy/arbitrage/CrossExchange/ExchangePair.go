@@ -8,14 +8,90 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
-type TopPricePair struct {
-	ask exc.PricePair
-	bid exc.PricePair
+type ExchangePair struct {
+	exchange exc.Exchange
+	ask      exc.PricePair
+	bid      exc.PricePair
 }
 
-type ExchangePair struct {
-	first TopPricePair
-	other TopPricePair
+func NewExchangePair(exchange exc.Exchange, ask, bid exc.PricePair) *ExchangePair {
+	ep := ExchangePair{}
+	ep.exchange = exchange
+	ep.ask = ask
+	ep.bid = bid
+	return &ep
+}
+
+func (ep *ExchangePair) FillPair() {
+
+}
+
+type CrossPair struct {
+	askExchange  exc.Exchange
+	bidExchange  exc.Exchange
+	askPricePair exc.PricePair
+	bidPricePair exc.PricePair
+}
+
+func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePair) *CrossPair {
+	cp := CrossPair{}
+	cp.askExchange = ask
+	cp.bidExchange = bid
+	cp.askPricePair = askPircePair
+	cp.bidPricePair = bidPricePair
+	return &cp
+}
+
+func (cp *CrossPair) GetName() string {
+	return fmt.Sprintf("A%sB%s", cp.askExchange.GetName(), cp.bidExchange.GetName())
+}
+
+func (cp *CrossPair) GetMatchName() string {
+	return fmt.Sprintf("A%sB%s", cp.bidExchange.GetName(), cp.askExchange.GetName())
+}
+
+func (cp *CrossPair) GetAskInfo() (exc.Exchange, exc.PricePair) {
+	return cp.askExchange, cp.askPricePair
+}
+
+func (cp *CrossPair) GetBidInfo() (exc.Exchange, exc.PricePair) {
+	return cp.bidExchange, cp.bidPricePair
+}
+
+//profit
+func (cp *CrossPair) GetProfit() float64 {
+
+	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
+	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
+
+	log.Println(fmt.Sprintf("ask Cprice:%f, S price:%f, volume:%f, Exchange:%s", aPrice, cp.askPricePair.Price, cp.askPricePair.Volume, cp.askExchange.GetName()))
+	log.Println(fmt.Sprintf("bid Cprice:%f, S price:%f, volume:%f, Exchange:%s", bPrice, cp.bidPricePair.Price, cp.bidPricePair.Volume, cp.bidExchange.GetName()))
+
+	// 出現錯誤，放慢速度
+	if aPrice <= 0 {
+		log.Println("laPrice <= 0")
+		return 0
+	}
+
+	profit := (bPrice - aPrice) / aPrice
+	log.Println(fmt.Sprintf("Profit:%f", profit))
+
+	return profit
+}
+
+func (cp *CrossPair) GetMinTotalVolume() float64 {
+
+	aVolume := cp.askPricePair.Volume
+	bVolume := cp.bidPricePair.Volume
+	// 出現錯誤，放慢速度
+	if aVolume <= 0 {
+		log.Println("aVolume <= 0")
+		return 0
+	}
+
+	minTotalVolume := math.Min(aVolume, bVolume)
+	log.Println(fmt.Sprintf("minTotalVolume:%g", minTotalVolume))
+	return minTotalVolume
 }
 
 // M0S0 表示 MainAsk, SubBid 有艙位
@@ -35,96 +111,4 @@ type CrossPosition struct {
 	mainPricePair    exc.PricePair
 	subPricePair     exc.PricePair
 	status           PositionStatus
-}
-
-type CrossPair struct {
-	mainExchange exc.Exchange
-	subExchange  exc.Exchange
-
-	crossPosition CrossPosition
-}
-
-func NewCrossPair(main, sub exc.Exchange) *CrossPair {
-	cp := CrossPair{}
-	cp.mainExchange = main
-	cp.subExchange = sub
-	cp.crossPosition = CrossPosition{}
-	return &cp
-}
-
-func (cp *CrossPair) GetProfit(futures exc.Futures, ps PositionStatus) (float64, float64) {
-	var profit, minSourceTotalValue float64
-	switch ps {
-	case MASB:
-		profit, minSourceTotalValue = cp.abProfit(futures)
-	case MBSA:
-		profit, minSourceTotalValue = cp.baProfit(futures)
-	default:
-		log.Println("undefine PositionStatus:", ps)
-	}
-	return profit, minSourceTotalValue
-}
-
-/// 正向 mainAsk(Buy),subBid(Sell)
-///profit, minSourceTotalValue
-func (cp *CrossPair) abProfit(futures exc.Futures) (float64, float64) {
-	mainExchangeName := cp.mainExchange.GetName()
-	subExchangeName := cp.subExchange.GetName()
-
-	askPair, _ := cp.mainExchange.GetFuturesAskBidPair(futures)
-	askPair.Price = askPair.Price * (1.0 + cp.mainExchange.GetFee().Taker)
-
-	_, bidPair := cp.subExchange.GetFuturesAskBidPair(futures)
-	bidPair.Price = bidPair.Price * (1.0 - cp.subExchange.GetFee().Taker)
-
-	log.Println(fmt.Sprintf("ask price:%f, volume:%f, Exchange:%s", askPair.Price, askPair.Volume, mainExchangeName))
-	log.Println(fmt.Sprintf("bid price:%f, volume:%f, Exchange:%s", bidPair.Price, bidPair.Volume, subExchangeName))
-
-	return cp.getProfit(askPair, bidPair, mainExchangeName, subExchangeName)
-}
-
-/// 反向 mainBid,subAsk
-///profit, minSourceTotalValue
-func (cp *CrossPair) baProfit(futures exc.Futures) (float64, float64) {
-	mainExchangeName := cp.mainExchange.GetName()
-	subExchangeName := cp.subExchange.GetName()
-
-	_, bidPair := cp.mainExchange.GetFuturesAskBidPair(futures)
-	bidPair.Price = bidPair.Price * (1.0 - cp.mainExchange.GetFee().Taker)
-
-	askPair, _ := cp.subExchange.GetFuturesAskBidPair(futures)
-	askPair.Price = askPair.Price * (1.0 + cp.subExchange.GetFee().Taker)
-
-	log.Println(fmt.Sprintf("bid price:%f, volume:%f, Exchange:%s", bidPair.Price, bidPair.Volume, mainExchangeName))
-	log.Println(fmt.Sprintf("ask price:%f, volume:%f, Exchange:%s", askPair.Price, askPair.Volume, subExchangeName))
-
-	return cp.getProfit(askPair, bidPair, subExchangeName, mainExchangeName)
-}
-
-func (cp *CrossPair) getProfit(askPair, bidPair exc.PricePair, askName, bidName string) (float64, float64) {
-	laPrice := askPair.Price
-	hbPrice := bidPair.Price
-
-	laVolume := askPair.Volume
-	hbVolume := bidPair.Volume
-	// 出現錯誤，放慢速度
-	if laPrice <= 0 {
-		log.Println("laPrice <= 0")
-		return 0, 0
-	}
-
-	laValue := laPrice * laVolume
-	hbValue := hbPrice * hbVolume
-
-	minSourceTotalValue := math.Min(laValue, hbValue)
-	log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
-
-	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskName:%s", laPrice, laValue, askName))
-	log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidName:%s", hbPrice, hbValue, bidName))
-
-	profit := (hbPrice - laPrice) / laPrice
-
-	log.Println(fmt.Sprintf("Profit:%f", profit))
-
-	return profit, minSourceTotalValue
 }

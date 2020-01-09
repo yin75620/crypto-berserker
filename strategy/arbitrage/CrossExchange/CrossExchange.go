@@ -60,38 +60,45 @@ func (ce *CrossExchange) stratStrategy() int64 {
 
 func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
-	laName := ""
-	hbName := ""
+	exchangePairs := []ExchangePair{}
 
-	var cp *CrossPair
-	if len(ce.exchanges) < 0 {
-		log.Fatal("has no exchange")
-	} else if len(ce.exchanges) == 1 {
-		cp = NewCrossPair(ce.exchanges[0], ce.exchanges[0])
-		log.Println("Only one exchange")
-	} else if len(ce.exchanges) > 1 {
-		cp = NewCrossPair(ce.exchanges[0], ce.exchanges[1])
+	for _, exchg := range ce.exchanges {
+		askPair, bidPair := exchg.GetFuturesAskBidPair(futures)
+		exchangePairs = append(exchangePairs, *NewExchangePair(exchg, askPair, bidPair))
 	}
 
-	var execProfit, execMinTotalValue float64
-
-	abProfit, abMinTotalValue := cp.GetProfit(futures, MASB)
-	execProfit = abProfit
-	execMinTotalValue = abMinTotalValue
-
-	baProfit, baMinTotalValue := cp.GetProfit(futures, MBSA)
-	if execProfit < baProfit {
-		execProfit = baProfit
-		execMinTotalValue = baMinTotalValue
+	crossPairs := []CrossPair{}
+	for index, ePair := range exchangePairs {
+		for matchIndex, matchPair := range exchangePairs {
+			if index == matchIndex {
+				continue
+			}
+			crossPairs = append(crossPairs, *NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid))
+		}
 	}
 
+	// 沒有足夠的交易所可以套利
+	if len(crossPairs) == 0 {
+		log.Fatal("has no match pair exchange")
+	}
+
+	maxProfit := 0.0
+	var topCrossPair CrossPair
+	for _, crossPair := range crossPairs {
+		if crossPair.GetProfit() > maxProfit {
+			maxProfit = crossPair.GetProfit()
+			topCrossPair = crossPair
+		}
+	}
+
+	execMinTotalValue := topCrossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
 	m_expectedTotalValue = execMinTotalValue - orderTotalValue
-	m_expectedLowestProfit = execProfit
+	m_expectedLowestProfit = maxProfit
 
 	// 交易判斷
 	// 有利可圖
-	if !hasProfit(execProfit, orderTotalValue) {
+	if !hasProfit(maxProfit, orderTotalValue) {
 		// 無利可圖，重設偵測
 		m_expectedTotalValue = 0
 		m_expectedLowestProfit = 0
@@ -99,37 +106,19 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	// 進行交易
+	askExchange, askPair := topCrossPair.GetAskInfo()
+	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
-	laOrderVolume := orderTotalValue / minAskPair.Price
-	hbOrderVolume := orderTotalValue / maxBidPair.Price
+	//executeOrder(askExchange, futures.GetMarketName(), askPair.Price, exc.Ask, orderTotalValue)
+	//executeOrder(bidExchange, futures.GetMarketName(), bidPair.Price, exc.Bid, orderTotalValue)
 
-	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n profit:%g \r\n m_expectedTotalValue:%g",
-		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", minAskPair.Price, laOrderVolume, laName),
-		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", maxBidPair.Price, hbOrderVolume, hbName),
+	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
+		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
+		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", bidPair.Price, bidPair.Volume, bidExchange.GetName()),
 		orderTotalValue,
-		profit,
+		maxProfit,
 		m_expectedTotalValue)
 	log.Println(content)
-
-	/*const isOrder = true
-	if isOrder {
-		const isKeepUSD = true
-		if isKeepUSD {
-			laChannel := tri.executeOrder(lowestAskFlow, exc.Ask, laOrderVolume)
-			hbChannel := tri.executeOrder(highestBidFlow, exc.Bid, hbOrderVolume)
-			//等上面兩個交易都完成，再繼續
-			<-laChannel
-			<-hbChannel
-		} else {
-			hbChannel := tri.executeOrder(highestBidFlow, exc.Bid, laOrderVolume)
-			laChannel := tri.executeOrder(lowestAskFlow, exc.Ask, hbOrderVolume)
-			//等上面兩個交易都完成，再繼續
-			<-laChannel
-			<-hbChannel
-		}
-	}*/
-
-	///
 
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
@@ -137,13 +126,14 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 const (
 	SETTING_TOTAL_VALUE = 100
+	SETTING_LEVERAGE    = 5.0 //幾倍槓桿
 )
 
 var (
 	m_expectedTotalValue   float64 = 0
 	m_expectedLowestProfit float64 = 0
 	m_minProfit            float64 = 0.001
-	m_minVolume            float64 = 0.00001 //test
+	m_minVolume            float64 = 100 //鎂
 	m_tradingAdjustSpeed   int64   = -1000
 )
 
