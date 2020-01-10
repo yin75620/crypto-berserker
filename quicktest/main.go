@@ -27,9 +27,19 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	aee := 0
-	a := 100 % aee
-	fmt.Print(a)
+	removeArrayTest()
+}
+
+func removeArrayTest() {
+	array := []int{0}
+	ar := &array
+	a := *ar
+	i := 0
+	a[i] = a[len(a)-1] // Copy last element to index i.
+	a[len(a)-1] = 1    // Erase last element (write zero value).
+	a = a[:len(a)-1]   // Truncate slice.
+
+	fmt.Println(len(array))
 }
 
 func arrayPrintTest() {

@@ -74,7 +74,7 @@ func (cp *CrossPair) GetProfit() float64 {
 	}
 
 	profit := (bPrice - aPrice) / aPrice
-	log.Println(fmt.Sprintf("Profit:%f", profit))
+	log.Println(fmt.Sprintf("A%sB%s Profit:%f", cp.askExchange.GetName(), cp.bidExchange.GetName(), profit))
 
 	return profit
 }

@@ -102,19 +102,17 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			//找出反向配對，確定利潤
 			pProfit := ce.positionCrossPairs[0].GetProfit()
 			sellProfit := crossPair.GetProfit()
-			fmt.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
+			log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
 			sum := pProfit + sellProfit
 			const BASE_PROFIT = 0.0001
 			if sum > BASE_PROFIT {
-				fmt.Println(fmt.Sprintf("sum:%f", sum))
+				log.Println(fmt.Sprintf("sum:%f", sum))
 
 				//remove
-				ar := &ce.positionCrossPairs
-				a := *ar
 				i := 0
-				a[i] = a[len(a)-1]        // Copy last element to index i.
-				a[len(a)-1] = CrossPair{} // Erase last element (write zero value).
-				a = a[:len(a)-1]          // Truncate slice.
+				ce.positionCrossPairs[i] = ce.positionCrossPairs[len(ce.positionCrossPairs)-1] // Copy last element to index i.
+				ce.positionCrossPairs[len(ce.positionCrossPairs)-1] = CrossPair{}              // Erase last element (write zero value).
+				ce.positionCrossPairs = ce.positionCrossPairs[:len(ce.positionCrossPairs)-1]   // Truncate slice.
 			}
 		}
 	}
