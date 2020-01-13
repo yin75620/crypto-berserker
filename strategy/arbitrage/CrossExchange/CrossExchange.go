@@ -36,7 +36,7 @@ func (ce *CrossExchange) Start() {
 	defer slog.Close()
 
 	d := time.Duration(time.Millisecond * time.Duration(ce.DelayMilliSecond))
-	fmt.Println("d1", d)
+	//fmt.Println("d1", d)
 
 	t := time.NewTimer(d)
 	defer t.Stop()
@@ -45,9 +45,9 @@ func (ce *CrossExchange) Start() {
 		<-t.C
 
 		plusMilliSecond := ce.stratStrategy()
-		fmt.Println("d1.5", plusMilliSecond)
+		//fmt.Println("d1.5", plusMilliSecond)
 		t.Reset(time.Millisecond * time.Duration(ce.DelayMilliSecond+plusMilliSecond))
-		fmt.Println("d2", time.Millisecond*time.Duration(ce.DelayMilliSecond+plusMilliSecond))
+		//fmt.Println("d2", time.Millisecond*time.Duration(ce.DelayMilliSecond+plusMilliSecond))
 	}
 
 }
@@ -70,52 +70,41 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		exchangePairs = append(exchangePairs, *NewExchangePair(exchg, askPair, bidPair))
 	}
 
-	crossPairs := []CrossPair{}
+	crossPairMap := map[string]CrossPair{}
 	for index, ePair := range exchangePairs {
 		for matchIndex, matchPair := range exchangePairs {
 			if index == matchIndex {
 				continue
 			}
-			crossPairs = append(crossPairs, *NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid))
+			cp := NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid)
+			crossPairMap[cp.GetName()] = *cp
 		}
 	}
 
 	// 沒有足夠的交易所可以套利
-	if len(crossPairs) == 0 {
+	if len(crossPairMap) == 0 {
 		log.Fatal("has no match pair exchange")
 	}
 
 	maxProfit := 0.0
 	var topCrossPair CrossPair
-	for _, crossPair := range crossPairs {
+	for _, crossPair := range crossPairMap {
 		if crossPair.GetProfit() > maxProfit {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
 
-		//hasPosition
-		if len(ce.positionCrossPairs) > 0 {
-			if ce.positionCrossPairs[0].GetMatchName() != crossPair.GetName() {
-				continue
-			}
-
-			//找出反向配對，確定利潤
-			pProfit := ce.positionCrossPairs[0].GetProfit()
-			sellProfit := crossPair.GetProfit()
-			log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
-			sum := pProfit + sellProfit
-			const BASE_PROFIT = 0.0001
-			if sum > BASE_PROFIT {
-				log.Println(fmt.Sprintf("sum:%f", sum))
-
-				//remove
-				i := 0
-				ce.positionCrossPairs[i] = ce.positionCrossPairs[len(ce.positionCrossPairs)-1] // Copy last element to index i.
-				ce.positionCrossPairs[len(ce.positionCrossPairs)-1] = CrossPair{}              // Erase last element (write zero value).
-				ce.positionCrossPairs = ce.positionCrossPairs[:len(ce.positionCrossPairs)-1]   // Truncate slice.
-			}
-		}
+		//matchPair := crossPairMap[crossPair.GetMatchName()]
+		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
 	}
+
+	// 沒足夠利潤，直接下一圈
+	if maxProfit <= 0 {
+		return 0
+	}
+
+	// 檢查部位是否可以平倉
+	ce.PositionCloseCheck(crossPairMap)
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
@@ -150,6 +139,37 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
+}
+
+func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair) {
+
+	//hasPosition
+	if len(ce.positionCrossPairs) <= 0 {
+		return
+	}
+
+	matchName := ce.positionCrossPairs[0].GetMatchName()
+	if _, ok := crossPairMap[matchName]; !ok {
+		return
+	}
+
+	matchCrossPair := crossPairMap[matchName]
+
+	//找出反向配對，確定利潤
+	pProfit := ce.positionCrossPairs[0].GetProfit()
+	sellProfit := matchCrossPair.GetProfit()
+	log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
+	sum := pProfit + sellProfit
+	const BASE_PROFIT = 0.0001
+	if sum > BASE_PROFIT {
+		log.Println(fmt.Sprintf("sum:%f", sum))
+
+		//remove
+		i := 0
+		ce.positionCrossPairs[i] = ce.positionCrossPairs[len(ce.positionCrossPairs)-1] // Copy last element to index i.
+		ce.positionCrossPairs[len(ce.positionCrossPairs)-1] = CrossPair{}              // Erase last element (write zero value).
+		ce.positionCrossPairs = ce.positionCrossPairs[:len(ce.positionCrossPairs)-1]   // Truncate slice.
+	}
 }
 
 const (
