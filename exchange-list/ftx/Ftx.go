@@ -196,12 +196,32 @@ func (fo *FtxOrder) setBy(order exc.ExchangeOrder) {
 	fo.OrderType = EOrderType(order.OrderType)
 }
 
+func (fo *FtxOrder) setByFutures(order exc.FuturesOrder) {
+	fo.Market = order.Futures.GetMarketName()
+	fo.Side = order.Side
+	fo.Price = order.Price
+	fo.Size = order.Size
+	fo.OrderType = EOrderType(order.OrderType)
+}
+
 //下訂單
 func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 	fo := FtxOrder{}
 	fo.setBy(order)
 
+	return ftx.doPostOrder(fo)
+}
+
+func (ftx *Ftx) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+
+	fo := FtxOrder{}
+	fo.setByFutures(order)
+
+	return ftx.doPostOrder(fo)
+}
+
+func (ftx *Ftx) doPostOrder(fo FtxOrder) (string, error) {
 	request, err := json.Marshal(fo)
 	if err != nil {
 		log.Fatal(err)

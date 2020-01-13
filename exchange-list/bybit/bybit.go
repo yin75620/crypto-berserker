@@ -54,6 +54,10 @@ func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return "", nil
 }
 
+func (bb *Bybit) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+	return "", nil
+}
+
 func (bb *Bybit) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Taker = 0.0007

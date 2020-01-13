@@ -12,6 +12,7 @@ import (
 type Exchange interface {
 	GetAccountInfo() []byte // include balance
 	PostOrder(order ExchangeOrder) (string, error)
+	PostFuturesOrder(order FuturesOrder) (string, error)
 	GetWallet() Wallet
 	GetFee() Fee
 	GetName() string
@@ -75,6 +76,18 @@ type ExchangeOrder struct {
 	Size      float64    `json:"size"`
 	OrderType EOrderType `json:"order_type"`
 	//ReduceOnly bool       `json:"reduceOnly"`
+}
+
+type FuturesOrder struct {
+	CommodityOrder
+	Futures Futures
+}
+
+type CommodityOrder struct {
+	Side      string     `json:"side"`
+	Price     float64    `json:"price"`
+	Size      float64    `json:"size"`
+	OrderType EOrderType `json:"order_type"`
 }
 
 type CoinPair struct {
