@@ -29,15 +29,25 @@ const (
 )
 
 var bot *tgbotapi.BotAPI
+var broadcasterBot *tgbotapi.BotAPI
 
 func StartTelegram() {
 	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
+	broadcasterBot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
 }
 
 func SendTelegram(content string) {
+	sendTo(bot, 945156610, content)
+}
+
+func SendBroadcastArcherGroup(content string) {
+	sendTo(broadcasterBot, -358468104, content)
+}
+
+func sendTo(bo *tgbotapi.BotAPI, groupId int64, content string) {
 	if PAUSE_SEND_TELEGRAM {
 		return
 	}
-	msg := tgbotapi.NewMessage(945156610, content)
-	bot.Send(msg)
+	msg := tgbotapi.NewMessage(groupId, content)
+	bo.Send(msg)
 }
