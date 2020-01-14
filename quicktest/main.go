@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/yin75620/crypto-berserker/jmath"
+	"github.com/yin75620/crypto-berserker/object_tool"
 )
 
 type LoginRequest struct {
@@ -27,7 +28,23 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	removeArrayTest()
+	intConvertTest()
+}
+
+func intConvertTest() {
+	var f float64 = 8002.0001
+	var i int64 = int64(f)
+	s := object_tool.ToString(i)
+	fmt.Println(s)
+}
+
+func mapIndexTest() {
+	slice := map[string]LoginRequestDetail{}
+	if v, ok := slice["!@#"]; !ok {
+		fmt.Println("ok")
+		fmt.Println(v)
+	}
+
 }
 
 func removeArrayTest() {
