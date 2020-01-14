@@ -13,8 +13,10 @@ func ToString(x interface{}) string {
 		value = fmt.Sprintf("%d", i)
 	} else if i, ok := x.(int); ok {
 		value = fmt.Sprintf("%d", i)
+	} else if i, ok := x.(float64); ok {
+		value = fmt.Sprintf("%.f", i)
 	} else {
-		log.Fatal("undefine type:", x)
+		log.Fatal("ToString undefine type:", x)
 	}
 	return value
 }

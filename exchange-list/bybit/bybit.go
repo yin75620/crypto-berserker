@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strings"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
@@ -41,7 +42,7 @@ type Bybit struct {
 
 // implement exchange
 func (bb *Bybit) GetWallet() exc.Wallet {
-	w := exc.Wallet{}
+	w := exc.Wallet{} // not implement
 	return w
 }
 
@@ -51,17 +52,62 @@ func (bb *Bybit) GetAccountInfo() []byte {
 }
 
 func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
-	return "", nil
+	return "", nil // not implement
 }
 
 func (bb *Bybit) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
-	return "", nil
+	bo := BybitOrder{}
+	bo.Side = strings.Title(order.CommodityOrder.Side)
+	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
+	bo.OrderType = strings.Title(string(order.CommodityOrder.OrderType))
+	bo.Quantity = int64(order.CommodityOrder.Size)
+	bo.Price = order.CommodityOrder.Price
+	bo.TimeInForce = "GoodTillCancel"
+
+	return bb.doPostOrder(bo)
+}
+
+type BybitOrder struct {
+	Side        string  `json:"side"`          //side	true	string	方向, 有效选项:Buy, Sell (Buy Sell )
+	Symbol      string  `json:"symbol"`        //symbol	true	string	产品类型, 有效选项:BTCUSD, ETHUSD (BTCUSD ETHUSD )
+	OrderType   string  `json:"order_type"`    //order_type	true	string	委托单价格类型, 有效选项:Limit, Market (Limit Market )
+	Quantity    int64   `json:"qty"`           //qty	true	integer	委托数量, 单比最大1百万
+	Price       float64 `json:"price"`         // price	false	number	委托价格, 在没有仓位时，做多的委托价格需高于市价的10%、低于1百万。如有仓位时则需优于强平价。单笔价格增减最小单位为0.5。如果下限价单，则price为必输字段
+	TimeInForce string  `json:"time_in_force"` //time_in_force	true	string	执行策略, 有效选项:GoodTillCancel, ImmediateOrCancel, FillOrKill,PostOnly
+	//TakeProfit  string  `json:"take_profit,omitempty"` // take_profit	false	number	止盈价格
+	//stop_loss	false	number	止损价格
+	//reduce_only	false	bool	只减仓
+	//close_on_trigger	false	bool	触发后平仓
+	//order_link_id	false	string	机构自定义订单ID, 最大长度36位，且同一机构下自定义ID不可重复
+	//trailing_stop	false	number	追踪止损
+}
+
+func (bb *Bybit) doPostOrder(bo BybitOrder) (string, error) {
+	request, err := json.Marshal(bo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body := string(request)
+	log.Println(fmt.Sprintf("body:%s", body))
+
+	jsonMap := make(map[string]interface{})
+	err = json.Unmarshal(request, &jsonMap)
+	if err != nil {
+		panic(err)
+	}
+
+	response := bb.doRequest("POST", "v2/private/order/create", jsonMap)
+	log.Println(fmt.Sprintf("%s", response))
+
+	var resErr error
+
+	return string(response), resErr
 }
 
 func (bb *Bybit) GetFee() exc.Fee {
 	fee := exc.Fee{}
-	fee.Taker = 0.0007
-	fee.Maker = 0.0007
+	fee.Taker = 0.00075
+	fee.Maker = -0.00025
 	return fee
 }
 func (bb *Bybit) GetName() string {
