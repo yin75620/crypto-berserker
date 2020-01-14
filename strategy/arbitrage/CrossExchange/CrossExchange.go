@@ -9,6 +9,7 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	simpleLog "github.com/yin75620/crypto-berserker/log"
+	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
 type CrossExchange struct {
@@ -34,6 +35,8 @@ func (ce *CrossExchange) SetFuturesArray(futuresArray []exc.Futures) {
 func (ce *CrossExchange) Start() {
 	slog := simpleLog.StartLog()
 	defer slog.Close()
+
+	message_tool.StartTelegram()
 
 	d := time.Duration(time.Millisecond * time.Duration(ce.DelayMilliSecond))
 	//fmt.Println("d1", d)
@@ -104,7 +107,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	// 檢查部位是否可以平倉
-	ce.PositionCloseCheck(crossPairMap)
+	ce.PositionCloseCheck(crossPairMap, futures)
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
@@ -124,8 +127,8 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	askExchange, askPair := topCrossPair.GetAskInfo()
 	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
-	//executeOrder(askExchange, futures.GetMarketName(), askPair.Price, exc.Ask, orderTotalValue)
-	//executeOrder(bidExchange, futures.GetMarketName(), bidPair.Price, exc.Bid, orderTotalValue)
+	go executeOrder(askExchange, futures, askPair.Price, exc.Ask, orderTotalValue)
+	go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, orderTotalValue)
 
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
 		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
@@ -136,39 +139,55 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	log.Println(content)
 
 	ce.positionCrossPairs = append(ce.positionCrossPairs, topCrossPair)
+	message_tool.SendBroadcastArcherGroup(content)
 
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
 }
 
-func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair) {
+func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, futures exc.Futures) {
 
 	//hasPosition
 	if len(ce.positionCrossPairs) <= 0 {
 		return
 	}
 
-	matchName := ce.positionCrossPairs[0].GetMatchName()
-	if _, ok := crossPairMap[matchName]; !ok {
-		return
+	hasRemove := false
+	for index, pcp := range ce.positionCrossPairs {
+		positionCrossPair := pcp
+
+		matchName := positionCrossPair.GetMatchName()
+		if _, ok := crossPairMap[matchName]; !ok {
+			log.Println("can't find matchName:", matchName)
+			return
+		}
+
+		matchCrossPair := crossPairMap[matchName]
+
+		//找出反向配對，確定利潤
+		pProfit := positionCrossPair.GetProfit()
+		sellProfit := matchCrossPair.GetProfit()
+		log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
+		sum := pProfit + sellProfit
+		const BASE_PROFIT = 0.0001
+		if sum > BASE_PROFIT {
+			log.Println(fmt.Sprintf("sum:%f", sum))
+
+			askExchange, askPair := positionCrossPair.GetAskInfo()
+			bidExchange, bidPair := positionCrossPair.GetBidInfo()
+			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askPair.Volume)
+			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidPair.Volume)
+
+			//remove
+			hasRemove = true
+			ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
+			break
+		}
 	}
 
-	matchCrossPair := crossPairMap[matchName]
-
-	//找出反向配對，確定利潤
-	pProfit := ce.positionCrossPairs[0].GetProfit()
-	sellProfit := matchCrossPair.GetProfit()
-	log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
-	sum := pProfit + sellProfit
-	const BASE_PROFIT = 0.0001
-	if sum > BASE_PROFIT {
-		log.Println(fmt.Sprintf("sum:%f", sum))
-
-		//remove
-		i := 0
-		ce.positionCrossPairs[i] = ce.positionCrossPairs[len(ce.positionCrossPairs)-1] // Copy last element to index i.
-		ce.positionCrossPairs[len(ce.positionCrossPairs)-1] = CrossPair{}              // Erase last element (write zero value).
-		ce.positionCrossPairs = ce.positionCrossPairs[:len(ce.positionCrossPairs)-1]   // Truncate slice.
+	// 有資料刪除表示還有資料沒做完，再跑一次。
+	if hasRemove {
+		ce.PositionCloseCheck(crossPairMap, futures)
 	}
 }
 
@@ -206,16 +225,27 @@ func hasProfit(profit, orderTotalValue float64) bool {
 	return true
 }
 
-func executeOrder(exchange exc.Exchange, marketName string, price float64, pType exc.PriceType, volume float64) {
-
-	order := exc.ExchangeOrder{}
-	order.Market = marketName
-	order.Price = price
-	order.Size = volume
+func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64) {
 	side := "sell"
 	if pType == exc.Ask {
 		side = "buy"
 	}
-	order.Side = side
-	exchange.PostOrder(order)
+
+	myOrder := exc.FuturesOrder{
+		CommodityOrder: exc.CommodityOrder{
+			Side:      side,
+			Price:     price,
+			Size:      volume,
+			OrderType: exc.MARKET,
+		},
+		Futures: futures,
+	}
+	exchange.PostFuturesOrder(myOrder)
+}
+
+func removeElement(a []CrossPair, i int) []CrossPair {
+	copy(a[i:], a[i+1:])      // Shift a[i+1:] left one index.
+	a[len(a)-1] = CrossPair{} // Erase last element (write zero value).
+	a = a[:len(a)-1]          // Truncate slice.
+	return a
 }
