@@ -28,7 +28,34 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	intConvertTest()
+	removeTest()
+}
+
+func removeTest() {
+	ss := []string{"a", "b", "c", "d", "e"}
+
+	for k, v := range ss {
+
+		if k == 2 {
+			ss = removeElement(ss, k)
+		}
+		if k == 2 {
+			fmt.Println(v)
+		}
+		if k == 3 {
+			fmt.Println(v)
+		}
+		fmt.Println("all", v)
+	}
+
+	fmt.Println(ss)
+}
+
+func removeElement(a []string, i int) []string {
+	copy(a[i:], a[i+1:]) // Shift a[i+1:] left one index.
+	a[len(a)-1] = ""     // Erase last element (write zero value).
+	a = a[:len(a)-1]     // Truncate slice.
+	return a
 }
 
 func intConvertTest() {
