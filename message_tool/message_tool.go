@@ -31,9 +31,11 @@ const (
 var bot *tgbotapi.BotAPI
 var broadcasterBot *tgbotapi.BotAPI
 
+const BroadcasterToken = "***REMOVED***"
+
 func StartTelegram() {
 	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
-	broadcasterBot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
+	broadcasterBot, _ = tgbotapi.NewBotAPI(BroadcasterToken)
 }
 
 func SendTelegram(content string) {
