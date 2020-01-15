@@ -200,7 +200,9 @@ func (fo *FtxOrder) setByFutures(order exc.FuturesOrder) {
 	fo.Market = order.Futures.GetMarketName()
 	fo.Side = order.Side
 	fo.Price = order.Price
-	fo.Size = order.Size
+	// 這裡的 size 是總美元 所以要轉換
+	size := order.Size / fo.Price
+	fo.Size = size
 	fo.OrderType = EOrderType(order.OrderType)
 }
 
