@@ -30,3 +30,17 @@ func TestMain(t *testing.T) {
 	ce.SetFuturesArray([]exc.Futures{futures})
 	ce.Start()
 }
+
+func TestOrder(t *testing.T) {
+	/*
+		ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
+			setting.FTX_KEY,
+			setting.FTX_API_SECRET_KEY,
+			"tester"})
+		futures := exc.Futures{
+			//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+			TargetName: "BTC",
+			QuoteCoin:  "USD",
+		}
+		executeOrder(ft, futures, 8000, exc.Ask, 1)*/
+}

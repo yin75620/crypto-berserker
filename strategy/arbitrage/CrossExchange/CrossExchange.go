@@ -96,6 +96,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
+		crossPair.PrintlnProfit()
 
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
@@ -170,7 +171,7 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 		log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
 		sum := pProfit + sellProfit
 		const BASE_PROFIT = 0.0001
-		if sum > BASE_PROFIT {
+		if sellProfit > -0.0007 && sum > BASE_PROFIT {
 			log.Println(fmt.Sprintf("sum:%f", sum))
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
@@ -193,7 +194,8 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 
 const (
 	SETTING_TOTAL_VALUE = 100
-	SETTING_LEVERAGE    = 5.0 //幾倍槓桿
+	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
+	OverPrice           = 0.03 // 百分之三
 )
 
 var (
@@ -227,14 +229,16 @@ func hasProfit(profit, orderTotalValue float64) bool {
 
 func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64) {
 	side := "sell"
+	adjPrice := price * (1.0 - OverPrice)
 	if pType == exc.Ask {
 		side = "buy"
+		adjPrice = price * (1.0 + OverPrice)
 	}
 
 	myOrder := exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      side,
-			Price:     price,
+			Price:     adjPrice,
 			Size:      volume,
 			OrderType: exc.MARKET,
 		},
