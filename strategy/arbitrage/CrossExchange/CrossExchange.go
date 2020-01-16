@@ -104,7 +104,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
-		crossPair.PrintlnProfit()
+		fmt.Println(crossPair.GetProfitString())
 
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
@@ -185,6 +185,13 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
 			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askPair.Volume)
 			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidPair.Volume)
+
+			content := fmt.Sprintf(
+				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
+				positionCrossPair.GetProfitString(),
+				matchCrossPair.GetProfitString(),
+				sum)
+			message_tool.SendBroadcastArcherGroup(content)
 
 			//remove
 			hasRemove = true

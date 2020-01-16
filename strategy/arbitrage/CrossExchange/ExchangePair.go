@@ -75,20 +75,20 @@ func (cp *CrossPair) GetProfit() float64 {
 	return profit
 }
 
-func (cp *CrossPair) PrintlnProfit() {
+func (cp *CrossPair) GetProfitString() string {
 
 	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
 
-	log.Println(fmt.Sprintf("ask Cprice:%f, S price:%f, volume:%f, Exchange:%s", aPrice, cp.askPricePair.Price, cp.askPricePair.Volume, cp.askExchange.GetName()))
-	log.Println(fmt.Sprintf("bid Cprice:%f, S price:%f, volume:%f, Exchange:%s", bPrice, cp.bidPricePair.Price, cp.bidPricePair.Volume, cp.bidExchange.GetName()))
-	if aPrice <= 0 {
-		log.Println("laPrice <= 0")
-		return
-	}
-	profit := (bPrice - aPrice) / aPrice
-	log.Println(fmt.Sprintf("A%sB%s Profit:%f", cp.askExchange.GetName(), cp.bidExchange.GetName(), profit))
+	askStr := fmt.Sprintf("ask Cprice:%f, S price:%f, volume:%f, Exchange:%s", aPrice, cp.askPricePair.Price, cp.askPricePair.Volume, cp.askExchange.GetName())
+	bidStr := fmt.Sprintf("bid Cprice:%f, S price:%f, volume:%f, Exchange:%s", bPrice, cp.bidPricePair.Price, cp.bidPricePair.Volume, cp.bidExchange.GetName())
 
+	profit := 0.0
+	if aPrice > 0 {
+		profit = (bPrice - aPrice) / aPrice
+	}
+
+	return fmt.Sprintf("A%sB%s Profit:%f \r\n%s, \r\n%s", cp.askExchange.GetName(), cp.bidExchange.GetName(), profit, askStr, bidStr)
 }
 
 func (cp *CrossPair) GetMinTotalVolume() float64 {
