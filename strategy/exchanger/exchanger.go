@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -10,7 +11,13 @@ import (
 	"github.com/yin75620/crypto-berserker/strategy/arbitrage/CrossExchange"
 )
 
+const (
+	version = "0.9.0-0001"
+)
+
 func main() {
+	log.Println(version)
+
 	exchanges := []exc.Exchange{}
 	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 		setting.FTX_KEY,

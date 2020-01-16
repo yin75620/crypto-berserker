@@ -38,8 +38,16 @@ func (ce *CrossExchange) Start() {
 
 	message_tool.StartTelegram()
 
+	//test api
+	infoAll := ""
+	for _, exchg := range ce.exchanges {
+		info := exchg.GetAccountInfo()
+		infoAll = fmt.Sprintf("%s \r\n %s", infoAll, info)
+	}
+	log.Println(string(infoAll))
+	message_tool.SendBroadcastArcherGroup(infoAll)
+
 	d := time.Duration(time.Millisecond * time.Duration(ce.DelayMilliSecond))
-	//fmt.Println("d1", d)
 
 	t := time.NewTimer(d)
 	defer t.Stop()
@@ -170,8 +178,7 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 		sellProfit := matchCrossPair.GetProfit()
 		log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
 		sum := pProfit + sellProfit
-		const BASE_PROFIT = 0.0001
-		if sellProfit > -0.0007 && sum > BASE_PROFIT {
+		if sellProfit > MinSellProfit && sum > MinSumProfit {
 			log.Println(fmt.Sprintf("sum:%f", sum))
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
@@ -196,6 +203,8 @@ const (
 	SETTING_TOTAL_VALUE = 100
 	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
 	OverPrice           = 0.03 // 百分之三
+	MinSellProfit       = -0.0007
+	MinSumProfit        = 0.0001
 )
 
 var (
