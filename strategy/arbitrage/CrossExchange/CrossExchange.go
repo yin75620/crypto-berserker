@@ -111,7 +111,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	// 沒足夠利潤，直接下一圈
-	if maxProfit <= 0 {
+	if maxProfit <= MinSellProfit {
 		return 0
 	}
 
@@ -212,7 +212,7 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 const (
 	SETTING_TOTAL_VALUE = 100
 	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
-	OverPrice           = 0.03 // 百分之三
+	OverPrice           = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
 	MinSellProfit       = -0.0007
 	MinSumProfit        = 0.0001
 )
