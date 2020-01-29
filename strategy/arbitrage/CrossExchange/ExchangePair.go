@@ -31,6 +31,7 @@ type CrossPair struct {
 	bidExchange  exc.Exchange
 	askPricePair exc.PricePair
 	bidPricePair exc.PricePair
+	orderVolume  float64
 }
 
 func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePair) *CrossPair {
@@ -104,11 +105,6 @@ func (cp *CrossPair) GetMinTotalVolume() float64 {
 	minTotalVolume := math.Min(aVolume, bVolume)
 	log.Println(fmt.Sprintf("minTotalVolume:%g", minTotalVolume))
 	return minTotalVolume
-}
-
-func (cp *CrossPair) UpdateTotalVolume(volume float64) {
-	cp.askPricePair.Volume = volume
-	cp.bidPricePair.Volume = volume
 }
 
 // M0S0 表示 MainAsk, SubBid 有艙位

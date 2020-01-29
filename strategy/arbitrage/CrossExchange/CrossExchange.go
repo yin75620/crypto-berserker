@@ -154,7 +154,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	log.Println(content)
 
 	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
-	topCrossPair.UpdateTotalVolume(orderTotalValue)
+	topCrossPair.orderVolume = orderTotalValue
 
 	ce.positionCrossPairs = append(ce.positionCrossPairs, topCrossPair)
 	message_tool.SendBroadcastArcherGroup(content)
@@ -192,10 +192,10 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
-			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askPair.Volume)
-			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidPair.Volume)
+			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, positionCrossPair.orderVolume)
+			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, positionCrossPair.orderVolume)
 
-			m_currentVolume = m_currentVolume - askPair.Volume
+			m_currentVolume = m_currentVolume - positionCrossPair.orderVolume
 
 			content := fmt.Sprintf(
 				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
