@@ -132,12 +132,18 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		return 0
 	}
 
+	if m_currentVolume >= MAX_HOLD_VOLUME {
+		log.Println(fmt.Sprintf("m_currentVolume:%g >= MAX_HOLD_VOLUME:%g", m_currentVolume, MAX_HOLD_VOLUME))
+		return 0
+	}
+
 	// 進行交易
 	askExchange, askPair := topCrossPair.GetAskInfo()
 	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
 	go executeOrder(askExchange, futures, askPair.Price, exc.Ask, orderTotalValue)
 	go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, orderTotalValue)
+	m_currentVolume = m_currentVolume + orderTotalValue
 
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
 		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
@@ -189,6 +195,8 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askPair.Volume)
 			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidPair.Volume)
 
+			m_currentVolume = m_currentVolume - askPair.Volume
+
 			content := fmt.Sprintf(
 				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
 				positionCrossPair.GetProfitString(),
@@ -215,6 +223,8 @@ const (
 	OverPrice           = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
 	MinSellProfit       = -0.0007
 	MinSumProfit        = 0.0001
+
+	MAX_HOLD_VOLUME = SETTING_TOTAL_VALUE * 10.0
 )
 
 var (
@@ -223,6 +233,8 @@ var (
 	m_minProfit            float64 = 0.001
 	m_minVolume            float64 = 1 //鎂
 	m_tradingAdjustSpeed   int64   = -1000
+
+	m_currentVolume float64 = 0
 )
 
 func smallRandom(enter float64) float64 {
