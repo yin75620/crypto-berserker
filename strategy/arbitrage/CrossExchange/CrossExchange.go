@@ -97,7 +97,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		log.Fatal("has no match pair exchange")
 	}
 
-	maxProfit := 0.0
+	maxProfit := -math.MaxFloat64
 	var topCrossPair CrossPair
 	for _, crossPair := range crossPairMap {
 		if crossPair.GetProfit() > maxProfit {
