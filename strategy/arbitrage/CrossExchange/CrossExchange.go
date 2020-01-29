@@ -147,6 +147,9 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		m_expectedTotalValue)
 	log.Println(content)
 
+	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
+	topCrossPair.UpdateTotalVolume(orderTotalValue)
+
 	ce.positionCrossPairs = append(ce.positionCrossPairs, topCrossPair)
 	message_tool.SendBroadcastArcherGroup(content)
 

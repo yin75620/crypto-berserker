@@ -106,6 +106,11 @@ func (cp *CrossPair) GetMinTotalVolume() float64 {
 	return minTotalVolume
 }
 
+func (cp *CrossPair) UpdateTotalVolume(volume float64) {
+	cp.askPricePair.Volume = volume
+	cp.bidPricePair.Volume = volume
+}
+
 // M0S0 表示 MainAsk, SubBid 有艙位
 // MASB 表示 MainBid, SubAsk 有艙位
 // MBSA 表示無艙位
