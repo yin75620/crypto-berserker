@@ -192,8 +192,8 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
-			go executeOrder(askExchange, futures, askPair.Price, exc.Ask, positionCrossPair.orderVolume)
-			go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, positionCrossPair.orderVolume)
+			go executeOrder(askExchange, futures, askPair.Price, exc.Bid, positionCrossPair.orderVolume)
+			go executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, positionCrossPair.orderVolume)
 
 			m_currentVolume = m_currentVolume - positionCrossPair.orderVolume
 
