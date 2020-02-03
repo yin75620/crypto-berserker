@@ -19,6 +19,7 @@ type Exchange interface {
 	GetMarketInfo(coinPair CoinPair) MarketInfo
 	GetAskBidPair(coinPair CoinPair, depth int) (PricePair, PricePair)
 	GetFuturesAskBidPair(futures Futures) (PricePair, PricePair) // VOLUME = USD
+	GetVolumeByTotal(total, price float64) float64               //volume
 }
 
 type PriceType int

@@ -70,6 +70,10 @@ func (ftx *Ftx) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	}
 }
 
+func (ftx *Ftx) GetVolumeByTotal(total, price float64) float64 {
+	return total / price
+}
+
 func (ftx *Ftx) GetAccountInfo() []byte {
 	account := ftx.doGet("account", "")
 	wallet := ftx.doGet("wallet/balances", "")
@@ -200,9 +204,7 @@ func (fo *FtxOrder) setByFutures(order exc.FuturesOrder) {
 	fo.Market = order.Futures.GetMarketName()
 	fo.Side = order.Side
 	fo.Price = order.Price
-	// 這裡的 size 是總美元 所以要轉換
-	size := order.Size / fo.Price
-	fo.Size = size
+	fo.Size = order.Size
 	fo.OrderType = EOrderType(order.OrderType)
 }
 

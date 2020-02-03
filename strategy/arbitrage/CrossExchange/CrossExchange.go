@@ -141,8 +141,11 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	askExchange, askPair := topCrossPair.GetAskInfo()
 	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
-	go executeOrder(askExchange, futures, askPair.Price, exc.Ask, orderTotalValue)
-	go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, orderTotalValue)
+	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
+	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
+
+	go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
+	go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
 	m_currentVolume = m_currentVolume + orderTotalValue
 
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
@@ -192,8 +195,11 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
-			go executeOrder(askExchange, futures, askPair.Price, exc.Bid, positionCrossPair.orderVolume)
-			go executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, positionCrossPair.orderVolume)
+			askVolume := askExchange.GetVolumeByTotal(positionCrossPair.orderVolume, askPair.Price)
+			bidVolume := bidExchange.GetVolumeByTotal(positionCrossPair.orderVolume, bidPair.Price)
+
+			go executeOrder(askExchange, futures, askPair.Price, exc.Bid, askVolume)
+			go executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, bidVolume)
 
 			m_currentVolume = m_currentVolume - positionCrossPair.orderVolume
 
@@ -218,13 +224,13 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 }
 
 const (
-	SETTING_TOTAL_VALUE = 1000
+	SETTING_TOTAL_VALUE = 1000.0
 	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
 	OverPrice           = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
 	MinSellProfit       = -0.0007
 	MinSumProfit        = 0.0001
 
-	MAX_HOLD_VOLUME = 1100
+	MAX_HOLD_VOLUME = 1100.0
 )
 
 var (

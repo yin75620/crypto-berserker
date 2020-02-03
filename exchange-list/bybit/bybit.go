@@ -117,6 +117,10 @@ func (bb *Bybit) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
 }
 
+func (bb *Bybit) GetVolumeByTotal(total, price float64) float64 {
+	return total
+}
+
 type QuoteResponse struct {
 	//Timestamp float64         `"json:time"`
 	TradeData exc.PriceStatus `"json:data"`
