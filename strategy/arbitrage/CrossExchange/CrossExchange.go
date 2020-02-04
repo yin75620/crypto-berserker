@@ -256,7 +256,7 @@ func hasProfit(profit, orderTotalValue float64) bool {
 		log.Println("No profit")
 		return false
 	} else if profit < m_minProfit {
-		log.Println("No enough profit")
+		log.Println("No enough profit. profit:", profit)
 		return false
 	} else if orderTotalValue < m_minVolume {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", m_minVolume))
