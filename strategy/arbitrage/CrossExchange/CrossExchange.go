@@ -104,7 +104,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
-		fmt.Println(crossPair.GetProfitString())
+		log.Println(crossPair.GetProfitString())
 
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
@@ -144,8 +144,12 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
 	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
 
-	go executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
-	go executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
+	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
+	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
+	//等上面兩個交易都完成，再繼續
+	<-askChannel
+	<-bidChannel
+
 	m_currentVolume = m_currentVolume + orderTotalValue
 
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
@@ -198,8 +202,11 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			askVolume := askExchange.GetVolumeByTotal(positionCrossPair.orderVolume, askPair.Price)
 			bidVolume := bidExchange.GetVolumeByTotal(positionCrossPair.orderVolume, bidPair.Price)
 
-			go executeOrder(askExchange, futures, askPair.Price, exc.Bid, askVolume)
-			go executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, bidVolume)
+			askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Bid, askVolume)
+			bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, bidVolume)
+			//等上面兩個交易都完成，再繼續
+			<-askChannel
+			<-bidChannel
 
 			m_currentVolume = m_currentVolume - positionCrossPair.orderVolume
 
@@ -264,7 +271,8 @@ func hasProfit(profit, orderTotalValue float64) bool {
 	return true
 }
 
-func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64) {
+func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64) chan int {
+	resultChannel := make(chan int)
 	side := "sell"
 	adjPrice := price * (1.0 - OverPrice)
 	if pType == exc.Ask {
@@ -281,7 +289,11 @@ func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pTy
 		},
 		Futures: futures,
 	}
-	exchange.PostFuturesOrder(myOrder)
+	go func() {
+		exchange.PostFuturesOrder(myOrder)
+		resultChannel <- 0
+	}()
+	return resultChannel
 }
 
 func removeElement(a []CrossPair, i int) []CrossPair {
