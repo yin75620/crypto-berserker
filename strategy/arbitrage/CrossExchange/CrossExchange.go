@@ -177,7 +177,6 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 		return
 	}
 
-	hasRemove := false
 	for index, pcp := range ce.positionCrossPairs {
 		positionCrossPair := pcp
 
@@ -218,16 +217,11 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			message_tool.SendBroadcastArcherGroup(content)
 
 			//remove
-			hasRemove = true
 			ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
 			break
 		}
 	}
 
-	// 有資料刪除表示還有資料沒做完，再跑一次。
-	if hasRemove {
-		ce.PositionCloseCheck(crossPairMap, futures)
-	}
 }
 
 const (
