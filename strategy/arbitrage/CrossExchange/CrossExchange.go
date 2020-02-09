@@ -191,16 +191,16 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 		//找出反向配對，確定利潤
 		pProfit := positionCrossPair.GetProfit()
 		sellProfit := matchCrossPair.GetProfit()
+		sellVolume := matchCrossPair.GetMinTotalVolume()
 		log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
 		sum := pProfit + sellProfit
-		if sellProfit > MinSellProfit && sum > MinSumProfit {
+		if sellProfit > MinSellProfit && sum > MinSumProfit && sellVolume > m_minVolume {
 			log.Println(fmt.Sprintf("sum:%f", sum))
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
 
-			matchMinVolume := matchCrossPair.GetMinTotalVolume()
-			thisMatchOrderVolume := math.Min(matchMinVolume, positionCrossPair.orderVolume)
+			thisMatchOrderVolume := math.Min(sellVolume, positionCrossPair.orderVolume)
 
 			askVolume := askExchange.GetVolumeByTotal(thisMatchOrderVolume, askPair.Price)
 			bidVolume := bidExchange.GetVolumeByTotal(thisMatchOrderVolume, bidPair.Price)
