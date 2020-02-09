@@ -198,8 +198,12 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 
 			askExchange, askPair := positionCrossPair.GetAskInfo()
 			bidExchange, bidPair := positionCrossPair.GetBidInfo()
-			askVolume := askExchange.GetVolumeByTotal(positionCrossPair.orderVolume, askPair.Price)
-			bidVolume := bidExchange.GetVolumeByTotal(positionCrossPair.orderVolume, bidPair.Price)
+
+			matchMinVolume := matchCrossPair.GetMinTotalVolume()
+			thisMatchOrderVolume := math.Min(matchMinVolume, positionCrossPair.orderVolume)
+
+			askVolume := askExchange.GetVolumeByTotal(thisMatchOrderVolume, askPair.Price)
+			bidVolume := bidExchange.GetVolumeByTotal(thisMatchOrderVolume, bidPair.Price)
 
 			askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Bid, askVolume)
 			bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, bidVolume)
@@ -207,7 +211,7 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			<-askChannel
 			<-bidChannel
 
-			m_currentVolume = m_currentVolume - positionCrossPair.orderVolume
+			m_currentVolume = m_currentVolume - thisMatchOrderVolume
 
 			content := fmt.Sprintf(
 				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
@@ -216,8 +220,11 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 				sum)
 			message_tool.SendBroadcastArcherGroup(content)
 
-			//remove
-			ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
+			positionCrossPair.orderVolume -= thisMatchOrderVolume
+			if positionCrossPair.orderVolume == 0 {
+				//remove
+				ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
+			}
 			break
 		}
 	}
