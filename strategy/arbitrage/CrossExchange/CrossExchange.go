@@ -18,13 +18,15 @@ type CrossExchange struct {
 	futuresArray     []exc.Futures
 
 	//execute use
-	positionCrossPairs []CrossPair
+	//positionCrossPairs []CrossPair
+	positionCrossPairMap map[string][]CrossPair
 }
 
 func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	ce := CrossExchange{}
 	ce.exchanges = exchanges
 	ce.DelayMilliSecond = 500
+	ce.positionCrossPairMap = map[string][]CrossPair{}
 	return &ce
 }
 
@@ -163,7 +165,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
 	topCrossPair.orderVolume = orderTotalValue
 
-	ce.positionCrossPairs = append(ce.positionCrossPairs, topCrossPair)
+	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 	message_tool.SendBroadcastArcherGroup(content)
 
 	var plusMilliSecond int64 = 500
@@ -173,62 +175,83 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, futures exc.Futures) {
 
 	//hasPosition
-	if len(ce.positionCrossPairs) <= 0 {
+	if len(ce.positionCrossPairMap) <= 0 {
 		return
 	}
 
-	for index, pcp := range ce.positionCrossPairs {
-		positionCrossPair := pcp
-
-		matchName := positionCrossPair.GetMatchName()
+	for key, arrayPairs := range ce.positionCrossPairMap {
+		matchName := arrayPairs[0].GetMatchName()
 		if _, ok := crossPairMap[matchName]; !ok {
 			log.Println("can't find matchName:", matchName)
-			return
+			continue
+		}
+		matchCrossPair := crossPairMap[matchName]
+		matchProfit := matchCrossPair.GetProfit()
+		matchVolume := matchCrossPair.GetMinTotalVolume()
+
+		// 確認利潤並統計總量
+		askTotalVolume := 0.0
+		bidTotalVolume := 0.0
+		totalMatchOrderVolume := 0.0
+		for _, pcp := range arrayPairs {
+			positionCrossPair := pcp
+
+			//找出反向配對，確定利潤
+			pProfit := positionCrossPair.GetProfit()
+
+			log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", pProfit, matchProfit))
+			sum := pProfit + matchProfit
+			if matchProfit > MinSellProfit && sum > MinSumProfit && matchVolume > m_minVolume {
+				log.Println(fmt.Sprintf("sum:%f", sum))
+
+				thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
+
+				askVolume := positionCrossPair.GetAskVolumeByTotal(thisMatchOrderVolume)
+				bidVolume := positionCrossPair.GetBidVolumeByTotal(thisMatchOrderVolume)
+
+				askTotalVolume += askVolume
+				bidTotalVolume += bidVolume
+
+				totalMatchOrderVolume += thisMatchOrderVolume
+
+				content := fmt.Sprintf(
+					"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
+					positionCrossPair.GetProfitString(),
+					matchCrossPair.GetProfitString(),
+					sum)
+				message_tool.SendBroadcastArcherGroup(content)
+
+				positionCrossPair.orderVolume -= thisMatchOrderVolume
+			}
 		}
 
-		matchCrossPair := crossPairMap[matchName]
-
-		//找出反向配對，確定利潤
-		pProfit := positionCrossPair.GetProfit()
-		sellProfit := matchCrossPair.GetProfit()
-		sellVolume := matchCrossPair.GetMinTotalVolume()
-		log.Println(fmt.Sprintf("position profit:%f, sellProfit:%f", pProfit, sellProfit))
-		sum := pProfit + sellProfit
-		if sellProfit > MinSellProfit && sum > MinSumProfit && sellVolume > m_minVolume {
-			log.Println(fmt.Sprintf("sum:%f", sum))
-
-			askExchange, askPair := positionCrossPair.GetAskInfo()
-			bidExchange, bidPair := positionCrossPair.GetBidInfo()
-
-			thisMatchOrderVolume := math.Min(sellVolume, positionCrossPair.orderVolume)
-
-			askVolume := askExchange.GetVolumeByTotal(thisMatchOrderVolume, askPair.Price)
-			bidVolume := bidExchange.GetVolumeByTotal(thisMatchOrderVolume, bidPair.Price)
-
+		// 表示有交易
+		if totalMatchOrderVolume > 0 {
 			matchAskExchange, askPair := matchCrossPair.GetAskInfo()
 			matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
 
-			askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidVolume)
-			bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askVolume)
+			askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume)
+			bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume)
 			//等上面兩個交易都完成，再繼續
 			<-askChannel
 			<-bidChannel
 
-			m_currentVolume = m_currentVolume - thisMatchOrderVolume
+			m_currentVolume = m_currentVolume - totalMatchOrderVolume
+		}
 
-			content := fmt.Sprintf(
-				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
-				positionCrossPair.GetProfitString(),
-				matchCrossPair.GetProfitString(),
-				sum)
-			message_tool.SendBroadcastArcherGroup(content)
-
-			positionCrossPair.orderVolume -= thisMatchOrderVolume
-			if positionCrossPair.orderVolume == 0 {
+		for i := len(arrayPairs); i >= 0; i-- {
+			pair := arrayPairs[i]
+			if pair.orderVolume == 0 {
 				//remove
-				ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
+				arrayPairs = removeElement(arrayPairs, i)
+				//ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
 			}
-			break
+		}
+
+		if len(arrayPairs) == 0 {
+			delete(ce.positionCrossPairMap, key)
+		} else {
+			ce.positionCrossPairMap[key] = arrayPairs
 		}
 	}
 

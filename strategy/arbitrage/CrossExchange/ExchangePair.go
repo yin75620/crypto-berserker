@@ -59,6 +59,18 @@ func (cp *CrossPair) GetBidInfo() (exc.Exchange, exc.PricePair) {
 	return cp.bidExchange, cp.bidPricePair
 }
 
+func (cp *CrossPair) GetAskVolumeByTotal(total float64) float64 {
+	askExchange, askPair := cp.GetAskInfo()
+	askVolume := askExchange.GetVolumeByTotal(total, askPair.Price)
+	return askVolume
+}
+
+func (cp *CrossPair) GetBidVolumeByTotal(total float64) float64 {
+	bidExchange, bidPair := cp.GetBidInfo()
+	bidVolume := bidExchange.GetVolumeByTotal(total, bidPair.Price)
+	return bidVolume
+}
+
 //profit
 func (cp *CrossPair) GetProfit() float64 {
 
