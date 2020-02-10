@@ -244,7 +244,6 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			if pair.orderVolume == 0 {
 				//remove
 				arrayPairs = removeElement(arrayPairs, i)
-				//ce.positionCrossPairs = removeElement(ce.positionCrossPairs, index)
 			}
 		}
 
@@ -258,13 +257,13 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 }
 
 const (
-	SETTING_TOTAL_VALUE = 1000.0
+	SETTING_TOTAL_VALUE = 1510.0
 	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
 	OverPrice           = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
 	MinSellProfit       = -0.0007
 	MinSumProfit        = 0.0001
 
-	MAX_HOLD_VOLUME = 1100.0
+	MAX_HOLD_VOLUME = 1500.0
 )
 
 var (
