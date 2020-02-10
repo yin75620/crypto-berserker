@@ -205,8 +205,11 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 			askVolume := askExchange.GetVolumeByTotal(thisMatchOrderVolume, askPair.Price)
 			bidVolume := bidExchange.GetVolumeByTotal(thisMatchOrderVolume, bidPair.Price)
 
-			askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Bid, askVolume)
-			bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Ask, bidVolume)
+			matchAskExchange, askPair := matchCrossPair.GetAskInfo()
+			matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
+
+			askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidVolume)
+			bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askVolume)
 			//等上面兩個交易都完成，再繼續
 			<-askChannel
 			<-bidChannel
