@@ -22,7 +22,7 @@ func main() {
 	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 		setting.FTX_KEY,
 		setting.FTX_API_SECRET_KEY,
-		"tester"})
+		"Archer"})
 	bybit := bybit.NewBybit(http.DefaultClient)
 	exchanges = append(exchanges, ft)
 	exchanges = append(exchanges, bybit)

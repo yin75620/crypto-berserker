@@ -238,7 +238,7 @@ const (
 	MinSellProfit       = -0.0007
 	MinSumProfit        = 0.0001
 
-	MAX_HOLD_VOLUME = 1100.0
+	MAX_HOLD_VOLUME = 11000.0
 )
 
 var (
