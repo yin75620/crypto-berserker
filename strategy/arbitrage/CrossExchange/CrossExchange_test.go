@@ -11,7 +11,7 @@ import (
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
-func TestMain(t *testing.T) {
+func createTestCrossExchange() *CrossExchange {
 	exchanges := []exc.Exchange{}
 	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 		setting.FTX_KEY,
@@ -22,6 +22,11 @@ func TestMain(t *testing.T) {
 	exchanges = append(exchanges, bybit)
 
 	ce := NewCrossExchange(exchanges)
+	return ce
+}
+
+func TestMain(t *testing.T) {
+	ce := createTestCrossExchange()
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
@@ -43,4 +48,17 @@ func TestOrder(t *testing.T) {
 			QuoteCoin:  "USD",
 		}
 		executeOrder(ft, futures, 8000, exc.Ask, 1)*/
+}
+
+func TestPositionCloseCheck(t *testing.T) {
+
+	futures := exc.Futures{
+		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+		TargetName: "BTC",
+		QuoteCoin:  "USD",
+	}
+
+	crossPairMap := map[string]CrossPair{}
+	crossPairsTable := map[string][]CrossPair{}
+	positionCloseCheck(crossPairsTable, crossPairMap, futures)
 }

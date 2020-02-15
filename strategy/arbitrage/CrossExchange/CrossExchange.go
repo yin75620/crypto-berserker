@@ -301,7 +301,7 @@ const (
 	MinSellProfit = -0.0007
 	MinSumProfit  = 0.0001
 
-	MAX_HOLD_VOLUME = 1500.0
+	MAX_HOLD_VOLUME = 1000.0
 )
 
 var (
@@ -325,7 +325,7 @@ func smallRandom(enter float64) float64 {
 func canOrder(profit, orderTotalValue float64) bool {
 	// 有利可圖
 	if profit < m_minProfit { // 沒足夠利潤，直接下一圈
-		log.Println("No enough profit. profit:", profit)
+		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
 	} else if orderTotalValue < m_minVolume {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", m_minVolume))
