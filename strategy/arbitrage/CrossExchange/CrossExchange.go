@@ -89,23 +89,13 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	// 檢查部位是否可以平倉
 	positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures)
 
-	// 沒足夠利潤，直接下一圈
-	if maxProfit <= MinSellProfit {
-		return 0
-	}
-
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
-	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
+	orderTotalValue := math.Min(MAX_HOLD_VOLUME-m_currentUSDVolume, execMinTotalValue)
 
 	// 交易判斷
 	// 有利可圖
-	if !hasProfit(maxProfit, orderTotalValue) {
+	if !canOrder(maxProfit, orderTotalValue) {
 		// 無利可圖，重設偵測
-		return 0
-	}
-
-	if m_currentVolume >= MAX_HOLD_VOLUME {
-		log.Println(fmt.Sprintf("m_currentVolume:%g >= MAX_HOLD_VOLUME:%g", m_currentVolume, MAX_HOLD_VOLUME))
 		return 0
 	}
 
@@ -233,7 +223,7 @@ func closeCheck(positionPairName string, crossPairArray []CrossPair, matchMap ma
 		<-askChannel
 		<-bidChannel
 
-		m_currentVolume = m_currentVolume - totalMatchOrderUSDVolume
+		m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
 	}
 
 }
@@ -288,7 +278,7 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	m_currentVolume = m_currentVolume + orderTotalValue
+	m_currentUSDVolume = m_currentUSDVolume + orderTotalValue
 
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
 		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
@@ -305,11 +295,11 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 }
 
 const (
-	SETTING_TOTAL_VALUE = 1510.0
-	SETTING_LEVERAGE    = 5.0  //幾倍槓桿
-	OverPrice           = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
-	MinSellProfit       = -0.0007
-	MinSumProfit        = 0.0001
+	//SETTING_TOTAL_VALUE = 1510.0
+	//SETTING_LEVERAGE    = 5.0  //幾倍槓桿
+	OverPrice     = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
+	MinSellProfit = -0.0007
+	MinSumProfit  = 0.0001
 
 	MAX_HOLD_VOLUME = 1500.0
 )
@@ -321,25 +311,27 @@ var (
 	m_minVolume            float64 = 1 //鎂
 	m_tradingAdjustSpeed   int64   = -1000
 
-	m_currentVolume float64 = 0
+	m_currentUSDVolume float64 = 0
+
+	m_cutPercent float64 = 10 //隨機減少N%下單N>0
 )
 
 func smallRandom(enter float64) float64 {
-	temp := enter * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
+	temp := enter * (1 - (m_cutPercent * rand.Float64() / 100.0)) // 隨機 -10%
 	result := math.Floor(temp)
 	return result
 }
 
-func hasProfit(profit, orderTotalValue float64) bool {
+func canOrder(profit, orderTotalValue float64) bool {
 	// 有利可圖
-	if profit < 0 {
-		log.Println("No profit")
-		return false
-	} else if profit < m_minProfit {
+	if profit < m_minProfit { // 沒足夠利潤，直接下一圈
 		log.Println("No enough profit. profit:", profit)
 		return false
 	} else if orderTotalValue < m_minVolume {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", m_minVolume))
+		return false
+	} else if m_currentUSDVolume >= MAX_HOLD_VOLUME {
+		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= MAX_HOLD_VOLUME:%g", m_currentUSDVolume, MAX_HOLD_VOLUME))
 		return false
 	}
 	return true
