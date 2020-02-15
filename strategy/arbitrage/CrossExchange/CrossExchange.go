@@ -76,49 +76,22 @@ func (ce *CrossExchange) stratStrategy() int64 {
 
 func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
-	exchangePairs := []ExchangePair{}
-
-	for _, exchg := range ce.exchanges {
-		askPair, bidPair := exchg.GetFuturesAskBidPair(futures)
-		exchangePairs = append(exchangePairs, *NewExchangePair(exchg, askPair, bidPair))
-	}
-
-	crossPairMap := map[string]CrossPair{}
-	for index, ePair := range exchangePairs {
-		for matchIndex, matchPair := range exchangePairs {
-			if index == matchIndex {
-				continue
-			}
-			cp := NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid)
-			crossPairMap[cp.GetName()] = *cp
-		}
-	}
+	crossPairMap := getCrossPairMap(ce.exchanges, futures)
 
 	// 沒有足夠的交易所可以套利
 	if len(crossPairMap) == 0 {
 		log.Fatal("has no match pair exchange")
 	}
 
-	maxProfit := -math.MaxFloat64
-	var topCrossPair CrossPair
-	for _, crossPair := range crossPairMap {
-		if crossPair.GetProfit() > maxProfit {
-			maxProfit = crossPair.GetProfit()
-			topCrossPair = crossPair
-		}
-		log.Println(crossPair.GetProfitString())
-
-		//matchPair := crossPairMap[crossPair.GetMatchName()]
-		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
-	}
-
+	topCrossPair := getMaxProfitCrossPair(crossPairMap)
+	maxProfit := topCrossPair.GetProfit()
 	// 沒足夠利潤，直接下一圈
 	if maxProfit <= MinSellProfit {
 		return 0
 	}
 
 	// 檢查部位是否可以平倉
-	ce.PositionCloseCheck(crossPairMap, futures)
+	positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures)
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(smallRandom(SETTING_TOTAL_VALUE), execMinTotalValue)
@@ -140,46 +113,24 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	// 進行交易
-	askExchange, askPair := topCrossPair.GetAskInfo()
-	bidExchange, bidPair := topCrossPair.GetBidInfo()
-
-	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
-	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
-
-	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
-	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
-	//等上面兩個交易都完成，再繼續
-	<-askChannel
-	<-bidChannel
-
-	m_currentVolume = m_currentVolume + orderTotalValue
-
-	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
-		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
-		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", bidPair.Price, bidPair.Volume, bidExchange.GetName()),
-		orderTotalValue,
-		maxProfit,
-		m_expectedTotalValue)
-	log.Println(content)
-
-	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
-	topCrossPair.orderVolume = orderTotalValue
-
+	orderCrossPair(topCrossPair, futures, orderTotalValue)
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
-	message_tool.SendBroadcastArcherGroup(content)
 
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
 }
 
-func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, futures exc.Futures) {
+func positionCloseCheck(crossPairsTable map[string][]CrossPair, crossPairMap map[string]CrossPair, futures exc.Futures) map[string][]CrossPair {
 
 	//hasPosition
-	if len(ce.positionCrossPairMap) <= 0 {
-		return
+	if len(crossPairsTable) <= 0 {
+		return crossPairsTable
 	}
 
-	for key, arrayPairs := range ce.positionCrossPairMap {
+	for key, arrayPairs := range crossPairsTable {
+
+		//closeCheck(arrayPairs)
+
 		matchName := arrayPairs[0].GetMatchName()
 		if _, ok := crossPairMap[matchName]; !ok {
 			log.Println("can't find matchName:", matchName)
@@ -248,12 +199,159 @@ func (ce *CrossExchange) PositionCloseCheck(crossPairMap map[string]CrossPair, f
 		}
 
 		if len(arrayPairs) == 0 {
-			delete(ce.positionCrossPairMap, key)
+			delete(crossPairsTable, key)
 		} else {
-			ce.positionCrossPairMap[key] = arrayPairs
+			crossPairsTable[key] = arrayPairs
 		}
 	}
 
+	return crossPairsTable
+}
+
+/*
+func closeCheck(key string, crossPairArray []CrossPair, matchCrossPairMap map[string]CrossPair) {
+
+	for _, corssPair := range crossPairArray {
+
+	}
+	if _, ok := crossPairArray[matchName]; !ok {
+		log.Println("can't find matchName:", matchName)
+		continue
+	}
+	matchCrossPair := matchCrossPairMap[matchName]
+	matchProfit := matchCrossPair.GetProfit()
+	matchVolume := matchCrossPair.GetMinTotalVolume()
+
+	// 確認利潤並統計總量
+	askTotalVolume := 0.0
+	bidTotalVolume := 0.0
+	totalMatchOrderVolume := 0.0
+	for _, pcp := range crossPairArray {
+		matchName := crossPairArray[0].GetMatchName()
+		positionCrossPair := pcp
+
+		//找出反向配對，確定利潤
+		pProfit := positionCrossPair.GetProfit()
+
+		log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", pProfit, matchProfit))
+		sum := pProfit + matchProfit
+		if matchProfit > MinSellProfit && sum > MinSumProfit && matchVolume > m_minVolume {
+			log.Println(fmt.Sprintf("sum:%f", sum))
+
+			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
+
+			askVolume := positionCrossPair.GetAskVolumeByTotal(thisMatchOrderVolume)
+			bidVolume := positionCrossPair.GetBidVolumeByTotal(thisMatchOrderVolume)
+
+			askTotalVolume += askVolume
+			bidTotalVolume += bidVolume
+
+			totalMatchOrderVolume += thisMatchOrderVolume
+
+			content := fmt.Sprintf(
+				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
+				positionCrossPair.GetProfitString(),
+				matchCrossPair.GetProfitString(),
+				sum)
+			message_tool.SendBroadcastArcherGroup(content)
+
+			positionCrossPair.orderVolume -= thisMatchOrderVolume
+		}
+	}
+
+	// 表示有交易
+	if totalMatchOrderVolume > 0 {
+		matchAskExchange, askPair := matchCrossPair.GetAskInfo()
+		matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
+
+		askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume)
+		bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume)
+		//等上面兩個交易都完成，再繼續
+		<-askChannel
+		<-bidChannel
+
+		m_currentVolume = m_currentVolume - totalMatchOrderVolume
+	}
+
+	for i := len(arrayPairs); i >= 0; i-- {
+		pair := arrayPairs[i]
+		if pair.orderVolume == 0 {
+			//remove
+			arrayPairs = removeElement(arrayPairs, i)
+		}
+	}
+
+	if len(arrayPairs) == 0 {
+		delete(crossPairsTable, key)
+	} else {
+		crossPairsTable[key] = arrayPairs
+	}
+}*/
+
+func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]CrossPair {
+
+	exchangePairs := []ExchangePair{}
+	for _, exchg := range exchanges {
+		askPair, bidPair := exchg.GetFuturesAskBidPair(futures)
+		exchangePairs = append(exchangePairs, *NewExchangePair(exchg, askPair, bidPair))
+	}
+
+	crossPairMap := map[string]CrossPair{}
+	for index, ePair := range exchangePairs {
+		for matchIndex, matchPair := range exchangePairs {
+			if index == matchIndex {
+				continue
+			}
+			cp := NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid)
+			crossPairMap[cp.GetName()] = *cp
+		}
+	}
+	return crossPairMap
+}
+
+func getMaxProfitCrossPair(mcp map[string]CrossPair) CrossPair {
+	maxProfit := -math.MaxFloat64
+	var topCrossPair CrossPair
+	for _, crossPair := range mcp {
+		if crossPair.GetProfit() > maxProfit {
+			maxProfit = crossPair.GetProfit()
+			topCrossPair = crossPair
+		}
+		log.Println(crossPair.GetProfitString())
+
+		//matchPair := crossPairMap[crossPair.GetMatchName()]
+		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
+	}
+	return topCrossPair
+}
+
+func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue float64) {
+	askExchange, askPair := topCrossPair.GetAskInfo()
+	bidExchange, bidPair := topCrossPair.GetBidInfo()
+
+	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
+	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
+
+	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
+	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
+	//等上面兩個交易都完成，再繼續
+	<-askChannel
+	<-bidChannel
+
+	m_currentVolume = m_currentVolume + orderTotalValue
+
+	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
+		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
+		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", bidPair.Price, bidPair.Volume, bidExchange.GetName()),
+		orderTotalValue,
+		topCrossPair.GetProfit(),
+		m_expectedTotalValue)
+	log.Println(content)
+
+	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
+	topCrossPair.orderVolume = orderTotalValue
+
+	message_tool.SendBroadcastArcherGroup(content)
 }
 
 const (
