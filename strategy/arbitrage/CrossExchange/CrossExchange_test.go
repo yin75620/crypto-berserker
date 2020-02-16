@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/yin75620/crypto-berserker/message_tool"
+
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -52,13 +54,40 @@ func TestOrder(t *testing.T) {
 
 func TestPositionCloseCheck(t *testing.T) {
 
+	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
+		setting.FTX_KEY,
+		setting.FTX_API_SECRET_KEY,
+		"tester"})
+	bybit := bybit.NewBybit(http.DefaultClient)
+
+	crossPairsTable := map[string][]CrossPair{}
+	cp := CrossPair{
+		askExchange:  ft,
+		bidExchange:  bybit,
+		askPricePair: exc.PricePair{9600, 100},
+		bidPricePair: exc.PricePair{9600, 100},
+	}
+
+	cpArray := []CrossPair{
+		cp,
+	}
+	crossPairsTable[cp.GetName()] = cpArray
+
+	matchMap := map[string]CrossPair{}
+
+	matchCp := CrossPair{
+		askExchange:  bybit,
+		bidExchange:  ft,
+		askPricePair: exc.PricePair{9500, 1000},
+		bidPricePair: exc.PricePair{9700, 1000},
+	}
+	matchMap[matchCp.GetName()] = matchCp
+
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
 		QuoteCoin:  "USD",
 	}
-
-	crossPairMap := map[string]CrossPair{}
-	crossPairsTable := map[string][]CrossPair{}
-	positionCloseCheck(crossPairsTable, crossPairMap, futures)
+	message_tool.StartTelegram()
+	positionCloseCheck(crossPairsTable, matchMap, futures)
 }

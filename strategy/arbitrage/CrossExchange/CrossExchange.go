@@ -110,7 +110,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	return plusMilliSecond
 }
 
-func positionCloseCheck(crossPairsTable map[string][]CrossPair, crossPairMap map[string]CrossPair, futures exc.Futures) map[string][]CrossPair {
+func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures) map[string][]CrossPair {
 
 	//hasPosition
 	if len(crossPairsTable) <= 0 {
@@ -119,9 +119,9 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, crossPairMap map
 
 	for key, arrayPairs := range crossPairsTable {
 
-		closeCheck(key, arrayPairs, crossPairMap, futures)
+		closeCheck(key, arrayPairs, matchMap, futures)
 
-		for i := len(arrayPairs); i >= 0; i-- {
+		for i := len(arrayPairs) - 1; i >= 0; i-- {
 			pair := arrayPairs[i]
 			if pair.orderVolume == 0 {
 				//remove
