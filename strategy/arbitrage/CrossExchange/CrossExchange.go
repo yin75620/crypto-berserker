@@ -12,22 +12,42 @@ import (
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
-type CrossExchange struct {
-	exchanges        []exc.Exchange
+type CrossExchangeInit struct {
 	DelayMilliSecond int64
-	futuresArray     []exc.Futures
+	OverPrice        float64 //= 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
+	MinSellProfit    float64 // = -0.0007
+	MinSumProfit     float64 //= 0.0001
+	MaxHoldVolume    float64 // 1000.0
+}
 
-	//execute use
-	//positionCrossPairs []CrossPair
+func NewCrossExchangeInit() *CrossExchangeInit {
+	return &CrossExchangeInit{
+		DelayMilliSecond: 500,
+		OverPrice:        0.02,
+		MinSellProfit:    -0.0007,
+		MinSumProfit:     0.0001,
+		MaxHoldVolume:    1000.0,
+	}
+}
+
+type CrossExchange struct {
+	exchanges            []exc.Exchange
+	futuresArray         []exc.Futures
 	positionCrossPairMap map[string][]CrossPair
+	init                 CrossExchangeInit
 }
 
 func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	ce := CrossExchange{}
 	ce.exchanges = exchanges
-	ce.DelayMilliSecond = 500
 	ce.positionCrossPairMap = map[string][]CrossPair{}
+	NewCrossExchangeInit()
+	ce.init = *NewCrossExchangeInit()
 	return &ce
+}
+
+func (ce *CrossExchange) SetInit(init CrossExchangeInit) {
+	//ce.Init = init
 }
 
 func (ce *CrossExchange) SetFuturesArray(futuresArray []exc.Futures) {
@@ -49,7 +69,7 @@ func (ce *CrossExchange) Start() {
 	log.Println(string(infoAll))
 	message_tool.SendBroadcastArcherGroup(infoAll)
 
-	d := time.Duration(time.Millisecond * time.Duration(ce.DelayMilliSecond))
+	d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
 
 	t := time.NewTimer(d)
 	defer t.Stop()
@@ -59,8 +79,8 @@ func (ce *CrossExchange) Start() {
 
 		plusMilliSecond := ce.stratStrategy()
 		//fmt.Println("d1.5", plusMilliSecond)
-		t.Reset(time.Millisecond * time.Duration(ce.DelayMilliSecond+plusMilliSecond))
-		//fmt.Println("d2", time.Millisecond*time.Duration(ce.DelayMilliSecond+plusMilliSecond))
+		t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
+		//fmt.Println("d2", time.Millisecond*time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
 	}
 
 }
@@ -87,14 +107,14 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	maxProfit := topCrossPair.GetProfit()
 
 	// 檢查部位是否可以平倉
-	positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures)
+	positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
-	orderTotalValue := math.Min(MAX_HOLD_VOLUME-m_currentUSDVolume, execMinTotalValue)
+	orderTotalValue := math.Min(ce.init.MaxHoldVolume-m_currentUSDVolume, execMinTotalValue)
 
 	// 交易判斷
 	// 有利可圖
-	if !canOrder(maxProfit, orderTotalValue) {
+	if !canOrder(maxProfit, orderTotalValue, ce.init.MaxHoldVolume) {
 		// 無利可圖，重設偵測
 		return 0
 	}
@@ -103,14 +123,14 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	m_expectedLowestProfit = maxProfit
 
 	// 進行交易
-	orderCrossPair(topCrossPair, futures, orderTotalValue)
+	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 
 	var plusMilliSecond int64 = 500
 	return plusMilliSecond
 }
 
-func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures) map[string][]CrossPair {
+func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) map[string][]CrossPair {
 
 	//hasPosition
 	if len(crossPairsTable) <= 0 {
@@ -119,7 +139,7 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 
 	for key, arrayPairs := range crossPairsTable {
 
-		closeCheck(key, arrayPairs, matchMap, futures)
+		closeCheck(key, arrayPairs, matchMap, futures, init)
 
 		for i := len(arrayPairs) - 1; i >= 0; i-- {
 			pair := arrayPairs[i]
@@ -153,7 +173,7 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 	}
 
 	if len(crossPairArray) <= 0 {
-		log.Println("closeCheck len(crossPairArray) <= 0 ")
+		log.Println("getMatchCrossPair len(crossPairArray) <= 0 ")
 		return CrossPair{}
 	}
 
@@ -165,7 +185,7 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 	return matchCrossPair
 }
 
-func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair) (float64, float64, float64) {
+func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64) {
 	matchProfit := matchCrossPair.GetProfit()
 	matchVolume := matchCrossPair.GetMinTotalVolume()
 	// 確認利潤並統計總量
@@ -180,7 +200,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair) (float
 
 		log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", positionProfit, matchProfit))
 		sum := positionProfit + matchProfit
-		if matchProfit > MinSellProfit && sum > MinSumProfit && matchVolume > m_minVolume {
+		if matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > m_minVolume {
 			log.Println(fmt.Sprintf("sum:%f", sum))
 
 			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
@@ -206,19 +226,19 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair) (float
 	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume
 }
 
-func closeCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures) {
+func closeCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
-	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume := getTotalVolume(crossPairArray, matchCrossPair)
+	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume := getTotalVolume(crossPairArray, matchCrossPair, init)
 
 	// 表示有交易
 	if totalMatchOrderUSDVolume > 0 {
 		matchAskExchange, askPair := matchCrossPair.GetAskInfo()
 		matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
 
-		askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume)
-		bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume)
+		askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume, init.OverPrice)
+		bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume, init.OverPrice)
 		//等上面兩個交易都完成，再繼續
 		<-askChannel
 		<-bidChannel
@@ -265,15 +285,15 @@ func getMaxProfitCrossPair(mcp map[string]CrossPair) CrossPair {
 	return topCrossPair
 }
 
-func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue float64) {
+func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue float64, init CrossExchangeInit) {
 	askExchange, askPair := topCrossPair.GetAskInfo()
 	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
 	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
 	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
 
-	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume)
-	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume)
+	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume, init.OverPrice)
+	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume, init.OverPrice)
 	//等上面兩個交易都完成，再繼續
 	<-askChannel
 	<-bidChannel
@@ -294,16 +314,6 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	message_tool.SendBroadcastArcherGroup(content)
 }
 
-const (
-	//SETTING_TOTAL_VALUE = 1510.0
-	//SETTING_LEVERAGE    = 5.0  //幾倍槓桿
-	OverPrice     = 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
-	MinSellProfit = -0.0007
-	MinSumProfit  = 0.0001
-
-	MAX_HOLD_VOLUME = 1000.0
-)
-
 var (
 	m_expectedTotalValue   float64 = 0
 	m_expectedLowestProfit float64 = 0
@@ -322,7 +332,7 @@ func smallRandom(enter float64) float64 {
 	return result
 }
 
-func canOrder(profit, orderTotalValue float64) bool {
+func canOrder(profit, orderTotalValue float64, maxHoldVolume float64) bool {
 	// 有利可圖
 	if profit < m_minProfit { // 沒足夠利潤，直接下一圈
 		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
@@ -330,20 +340,20 @@ func canOrder(profit, orderTotalValue float64) bool {
 	} else if orderTotalValue < m_minVolume {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", m_minVolume))
 		return false
-	} else if m_currentUSDVolume >= MAX_HOLD_VOLUME {
-		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= MAX_HOLD_VOLUME:%g", m_currentUSDVolume, MAX_HOLD_VOLUME))
+	} else if m_currentUSDVolume >= maxHoldVolume {
+		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= maxHoldVolume:%g", m_currentUSDVolume, maxHoldVolume))
 		return false
 	}
 	return true
 }
 
-func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64) chan int {
+func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64, overPrice float64) chan int {
 	resultChannel := make(chan int)
 	side := "sell"
-	adjPrice := price * (1.0 - OverPrice)
+	adjPrice := price * (1.0 - overPrice)
 	if pType == exc.Ask {
 		side = "buy"
-		adjPrice = price * (1.0 + OverPrice)
+		adjPrice = price * (1.0 + overPrice)
 	}
 
 	myOrder := exc.FuturesOrder{

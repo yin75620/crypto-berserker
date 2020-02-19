@@ -89,5 +89,6 @@ func TestPositionCloseCheck(t *testing.T) {
 		QuoteCoin:  "USD",
 	}
 	message_tool.StartTelegram()
-	positionCloseCheck(crossPairsTable, matchMap, futures)
+	init := *NewCrossExchangeInit()
+	positionCloseCheck(crossPairsTable, matchMap, futures, init)
 }
