@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"math/rand"
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -18,6 +17,8 @@ type CrossExchangeInit struct {
 	MinSellProfit    float64 // = -0.0007
 	MinSumProfit     float64 //= 0.0001
 	MaxHoldVolume    float64 // 1000.0
+	MinCreateProfit  float64 // 0.001
+	MinVolume        float64 //1鎂
 }
 
 func NewCrossExchangeInit() *CrossExchangeInit {
@@ -27,6 +28,8 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 		MinSellProfit:    -0.0007,
 		MinSumProfit:     0.0001,
 		MaxHoldVolume:    1000.0,
+		MinCreateProfit:  0.001,
+		MinVolume:        1,
 	}
 }
 
@@ -114,13 +117,12 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	// 交易判斷
 	// 有利可圖
-	if !canOrder(maxProfit, orderTotalValue, ce.init.MaxHoldVolume) {
+	if !canOrder(maxProfit, orderTotalValue, ce.init) {
 		// 無利可圖，重設偵測
 		return 0
 	}
 
 	m_expectedTotalValue = execMinTotalValue - orderTotalValue
-	m_expectedLowestProfit = maxProfit
 
 	// 進行交易
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
@@ -200,7 +202,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 		log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", positionProfit, matchProfit))
 		sum := positionProfit + matchProfit
-		if matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > m_minVolume {
+		if matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > init.MinVolume {
 			log.Println(fmt.Sprintf("sum:%f", sum))
 
 			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
@@ -315,33 +317,20 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 }
 
 var (
-	m_expectedTotalValue   float64 = 0
-	m_expectedLowestProfit float64 = 0
-	m_minProfit            float64 = 0.001
-	m_minVolume            float64 = 1 //鎂
-	m_tradingAdjustSpeed   int64   = -1000
-
-	m_currentUSDVolume float64 = 0
-
-	m_cutPercent float64 = 10 //隨機減少N%下單N>0
+	m_expectedTotalValue float64 = 0
+	m_currentUSDVolume   float64 = 0
 )
 
-func smallRandom(enter float64) float64 {
-	temp := enter * (1 - (m_cutPercent * rand.Float64() / 100.0)) // 隨機 -10%
-	result := math.Floor(temp)
-	return result
-}
-
-func canOrder(profit, orderTotalValue float64, maxHoldVolume float64) bool {
+func canOrder(profit, orderTotalValue float64, init CrossExchangeInit) bool {
 	// 有利可圖
-	if profit < m_minProfit { // 沒足夠利潤，直接下一圈
+	if profit < init.MinCreateProfit { // 沒足夠利潤，直接下一圈
 		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
-	} else if orderTotalValue < m_minVolume {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", m_minVolume))
+	} else if orderTotalValue < init.MinVolume {
+		log.Println(fmt.Sprintf("orderTotalValue < %f", init.MinVolume))
 		return false
-	} else if m_currentUSDVolume >= maxHoldVolume {
-		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= maxHoldVolume:%g", m_currentUSDVolume, maxHoldVolume))
+	} else if m_currentUSDVolume >= init.MaxHoldVolume {
+		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= init.MaxHoldVolume:%g", m_currentUSDVolume, init.MaxHoldVolume))
 		return false
 	}
 	return true
