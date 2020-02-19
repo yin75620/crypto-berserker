@@ -11,28 +11,6 @@ import (
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
-type CrossExchangeInit struct {
-	DelayMilliSecond int64
-	OverPrice        float64 //= 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
-	MinSellProfit    float64 // = -0.0007
-	MinSumProfit     float64 //= 0.0001
-	MaxHoldVolume    float64 // 1000.0
-	MinCreateProfit  float64 // 0.001
-	MinVolume        float64 //1鎂
-}
-
-func NewCrossExchangeInit() *CrossExchangeInit {
-	return &CrossExchangeInit{
-		DelayMilliSecond: 500,
-		OverPrice:        0.02,
-		MinSellProfit:    -0.0007,
-		MinSumProfit:     0.0001,
-		MaxHoldVolume:    1000.0,
-		MinCreateProfit:  0.001,
-		MinVolume:        1,
-	}
-}
-
 type CrossExchange struct {
 	exchanges            []exc.Exchange
 	futuresArray         []exc.Futures
@@ -50,7 +28,11 @@ func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 }
 
 func (ce *CrossExchange) SetInit(init CrossExchangeInit) {
-	//ce.Init = init
+	ce.init = init
+}
+
+func (ce *CrossExchange) SetInitByIni(filename string) {
+	ce.init.IniSetting(filename)
 }
 
 func (ce *CrossExchange) SetFuturesArray(futuresArray []exc.Futures) {
@@ -128,7 +110,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 
-	var plusMilliSecond int64 = 500
+	plusMilliSecond := ce.init.DelayMilliSecond
 	return plusMilliSecond
 }
 

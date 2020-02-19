@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/go-ini/ini"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
@@ -15,19 +18,26 @@ const (
 	version = "0.9.0-0011"
 )
 
+var (
+	mSubAccount string
+)
+
 func main() {
 	log.Println(version)
+
+	iniSetting()
 
 	exchanges := []exc.Exchange{}
 	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 		setting.FTX_KEY,
 		setting.FTX_API_SECRET_KEY,
-		"tester"})
+		mSubAccount})
 	bybit := bybit.NewBybit(http.DefaultClient)
 	exchanges = append(exchanges, ft)
 	exchanges = append(exchanges, bybit)
 
 	ce := CrossExchange.NewCrossExchange(exchanges)
+	ce.SetInitByIni("main.ini")
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
@@ -35,4 +45,14 @@ func main() {
 	}
 	ce.SetFuturesArray([]exc.Futures{futures})
 	ce.Start()
+}
+
+func iniSetting() {
+	cfg, err := ini.Load("main.ini")
+	if err != nil {
+		fmt.Printf("Fail to read file: %v", err)
+		os.Exit(1)
+	}
+
+	mSubAccount = cfg.Section("FTX").Key("SubAccount").String()
 }
