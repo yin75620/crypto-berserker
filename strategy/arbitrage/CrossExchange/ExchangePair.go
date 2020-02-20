@@ -26,6 +26,14 @@ func (ep *ExchangePair) FillPair() {
 
 }
 
+type CrossPairJson struct {
+	AskExchangeName string
+	BidExchangeName string
+	AskPair         exc.PricePair
+	BidPair         exc.PricePair
+	OrderVolume     float64
+}
+
 type CrossPair struct {
 	askExchange  exc.Exchange
 	bidExchange  exc.Exchange
@@ -41,6 +49,16 @@ func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePai
 	cp.askPricePair = askPircePair
 	cp.bidPricePair = bidPricePair
 	return &cp
+}
+
+func (cp *CrossPair) toJson() CrossPairJson {
+	j := CrossPairJson{}
+	j.AskExchangeName = cp.askExchange.GetName()
+	j.BidExchangeName = cp.bidExchange.GetName()
+	j.AskPair = cp.askPricePair
+	j.BidPair = cp.bidPricePair
+	j.OrderVolume = cp.orderVolume
+	return j
 }
 
 func (cp *CrossPair) GetName() string {

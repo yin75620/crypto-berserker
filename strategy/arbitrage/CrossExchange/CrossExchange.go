@@ -54,6 +54,12 @@ func (ce *CrossExchange) Start() {
 	log.Println(string(infoAll))
 	message_tool.SendBroadcastArcherGroup(infoAll)
 
+	pairMap, err := loadPairMapFromFile(ce.exchanges)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ce.positionCrossPairMap = pairMap
+
 	d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
 
 	t := time.NewTimer(d)
@@ -92,7 +98,11 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	maxProfit := topCrossPair.GetProfit()
 
 	// 檢查部位是否可以平倉
-	positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
+	hasClose, mp := positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
+	if hasClose {
+		ce.positionCrossPairMap = mp
+		savePairMapToFile(ce.positionCrossPairMap)
+	}
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(ce.init.MaxHoldVolume-m_currentUSDVolume, execMinTotalValue)
@@ -109,17 +119,20 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	// 進行交易
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
+	savePairMapToFile(ce.positionCrossPairMap)
 
 	plusMilliSecond := ce.init.DelayMilliSecond
 	return plusMilliSecond
 }
 
-func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) map[string][]CrossPair {
+func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) (bool, map[string][]CrossPair) {
 
 	//hasPosition
 	if len(crossPairsTable) <= 0 {
-		return crossPairsTable
+		return false, crossPairsTable
 	}
+
+	hasClose := false
 
 	for key, arrayPairs := range crossPairsTable {
 
@@ -127,6 +140,8 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 		if !isClose {
 			continue
 		}
+
+		hasClose = true
 
 		for i := len(arrayPairs) - 1; i >= 0; i-- {
 			pair := arrayPairs[i]
@@ -143,7 +158,7 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 		}
 	}
 
-	return crossPairsTable
+	return hasClose, crossPairsTable
 }
 
 func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair) CrossPair {
@@ -307,6 +322,10 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 var (
 	m_expectedTotalValue float64 = 0
 	m_currentUSDVolume   float64 = 0
+)
+
+const (
+	PairMapFileName = "PairMap.json"
 )
 
 func canOrder(profit, orderTotalValue float64, init CrossExchangeInit) bool {
