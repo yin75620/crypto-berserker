@@ -123,7 +123,10 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 
 	for key, arrayPairs := range crossPairsTable {
 
-		closeCheck(key, arrayPairs, matchMap, futures, init)
+		isClose := isCloseCheck(key, arrayPairs, matchMap, futures, init)
+		if !isClose {
+			continue
+		}
 
 		for i := len(arrayPairs) - 1; i >= 0; i-- {
 			pair := arrayPairs[i]
@@ -210,26 +213,29 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume
 }
 
-func closeCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) {
+func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) bool {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
 	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume := getTotalVolume(crossPairArray, matchCrossPair, init)
 
-	// 表示有交易
-	if totalMatchOrderUSDVolume > 0 {
-		matchAskExchange, askPair := matchCrossPair.GetAskInfo()
-		matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
-
-		askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume, init.OverPrice)
-		bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume, init.OverPrice)
-		//等上面兩個交易都完成，再繼續
-		<-askChannel
-		<-bidChannel
-
-		m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
+	if totalMatchOrderUSDVolume <= 0 {
+		return false
 	}
 
+	// 表示有交易
+	matchAskExchange, askPair := matchCrossPair.GetAskInfo()
+	matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
+
+	askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume, init.OverPrice)
+	bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume, init.OverPrice)
+	//等上面兩個交易都完成，再繼續
+	<-askChannel
+	<-bidChannel
+
+	m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
+
+	return true
 }
 
 func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]CrossPair {
