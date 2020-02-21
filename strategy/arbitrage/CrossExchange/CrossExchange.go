@@ -113,6 +113,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		// 無利可圖，重設偵測
 		return 0
 	}
+	fmt.Println(orderTotalValue)
 
 	m_expectedTotalValue = execMinTotalValue - orderTotalValue
 
@@ -216,10 +217,11 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 			totalMatchOrderUSDVolume += thisMatchOrderVolume
 
 			content := fmt.Sprintf(
-				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f",
+				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f, orderVolume:%f",
 				positionCrossPair.GetProfitString(),
 				matchCrossPair.GetProfitString(),
-				sum)
+				sum,
+				totalMatchOrderUSDVolume)
 			message_tool.SendBroadcastArcherGroup(content)
 
 			positionCrossPair.orderVolume -= thisMatchOrderVolume

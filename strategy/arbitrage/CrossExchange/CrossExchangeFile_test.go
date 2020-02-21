@@ -27,6 +27,7 @@ func TestSaveFile(t *testing.T) {
 		bidExchange:  bybit,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
+		orderVolume:  200,
 	}
 
 	cpArray := []CrossPair{
