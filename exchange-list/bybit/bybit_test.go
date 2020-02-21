@@ -54,3 +54,11 @@ func TestOrderExecute(t *testing.T) {
 	// }
 	//mftx.PostOrder(myOrder)
 }
+
+func TestGetWallet(t *testing.T) {
+
+	ce := NewBybit(http.DefaultClient)
+
+	w := ce.GetWallet()
+	fmt.Println(w)
+}

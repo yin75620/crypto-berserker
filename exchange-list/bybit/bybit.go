@@ -42,8 +42,37 @@ type Bybit struct {
 
 // implement exchange
 func (bb *Bybit) GetWallet() exc.Wallet {
-	w := exc.Wallet{} // not implement
-	return w
+	var ret GetBalanceResult
+	jarray := exc.JArray{}
+	coinName := "BTC"
+	jarray["coin"] = coinName
+
+	response := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
+	fmt.Println(string(response))
+	err := json.Unmarshal(response, &ret)
+
+	w := exc.NewWallet()
+	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName)
+
+	if err != nil {
+		fmt.Println(err)
+		return *w
+	}
+
+	return *w
+}
+
+const tempBTCToUSDValue = 9000.0
+
+func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName string) []exc.Balance {
+	bal := exc.Balance{
+		Coin:     coinName,
+		Free:     bybitBalance.AvailableBalance,
+		Total:    bybitBalance.Equity,
+		UsdValue: tempBTCToUSDValue * bybitBalance.Equity,
+	}
+	balances = append(balances, bal)
+	return balances
 }
 
 func (bb *Bybit) GetAccountInfo() []byte {
