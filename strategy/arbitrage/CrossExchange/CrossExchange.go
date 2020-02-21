@@ -119,6 +119,8 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	// 進行交易
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
+	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
+	topCrossPair.orderVolume = orderTotalValue
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 	savePairMapToFile(ce.positionCrossPairMap)
 
@@ -314,9 +316,6 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 		topCrossPair.GetProfit(),
 		m_expectedTotalValue)
 	log.Println(content)
-
-	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
-	topCrossPair.orderVolume = orderTotalValue
 
 	message_tool.SendBroadcastArcherGroup(content)
 }
