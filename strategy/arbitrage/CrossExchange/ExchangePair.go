@@ -137,6 +137,12 @@ func (cp *CrossPair) GetMinTotalVolume() float64 {
 	return minTotalVolume
 }
 
+func (cp *CrossPair) GetMaxHoldVolume() float64 {
+	aw := cp.askExchange.GetWallet()
+	bw := cp.bidExchange.GetWallet()
+	return math.Min(aw.GetAllBalanceUSDValue(), bw.GetAllBalanceUSDValue())
+}
+
 // M0S0 表示 MainAsk, SubBid 有艙位
 // MASB 表示 MainBid, SubAsk 有艙位
 // MBSA 表示無艙位

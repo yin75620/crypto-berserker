@@ -48,3 +48,11 @@ func (w *Wallet) GetAllBalanceProfit(after Wallet) []Balance {
 	}
 	return result
 }
+
+func (w *Wallet) GetAllBalanceUSDValue() float64 {
+	result := 0.0
+	for _, value := range w.Balances {
+		result += value.UsdValue
+	}
+	return result
+}
