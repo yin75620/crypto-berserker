@@ -30,6 +30,8 @@ func NewBybit(c *http.Client) *Bybit {
 	bb.apiKey = setting.BYBIT_KEY
 	bb.secretKey = setting.BYBIT_SECRET_KEY
 	bb.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
+	bb.account.MakerFee = -0.00025
+	bb.account.TakerFee = 0.00075
 	return &bb
 }
 
@@ -38,6 +40,7 @@ type Bybit struct {
 	apiKey          string
 	secretKey       string
 	orderBookCenter *ob.OrderBookCenter
+	account         exc.Account
 }
 
 // implement exchange
@@ -82,11 +85,31 @@ func (bb *Bybit) GetAccountInfo() []byte {
 	jarray["coin"] = coinName
 
 	response := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
+	fmt.Println(string(response))
+
+	res := bb.SendGetLeverage()
+	fmt.Println(res)
+	bb.account.Leverage = float64(res.Result["BTCUSD"].Leverage)
+
 	return response
 }
 
 func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return "", nil // not implement
+}
+
+func (bb *Bybit) GetAccount() exc.Account {
+	return bb.account
+}
+
+func (bb *Bybit) SendGetLeverage() GetLeverageResult {
+	res := bb.doRequest("GET", "/user/leverage", exc.JArray{})
+	leverageResult := GetLeverageResult{}
+	err := json.Unmarshal(res, &leverageResult)
+	if err != nil {
+		fmt.Println("SendGetLeverage", err)
+	}
+	return leverageResult
 }
 
 func (bb *Bybit) PostFuturesOrder(order exc.FuturesOrder) (string, error) {

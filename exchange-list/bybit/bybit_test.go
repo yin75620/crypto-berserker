@@ -13,6 +13,8 @@ func TestAccount(t *testing.T) {
 	res := ce.GetAccountInfo()
 
 	fmt.Println(string(res))
+
+	fmt.Println(ce.GetAccount())
 }
 
 func TestPricePair(t *testing.T) {

@@ -12,11 +12,13 @@ var mftx = NewFtx(http.DefaultClient,
 	FtxInit{
 		setting.FTX_KEY,
 		setting.FTX_API_SECRET_KEY,
-		"apicaller"})
+		"tester"})
 
 func TestInfo(t *testing.T) {
 
 	fmt.Println(string(mftx.GetAccountInfo()))
+
+	fmt.Println(mftx.GetAccount())
 
 	//ftx.GetMarkets()
 }
