@@ -139,7 +139,7 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 
 	for key, arrayPairs := range crossPairsTable {
 
-		isClose := isCloseCheck(key, arrayPairs, matchMap, futures, init)
+		isClose, arrayPairs := isCloseCheck(key, arrayPairs, matchMap, futures, init)
 		if !isClose {
 			continue
 		}
@@ -190,14 +190,14 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 	return matchCrossPair
 }
 
-func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64) {
+func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64, []CrossPair) {
 	matchProfit := matchCrossPair.GetProfit()
 	matchVolume := matchCrossPair.GetMinTotalVolume()
 	// 確認利潤並統計總量
 	askTotalVolume := 0.0
 	bidTotalVolume := 0.0
 	totalMatchOrderUSDVolume := 0.0
-	for _, pcp := range crossPairArray {
+	for index, pcp := range crossPairArray {
 		positionCrossPair := pcp
 
 		//找出反向配對，確定利潤
@@ -226,20 +226,20 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 				totalMatchOrderUSDVolume)
 			message_tool.SendBroadcastArcherGroup(content)
 
-			positionCrossPair.orderVolume -= thisMatchOrderVolume
+			crossPairArray[index].orderVolume -= thisMatchOrderVolume
 		}
 	}
-	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume
+	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray
 }
 
-func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) bool {
+func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
-	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume := getTotalVolume(crossPairArray, matchCrossPair, init)
+	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray := getTotalVolume(crossPairArray, matchCrossPair, init)
 
 	if totalMatchOrderUSDVolume <= 0 {
-		return false
+		return false, crossPairArray
 	}
 
 	// 表示有交易
@@ -254,7 +254,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 
 	m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
 
-	return true
+	return true, crossPairArray
 }
 
 func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]CrossPair {

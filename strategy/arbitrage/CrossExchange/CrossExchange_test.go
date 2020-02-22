@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/yin75620/crypto-berserker/message_tool"
 
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
@@ -66,6 +68,7 @@ func TestPositionCloseCheck(t *testing.T) {
 		bidExchange:  bybit,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
+		orderVolume:  1.0,
 	}
 
 	cpArray := []CrossPair{
@@ -80,6 +83,7 @@ func TestPositionCloseCheck(t *testing.T) {
 		bidExchange:  ft,
 		askPricePair: exc.PricePair{9500, 1000},
 		bidPricePair: exc.PricePair{9700, 1000},
+		orderVolume:  1.0,
 	}
 	matchMap[matchCp.GetName()] = matchCp
 
@@ -90,5 +94,8 @@ func TestPositionCloseCheck(t *testing.T) {
 	}
 	message_tool.StartTelegram()
 	init := *NewCrossExchangeInit()
-	positionCloseCheck(crossPairsTable, matchMap, futures, init)
+	isClose, res := positionCloseCheck(crossPairsTable, matchMap, futures, init)
+
+	assert.True(t, isClose)
+	assert.Zero(t, len(res))
 }
