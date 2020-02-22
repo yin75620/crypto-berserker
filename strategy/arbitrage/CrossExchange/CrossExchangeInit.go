@@ -12,6 +12,7 @@ type CrossExchangeInit struct {
 	MinSellProfit    float64 // = -0.0007
 	MinSumProfit     float64 //= 0.0001
 	MaxHoldVolume    float64 // 1000.0
+	MaxHoldBuffer    float64 //0.01
 	MinCreateProfit  float64 // 0.001
 	MinVolume        float64 //1鎂
 }
@@ -23,6 +24,7 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 		MinSellProfit:    -0.0007,
 		MinSumProfit:     0.0001,
 		MaxHoldVolume:    1000.0,
+		MaxHoldBuffer:    0.01,
 		MinCreateProfit:  0.001,
 		MinVolume:        1,
 	}
@@ -42,6 +44,7 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	cei.MinSellProfit = cfg.Section(section).Key("MinSellProfit").MustFloat64()
 	cei.MinSumProfit = cfg.Section(section).Key("MinSumProfit").MustFloat64()
 	cei.MaxHoldVolume = cfg.Section(section).Key("MaxHoldVolume").MustFloat64()
+	cei.MaxHoldBuffer = cfg.Section(section).Key("MaxHoldBuffer").MustFloat64()
 	cei.MinCreateProfit = cfg.Section(section).Key("MinCreateProfit").MustFloat64()
 	cei.MinVolume = cfg.Section(section).Key("MinVolume").MustFloat64()
 
