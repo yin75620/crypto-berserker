@@ -11,6 +11,10 @@ type Balance struct {
 	UsdValue float64
 }
 
+func NewWallet() *Wallet {
+	return &Wallet{}
+}
+
 func (w *Wallet) IsAllBalanceReduce(after Wallet) bool {
 
 	zeroCount := 0
