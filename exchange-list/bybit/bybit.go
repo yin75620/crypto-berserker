@@ -62,14 +62,14 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 	return *w
 }
 
-const tempBTCToUSDValue = 9000.0
-
 func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName string) []exc.Balance {
+	const TempBTCToUSDValue = 9000.0
+
 	bal := exc.Balance{
 		Coin:     coinName,
 		Free:     bybitBalance.AvailableBalance,
 		Total:    bybitBalance.Equity,
-		UsdValue: tempBTCToUSDValue * bybitBalance.Equity,
+		UsdValue: TempBTCToUSDValue * bybitBalance.Equity,
 	}
 	balances = append(balances, bal)
 	return balances
@@ -77,7 +77,12 @@ func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName stri
 
 func (bb *Bybit) GetAccountInfo() []byte {
 
-	return bb.doRequest("GET", "open-api/wallet/fund/records", exc.JArray{})
+	jarray := exc.JArray{}
+	coinName := "BTC"
+	jarray["coin"] = coinName
+
+	response := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
+	return response
 }
 
 func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {
