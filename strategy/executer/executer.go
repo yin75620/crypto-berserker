@@ -14,11 +14,7 @@ import (
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/binance"
-	"github.com/yin75620/crypto-berserker/exchange-list/coinex"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftxotc"
-	"github.com/yin75620/crypto-berserker/exchange-list/maicoin"
-	"github.com/yin75620/crypto-berserker/exchange-list/okex"
 	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
@@ -63,16 +59,16 @@ func main() {
 				setting.FTX_API_SECRET_KEY,
 				mSubAccount})
 	} else if mSwitchExchange == MAX {
-		exchange = maicoin.NewMaicoin(http.DefaultClient)
+		//exchange = maicoin.NewMaicoin(http.DefaultClient)
 	} else if mSwitchExchange == OKEX {
-		exchange = okex.NewOkex(http.DefaultClient)
+		//exchange = okex.NewOkex(http.DefaultClient)
 	} else if mSwitchExchange == FTXOTC {
-		exchange = ftxotc.NewFtxotc(http.DefaultClient,
-			ftxotc.FtxotcInit{
-				setting.FTXOTC_KEY,
-				setting.FTXOTC_SECRET_KEY})
+		/*exchange = ftxotc.NewFtxotc(http.DefaultClient,
+		ftxotc.FtxotcInit{
+			setting.FTXOTC_KEY,
+			setting.FTXOTC_SECRET_KEY})*/
 	} else if mSwitchExchange == COINEX {
-		exchange = coinex.NewCoinEx(http.DefaultClient)
+		//exchange = coinex.NewCoinEx(http.DefaultClient)
 	} else if mSwitchExchange == BINANCE {
 		exchange = binance.NewBinance(http.DefaultClient)
 
