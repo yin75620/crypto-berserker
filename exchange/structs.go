@@ -3,6 +3,7 @@ package exchange
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -14,6 +15,15 @@ func (ja *JArray) Add(other JArray) {
 	for k, v := range other {
 		(*ja)[k] = v
 	}
+}
+
+func (ja *JArray) ToValues() url.Values {
+	// 塞入 values
+	values := url.Values{}
+	for k, v := range *ja {
+		values.Add(k, fmt.Sprintf("%v", v))
+	}
+	return values
 }
 
 type ErrorMessage struct {

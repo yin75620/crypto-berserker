@@ -2,23 +2,19 @@ package binance
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/thrasher-corp/gocryptotrader/common"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
 var (
 	apiURL    = "https://api.binance.com"
-	apiPrefix = "/api/v1/"
+	apiPrefix = "/api/"
 )
 
 type JArray exc.JArray
@@ -30,8 +26,18 @@ func NewBinance(c *http.Client) *binance {
 	return &bn
 }
 
+func NewBinance1(key, secretKey string) *binance {
+	bn := binance{}
+	bn.client = http.DefaultClient
+	bn.key = key
+	bn.secretKey = secretKey
+	return &bn
+}
+
 type binance struct {
-	client *http.Client
+	client    *http.Client
+	key       string
+	secretKey string
 }
 
 // implement exchange
@@ -42,11 +48,25 @@ func (bn *binance) GetWallet() exc.Wallet {
 
 func (bn *binance) GetAccountInfo() []byte {
 
-	return []byte("Binance")
+	reqArray := exc.JArray{}
+
+	resByte := bn.doSignRequest("GET", "v3/account", reqArray)
+
+	return resByte
 }
 
 func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
-	return "", nil
+	body := exc.JArray{
+		"symbol":      order.CoinPair.GetLinkMakertNameUpper(),
+		"side":        order.Side,      //"BUY",
+		"type":        order.OrderType, //"LIMIT",
+		"timeInForce": "GTC",
+		"quantity":    order.Size,
+		"price":       order.Price,
+	}
+
+	resByte := bn.doSignRequest("POST", "v3/order", body)
+	return string(resByte), nil
 }
 
 func (bn *binance) GetFee() exc.Fee {
@@ -62,6 +82,31 @@ func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
 }
 
+func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
+	return total / price
+}
+
+func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
+	return exc.PricePair{}, exc.PricePair{}
+}
+
+func (bn *binance) GetAccount() exc.Account {
+	return exc.Account{}
+}
+
+func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+	/*bo := BybitOrder{}
+	bo.Side = strings.Title(order.CommodityOrder.Side)
+	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
+	bo.OrderType = strings.Title(string(order.CommodityOrder.OrderType))
+	bo.Quantity = int64(order.CommodityOrder.Size)
+	bo.Price = order.CommodityOrder.Price
+	bo.TimeInForce = "GoodTillCancel"
+
+	return bb.doPostOrder(bo)*/
+	return "", nil
+}
+
 type QuoteResponse struct {
 	//Timestamp float64         `"json:time"`
 	LastUpdateId float64         `"json:lastUpdateId"`
@@ -75,11 +120,14 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 
 func (bn *binance) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	const minLimit = 5
-	reqString := fmt.Sprintf("depth?symbol=%s&limit=%d",
-		strings.ToUpper(coinPair.GetLinkMakertName()),
-		minLimit)
-	resByte := bn.doRequest("GET", reqString, exc.JArray{})
-	//fmt.Println(string(resByte))
+	/*reqString := fmt.Sprintf("depth?symbol=%s&limit=%d",
+	strings.ToUpper(coinPair.GetLinkMakertName()),
+	minLimit)*/
+	reqArray := exc.JArray{}
+	reqArray["symbol"] = strings.ToUpper(coinPair.GetLinkMakertName())
+	reqArray["limit"] = minLimit
+	resByte := bn.doAPIRequest("GET", "v1/depth", reqArray)
+	fmt.Println(string(resByte))
 
 	var resJson map[string]interface{}
 	err := json.Unmarshal(resByte, &resJson)
@@ -95,47 +143,48 @@ func (bn *binance) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePai
 
 	return askPair, bidPair
 }
+func (bn *binance) doSignRequest(method, apiName string, body exc.JArray) []byte {
+	return bn.doRequest(method, apiName, true, body)
+}
 
-func (bn *binance) doRequest(method, apiName string, body exc.JArray) []byte {
+func (bn *binance) doAPIRequest(method, apiName string, body exc.JArray) []byte {
+	return bn.doRequest(method, apiName, false, body)
+}
+
+func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArray) []byte {
 	client := bn.client
 
-	ts := exc.GetTimeSpan()
-	objBody := exc.JArray{
-		"recvWindow": strconv.FormatInt(common.RecvWindow(5*time.Second), 10),
-		"timestamp":  ts,
-	}
-
-	objBody.Add(body)
-
-	jsonBody, err := json.Marshal(objBody)
-	if err != nil {
-		log.Fatal(err)
-	}
-	sendBody := string(jsonBody)
-
-	log.Println(sendBody)
-
 	var res []byte
-	fullUrl := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
-	fmt.Println(fullUrl)
+	fullURL := fmt.Sprintf("%s%s%s", apiURL, apiPrefix, apiName)
 
-	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte("")))
+	sendContent := body.ToValues().Encode()
+	if isSign {
+		ts := exc.GetTimeSpan()
+		body["timestamp"] = ts
+		bodyEncode := body.ToValues().Encode()
+
+		raw := fmt.Sprintf("%s", bodyEncode)
+		sign, err := exc.GetParamHmacSHA256HexSign(setting.BINANCE_SECRET_KEY, raw)
+		if err != nil {
+			fmt.Println(err)
+		}
+		finalBody := exc.JArray{
+			"signature": sign,
+		}
+		sendContent = fmt.Sprintf("%s&%s", bodyEncode, finalBody.ToValues().Encode())
+	}
+
+	finalURL := fullURL + "?" + sendContent
+	fmt.Println(finalURL)
+
+	req, err := http.NewRequest(method, finalURL, bytes.NewBuffer([]byte("")))
 	if err != nil {
 		log.Println(err)
 		return res
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	addHeader(&req.Header, method, apiName, ts, sendBody)
+	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
+	req.Header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
 
 	return exc.SendRequest(client, req)
-}
-
-func addHeader(header *http.Header, reqMethod, path string, ts int64, sendBody string) {
-
-	header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
-	payload := base64.StdEncoding.EncodeToString([]byte(sendBody))
-	sign, _ := exc.GetParamHmacSHA256HexSign(setting.MAICOIN_SECRET_KEY, payload)
-	header.Add("X-MAX-PAYLOAD", payload)
-	header.Add("X-MAX-SIGNATURE", sign)
 }
