@@ -222,13 +222,15 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 			totalMatchOrderUSDVolume += thisMatchOrderVolume
 
-			content := fmt.Sprintf(
-				"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f, orderVolume:%f",
-				positionCrossPair.GetProfitString(),
-				matchCrossPair.GetProfitString(),
-				sum,
-				totalMatchOrderUSDVolume)
-			message_tool.SendBroadcastArcherGroup(content)
+			go func() {
+				content := fmt.Sprintf(
+					"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f, orderVolume:%f",
+					positionCrossPair.GetProfitString(),
+					matchCrossPair.GetProfitString(),
+					sum,
+					totalMatchOrderUSDVolume)
+				message_tool.SendBroadcastArcherGroup(content)
+			}()
 
 			crossPairArray[index].orderVolume -= thisMatchOrderVolume
 		}
