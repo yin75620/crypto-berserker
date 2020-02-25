@@ -138,9 +138,11 @@ func (cp *CrossPair) GetMinTotalVolume() float64 {
 }
 
 func (cp *CrossPair) GetMaxHoldVolume() float64 {
-	aw := cp.askExchange.GetWallet()
-	bw := cp.bidExchange.GetWallet()
-	return math.Min(aw.GetAllBalanceUSDValue(), bw.GetAllBalanceUSDValue())
+	aAccount := cp.askExchange.GetAccount()
+	bAccount := cp.bidExchange.GetAccount()
+	aw := aAccount.WalletInfo
+	bw := bAccount.WalletInfo
+	return math.Min(aw.GetAllBalanceUSDValue()*aAccount.Leverage, bw.GetAllBalanceUSDValue()*bAccount.Leverage)
 }
 
 // M0S0 表示 MainAsk, SubBid 有艙位

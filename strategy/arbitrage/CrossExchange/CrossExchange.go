@@ -97,15 +97,16 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	topCrossPair := getMaxProfitCrossPair(crossPairMap)
 	maxProfit := topCrossPair.GetProfit()
 	maxHoldVolume := ce.init.MaxHoldVolume
+	//計算最大持有量
+	maxHoldVolume = math.Min(maxHoldVolume, topCrossPair.GetMaxHoldVolume())
+	maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
 
 	// 檢查部位是否可以平倉
 	hasClose, mp := positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
 	if hasClose {
 		ce.positionCrossPairMap = mp
 		savePairMapToFile(ce.positionCrossPairMap)
-		//順便重新計算最大持有量
-		maxHoldVolume = math.Min(maxHoldVolume, topCrossPair.GetMaxHoldVolume())
-		maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
+
 	}
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()

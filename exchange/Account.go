@@ -1,7 +1,8 @@
 package exchange
 
 type Account struct {
-	TakerFee float64
-	MakerFee float64
-	Leverage float64
+	TakerFee   float64
+	MakerFee   float64
+	Leverage   float64
+	WalletInfo Wallet
 }

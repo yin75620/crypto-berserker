@@ -61,6 +61,7 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 		fmt.Println(err)
 		return *w
 	}
+	bb.account.WalletInfo = *w
 
 	return *w
 }
@@ -84,14 +85,14 @@ func (bb *Bybit) GetAccountInfo() []byte {
 	coinName := "BTC"
 	jarray["coin"] = coinName
 
-	response := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
-	fmt.Println(string(response))
+	response := bb.GetWallet()
+	fmt.Println(response)
 
 	res := bb.SendGetLeverage()
 	fmt.Println(res)
 	bb.account.Leverage = float64(res.Result["BTCUSD"].Leverage)
 
-	return response
+	return []byte(fmt.Sprintf("%v", response))
 }
 
 func (bb *Bybit) PostOrder(order exc.ExchangeOrder) (string, error) {

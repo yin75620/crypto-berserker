@@ -88,9 +88,9 @@ func (ftx *Ftx) GetAccountInfo() []byte {
 	ftx.account.Leverage = accountResult.Result.Leverage
 	ftx.account.MakerFee = accountResult.Result.MakerFee
 
-	wallet := ftx.doGet("wallet/balances", "")
+	wallet := ftx.GetWallet()
 
-	return []byte(fmt.Sprintf("%s%s", string(wallet), string(account)))
+	return []byte(fmt.Sprintf("%v%s", wallet, string(account)))
 }
 
 func (ftx *Ftx) GetAccount() exc.Account {
@@ -110,6 +110,8 @@ func (ftx *Ftx) GetWallet() exc.Wallet {
 
 	w := exc.Wallet{}
 	w.Balances = response.Result
+
+	ftx.account.WalletInfo = w
 	return w
 }
 
