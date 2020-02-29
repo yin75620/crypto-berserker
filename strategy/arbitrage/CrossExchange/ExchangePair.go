@@ -150,6 +150,18 @@ func (cp *CrossPair) UpdateWallet() {
 	cp.bidExchange.GetWallet()
 }
 
+func (cp *CrossPair) GetMinPricePercent(matchPair CrossPair) float64 {
+	askGap := matchPair.bidPricePair.Price - cp.askPricePair.Price
+	bidGap := cp.bidPricePair.Price - matchPair.askPricePair.Price
+
+	askPercent := askGap / cp.askPricePair.Price
+	bidPercent := bidGap / cp.bidPricePair.Price
+
+	minPercent := math.Min(askPercent, bidPercent)
+	return minPercent
+
+}
+
 // M0S0 表示 MainAsk, SubBid 有艙位
 // MASB 表示 MainBid, SubAsk 有艙位
 // MBSA 表示無艙位

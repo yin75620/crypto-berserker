@@ -15,6 +15,7 @@ type CrossExchangeInit struct {
 	MaxHoldBuffer    float64 //0.01
 	MinCreateProfit  float64 // 0.001
 	MinVolume        float64 //1鎂
+	StopLosePercent  float64 // -0.02 多少%要停損
 }
 
 func NewCrossExchangeInit() *CrossExchangeInit {
@@ -27,6 +28,7 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 		MaxHoldBuffer:    0.01,
 		MinCreateProfit:  0.001,
 		MinVolume:        1,
+		StopLosePercent:  -0.02,
 	}
 }
 
@@ -47,6 +49,7 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	cei.MaxHoldBuffer = cfg.Section(section).Key("MaxHoldBuffer").MustFloat64()
 	cei.MinCreateProfit = cfg.Section(section).Key("MinCreateProfit").MustFloat64()
 	cei.MinVolume = cfg.Section(section).Key("MinVolume").MustFloat64()
+	cei.StopLosePercent = cfg.Section(section).Key("StopLosePercent").MustFloat64()
 
 	return nil
 }

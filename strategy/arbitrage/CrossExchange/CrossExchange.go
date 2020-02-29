@@ -212,8 +212,15 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 		log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", positionProfit, matchProfit))
 		sum := positionProfit + matchProfit
-		if matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > init.MinVolume {
-			log.Println(fmt.Sprintf("sum:%f", sum))
+
+		hasProfit := (matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > init.MinVolume)
+
+		percent := positionCrossPair.GetMinPricePercent(matchCrossPair)
+		hasClose := percent < init.StopLosePercent
+
+		if hasProfit || hasClose {
+			sumString := fmt.Sprintf("sum:%f, hasProfit:%v, StopPercent:%v, hasClose:%v", sum, hasProfit, percent, hasClose)
+			log.Println(sumString)
 
 			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
 
@@ -227,10 +234,10 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 			go func() {
 				content := fmt.Sprintf(
-					"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%f, orderVolume:%f",
+					"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%s, orderVolume:%f",
 					positionCrossPair.GetProfitString(),
 					matchCrossPair.GetProfitString(),
-					sum,
+					sumString,
 					totalMatchOrderUSDVolume)
 				message_tool.SendBroadcastArcherGroup(content)
 			}()

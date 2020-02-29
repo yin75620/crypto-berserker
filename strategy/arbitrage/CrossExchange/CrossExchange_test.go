@@ -81,8 +81,8 @@ func TestPositionCloseCheck(t *testing.T) {
 	matchCp := CrossPair{
 		askExchange:  bybit,
 		bidExchange:  ft,
-		askPricePair: exc.PricePair{9500, 1000},
-		bidPricePair: exc.PricePair{9700, 1000},
+		askPricePair: exc.PricePair{9800, 1000},
+		bidPricePair: exc.PricePair{9500, 1000},
 		orderVolume:  1.0,
 	}
 	matchMap[matchCp.GetName()] = matchCp
