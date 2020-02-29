@@ -107,6 +107,8 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		ce.positionCrossPairMap = mp
 		savePairMapToFile(ce.positionCrossPairMap)
 
+		//更新手中幣別持有量
+		topCrossPair.UpdateWallet()
 	}
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
