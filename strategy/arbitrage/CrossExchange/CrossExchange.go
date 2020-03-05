@@ -232,16 +232,6 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 			totalMatchOrderUSDVolume += thisMatchOrderVolume
 
-			go func() {
-				content := fmt.Sprintf(
-					"positionCrossPair:%s,\r\n matchPair:%s\r\n sumProfit:%s, orderVolume:%f",
-					positionCrossPair.GetProfitString(),
-					matchCrossPair.GetProfitString(),
-					sumString,
-					totalMatchOrderUSDVolume)
-				message_tool.SendBroadcastArcherGroup(content)
-			}()
-
 			crossPairArray[index].orderVolume -= thisMatchOrderVolume
 		}
 	}
@@ -269,6 +259,13 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	<-bidChannel
 
 	m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
+
+	content := fmt.Sprintf(
+		"positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f",
+		positionPairName,
+		matchCrossPair.GetProfitString(),
+		totalMatchOrderUSDVolume)
+	message_tool.SendBroadcastArcherGroup(content)
 
 	return true, crossPairArray
 }
