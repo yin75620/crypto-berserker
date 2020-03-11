@@ -51,7 +51,7 @@ func (fws *BinanceWebSocket) doSubScribeOrderBook(marketName string, resChannel 
 
 			orderBookData := OrderBookData{}
 			json.Unmarshal(message, &orderBookData)
-			log.Println(orderBookData)
+			//log.Println("orderBookData:", orderBookData)
 			response = orderBookData.ToOrderBookDetail()
 			response.Market = market
 
