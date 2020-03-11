@@ -13,9 +13,6 @@ import (
 const WEBSOCKET_URL = "wss://stream.bybit.com/realtime"
 
 type ByBitWebSocket struct {
-	//conn *websocket.Conn
-	Asks map[float64]float64 //price,volume
-	Bids map[float64]float64 //price,volume
 }
 
 func NewSocket() *ByBitWebSocket {

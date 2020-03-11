@@ -12,9 +12,6 @@ import (
 const WEBSOCKET_URL = "wss://ftx.com/ws/"
 
 type FtxWebSocket struct {
-	//conn *websocket.Conn
-	Asks map[float64]float64 //price,volume
-	Bids map[float64]float64 //price,volume
 }
 
 func NewSocket() *FtxWebSocket {
