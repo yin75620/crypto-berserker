@@ -11,6 +11,8 @@ import (
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
+type CrossPairStringMap map[string]CrossPair
+
 type CrossExchange struct {
 	exchanges            []exc.Exchange
 	futuresArray         []exc.Futures
@@ -107,8 +109,9 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		ce.positionCrossPairMap = mp
 		savePairMapToFile(ce.positionCrossPairMap)
 
-		//更新手中幣別持有量
-		topCrossPair.UpdateWallet()
+		//更新交易所內幣別持有量
+		ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
+		ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
 	}
 
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
@@ -120,7 +123,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		// 無利可圖，重設偵測
 		return 0
 	}
-	fmt.Println(orderTotalValue)
+	log.Println(orderTotalValue)
 
 	m_expectedTotalValue = execMinTotalValue - orderTotalValue
 
@@ -135,7 +138,15 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	return plusMilliSecond
 }
 
-func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) (bool, map[string][]CrossPair) {
+func (ce *CrossExchange) updateExchangeWallet(exchangeName string) {
+	for i, _ := range ce.exchanges {
+		if ce.exchanges[i].GetName() == exchangeName {
+			ce.exchanges[i].GetWallet()
+		}
+	}
+}
+
+func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, map[string][]CrossPair) {
 
 	//hasPosition
 	if len(crossPairsTable) <= 0 {
@@ -171,7 +182,7 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap map[str
 	return hasClose, crossPairsTable
 }
 
-func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair) CrossPair {
+func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap) CrossPair {
 	// key check
 	matchName := ""
 	for _, crossPair := range crossPairArray {
@@ -238,7 +249,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray
 }
 
-func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap map[string]CrossPair, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
+func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
@@ -270,7 +281,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	return true, crossPairArray
 }
 
-func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]CrossPair {
+func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) CrossPairStringMap {
 
 	exchangePairs := []ExchangePair{}
 	for _, exchg := range exchanges {
@@ -278,7 +289,7 @@ func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]C
 		exchangePairs = append(exchangePairs, *NewExchangePair(exchg, askPair, bidPair))
 	}
 
-	crossPairMap := map[string]CrossPair{}
+	crossPairMap := CrossPairStringMap{}
 	for index, ePair := range exchangePairs {
 		for matchIndex, matchPair := range exchangePairs {
 			if index == matchIndex {
@@ -291,7 +302,7 @@ func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) map[string]C
 	return crossPairMap
 }
 
-func getMaxProfitCrossPair(mcp map[string]CrossPair) CrossPair {
+func getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
 	maxProfit := -math.MaxFloat64
 	var topCrossPair CrossPair
 	for _, crossPair := range mcp {
