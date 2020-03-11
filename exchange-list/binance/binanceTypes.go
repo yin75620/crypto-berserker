@@ -73,7 +73,7 @@ type OrderBookData struct {
 func (obd *OrderBookData) ToOrderBookDetail() ob.OrderBookerResponseDetail {
 	res := ob.OrderBookerResponseDetail{}
 	res.Time = float64(obd.LastUpdateID)
-	res.Action = ob.Update
+	res.Action = ob.Partial
 	res.Checksum = obd.LastUpdateID
 	res.Asks = tool.TransToFloatTwoArray(obd.Asks)
 	res.Bids = tool.TransToFloatTwoArray(obd.Bids)
