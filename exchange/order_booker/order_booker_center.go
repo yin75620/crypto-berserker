@@ -46,3 +46,18 @@ func (obc *OrderBookCenter) Register(market string) (chan int, bool) {
 		return nil, false
 	}
 }
+
+func StartOrderBook(orderBookCenter *OrderBookCenter, market string) *OrderBooker {
+	if !orderBookCenter.IsExist(market) {
+		channel, _ := orderBookCenter.Register(market)
+		<-channel
+		go func() {
+			for {
+				<-channel
+			}
+		}()
+	}
+
+	booker := orderBookCenter.GetBooker(market)
+	return booker
+}

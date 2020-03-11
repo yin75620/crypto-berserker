@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -21,6 +22,7 @@ type JArray exc.JArray
 
 func NewBinance(c *http.Client) *binance {
 	bn := binance{}
+	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bn.client = c
 
 	return &bn
@@ -31,13 +33,15 @@ func NewBinance1(key, secretKey string) *binance {
 	bn.client = http.DefaultClient
 	bn.key = key
 	bn.secretKey = secretKey
+	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	return &bn
 }
 
 type binance struct {
-	client    *http.Client
-	key       string
-	secretKey string
+	client          *http.Client
+	key             string
+	secretKey       string
+	orderBookCenter *ob.OrderBookCenter
 }
 
 // implement exchange
@@ -117,8 +121,12 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.LastUpdateId = json["lastUpdateId"].(float64)
 	qr.TradeData.SetByJArray(json)
 }
-
 func (bn *binance) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+	booker := ob.StartOrderBook(bn.orderBookCenter, coinPair.GetLinkMakertName())
+	return booker.GetFirstPricePair()
+}
+
+func (bn *binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	const minLimit = 5
 	/*reqString := fmt.Sprintf("depth?symbol=%s&limit=%d",
 	strings.ToUpper(coinPair.GetLinkMakertName()),
