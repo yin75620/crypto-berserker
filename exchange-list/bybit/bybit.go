@@ -67,13 +67,14 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 }
 
 func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName string) []exc.Balance {
-	const TempBTCToUSDValue = 9000.0
+	const TempBTCToUSDValue = 5000.0
 
 	bal := exc.Balance{
-		Coin:     coinName,
-		Free:     bybitBalance.AvailableBalance,
-		Total:    bybitBalance.Equity,
-		UsdValue: TempBTCToUSDValue * bybitBalance.Equity,
+		Coin:         coinName,
+		Free:         bybitBalance.AvailableBalance,
+		FreeUsdValue: bybitBalance.AvailableBalance * TempBTCToUSDValue,
+		Total:        bybitBalance.Equity,
+		UsdValue:     TempBTCToUSDValue * bybitBalance.Equity,
 	}
 	balances = append(balances, bal)
 	return balances

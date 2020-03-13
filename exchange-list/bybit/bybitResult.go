@@ -183,7 +183,7 @@ type GetLeverageResult struct {
 }
 
 type LeverageItem struct {
-	Leverage int `json:"leverage"`
+	Leverage float64 `json:"leverage"`
 }
 
 type PositionV1 struct {

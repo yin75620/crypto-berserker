@@ -5,10 +5,11 @@ type Wallet struct {
 }
 
 type Balance struct {
-	Coin     string  //coinName
-	Free     float64 //can use amount
-	Total    float64 //total amount
-	UsdValue float64
+	Coin         string  //coinName
+	Free         float64 //can use amount
+	FreeUsdValue float64 //can use amount
+	Total        float64 //total amount
+	UsdValue     float64
 }
 
 func NewWallet() *Wallet {
@@ -55,4 +56,23 @@ func (w *Wallet) GetAllBalanceUSDValue() float64 {
 		result += value.UsdValue
 	}
 	return result
+}
+
+func (w *Wallet) GetAllBalanceFreeUSDValue() float64 {
+	result := 0.0
+	for _, value := range w.Balances {
+		result += value.FreeUsdValue
+	}
+	return result
+}
+
+func (w *Wallet) CalculerFreeUsdValue() {
+	for i, value := range w.Balances {
+		if value.UsdValue == 0 {
+			continue
+		}
+		value.FreeUsdValue = value.Free * value.Total / value.UsdValue
+		w.Balances[i] = value
+	}
+
 }

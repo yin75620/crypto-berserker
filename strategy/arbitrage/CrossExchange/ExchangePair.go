@@ -142,7 +142,7 @@ func (cp *CrossPair) GetMaxHoldVolume() float64 {
 	bAccount := cp.bidExchange.GetAccount()
 	aw := aAccount.WalletInfo
 	bw := bAccount.WalletInfo
-	return math.Min(aw.GetAllBalanceUSDValue()*aAccount.Leverage, bw.GetAllBalanceUSDValue()*bAccount.Leverage)
+	return math.Min(aw.GetAllBalanceFreeUSDValue()*aAccount.Leverage, bw.GetAllBalanceFreeUSDValue()*bAccount.Leverage)
 }
 
 func (cp *CrossPair) GetMinPricePercent(matchPair CrossPair) float64 {

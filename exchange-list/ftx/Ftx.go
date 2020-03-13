@@ -110,6 +110,7 @@ func (ftx *Ftx) GetWallet() exc.Wallet {
 
 	w := exc.Wallet{}
 	w.Balances = response.Result
+	w.CalculerFreeUsdValue()
 
 	ftx.account.WalletInfo = w
 	return w
