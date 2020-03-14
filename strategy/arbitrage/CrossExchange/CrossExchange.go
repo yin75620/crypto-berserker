@@ -100,7 +100,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	maxProfit := topCrossPair.GetProfit()
 	maxHoldVolume := ce.init.MaxHoldVolume
 	//計算最大持有量
-	maxHoldVolume = math.Min(maxHoldVolume, topCrossPair.GetMaxHoldVolume())
+	maxHoldVolume = math.Min(maxHoldVolume, topCrossPair.GetMaxHoldVolume()*ce.init.MaxHoldeExchangePercent)
 	maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
 
 	// 檢查部位是否可以平倉
