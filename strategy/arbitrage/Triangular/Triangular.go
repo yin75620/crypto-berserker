@@ -546,14 +546,5 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 }
 
 func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
-	//最多重試三次
-	const RETRY_TIMES = 3
-	for i := 0; i < RETRY_TIMES; i++ {
-		_, err := tri.exchangeClient.PostOrder(order)
-		if err == nil {
-			break
-		}
-		log.Println(fmt.Sprintf("retry Count:%d", i))
-	}
-
+	exc.PostOrderRefry(tri.exchangeClient, order)
 }

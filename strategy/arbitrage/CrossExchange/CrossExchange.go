@@ -394,7 +394,7 @@ func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pTy
 		Futures: futures,
 	}
 	go func() {
-		exchange.PostFuturesOrder(myOrder)
+		exc.PostFuturesOrderRefry(exchange, myOrder)
 		resultChannel <- 0
 	}()
 	return resultChannel

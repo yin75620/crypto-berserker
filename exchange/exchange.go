@@ -24,6 +24,30 @@ type Exchange interface {
 	GetAccount() Account
 }
 
+func PostOrderRefry(ex Exchange, order ExchangeOrder) {
+	//最多重試三次
+	const RETRY_TIMES = 3
+	for i := 0; i < RETRY_TIMES; i++ {
+		_, err := ex.PostOrder(order)
+		if err == nil {
+			break
+		}
+		log.Println(fmt.Sprintf("retry Count:%d", i))
+	}
+}
+
+func PostFuturesOrderRefry(ex Exchange, order FuturesOrder) {
+	//最多重試三次
+	const RETRY_TIMES = 3
+	for i := 0; i < RETRY_TIMES; i++ {
+		_, err := ex.PostFuturesOrder(order)
+		if err == nil {
+			break
+		}
+		log.Println(fmt.Sprintf("retry Count:%d", i))
+	}
+}
+
 type PriceType int
 
 const (
