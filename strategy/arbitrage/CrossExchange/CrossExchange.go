@@ -208,7 +208,8 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 	return matchCrossPair
 }
 
-func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64, []CrossPair) {
+func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64, []CrossPair, string) {
+	resSumString := ""
 	matchProfitNumber := matchCrossPair.GetProfitNumber()
 
 	matchVolume := matchCrossPair.GetMinTotalVolume()
@@ -225,7 +226,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 		//找出反向配對，確定利潤
 		positionProfit := positionCrossPair.GetProfit()
 
-		log.Println(fmt.Sprintf("position profit:%f, matchProfit:%f", positionProfit, matchProfit))
+		log.Println(fmt.Sprintf("position profit:%f; orderVolume:%f, matchProfit:%f", positionProfit, positionCrossPair.orderVolume, matchProfit))
 		sum := positionProfit + matchProfit
 
 		hasProfit := (matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > init.MinVolume)
@@ -236,6 +237,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 		if hasProfit || hasClose {
 			sumString := fmt.Sprintf("sum:%f, hasProfit:%v, StopPercent:%v, hasClose:%v", sum, hasProfit, percent, hasClose)
 			log.Println(sumString)
+			resSumString = resSumString + sumString
 
 			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
 
@@ -250,14 +252,14 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 			crossPairArray[index].orderVolume -= thisMatchOrderVolume
 		}
 	}
-	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray
+	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, resSumString
 }
 
 func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
-	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray := getTotalVolume(crossPairArray, matchCrossPair, init)
+	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, sumString := getTotalVolume(crossPairArray, matchCrossPair, init)
 
 	if totalMatchOrderUSDVolume <= 0 {
 		return false, crossPairArray
@@ -276,10 +278,11 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
 
 	content := fmt.Sprintf(
-		"positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f",
+		"positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f \r\n sumString:%s",
 		positionPairName,
 		matchCrossPair.GetProfitString(),
-		totalMatchOrderUSDVolume)
+		totalMatchOrderUSDVolume,
+		sumString)
 	message_tool.SendBroadcastArcherGroup(content)
 
 	return true, crossPairArray

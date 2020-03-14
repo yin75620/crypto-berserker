@@ -23,7 +23,7 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 	return &CrossExchangeInit{
 		DelayMilliSecond:        500,
 		OverPrice:               0.02,
-		MinSellProfit:           -0.0007,
+		MinSellProfit:           -0.05,
 		MinSumProfit:            0.0001,
 		MaxHoldVolume:           1000.0,
 		MaxHoldeExchangePercent: 1,

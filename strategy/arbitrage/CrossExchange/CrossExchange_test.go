@@ -63,7 +63,7 @@ func TestPositionCloseCheck(t *testing.T) {
 	bybit := bybit.NewBybit(http.DefaultClient)
 
 	crossPairsTable := map[string][]CrossPair{}
-	cp := CrossPair{
+	ftxBit := CrossPair{
 		askExchange:  ft,
 		bidExchange:  bybit,
 		askPricePair: exc.PricePair{9600, 100},
@@ -71,6 +71,16 @@ func TestPositionCloseCheck(t *testing.T) {
 		orderVolume:  1.0,
 	}
 
+	bybitFtx := CrossPair{
+		askExchange:  bybit,
+		bidExchange:  ft,
+		askPricePair: exc.PricePair{9500, 1000},
+		bidPricePair: exc.PricePair{9700, 1000},
+		orderVolume:  1.0,
+	}
+
+	cp := ftxBit
+	matchCp := bybitFtx
 	cpArray := []CrossPair{
 		cp,
 	}
@@ -78,13 +88,6 @@ func TestPositionCloseCheck(t *testing.T) {
 
 	matchMap := map[string]CrossPair{}
 
-	matchCp := CrossPair{
-		askExchange:  bybit,
-		bidExchange:  ft,
-		askPricePair: exc.PricePair{9800, 1000},
-		bidPricePair: exc.PricePair{9500, 1000},
-		orderVolume:  1.0,
-	}
 	matchMap[matchCp.GetName()] = matchCp
 
 	futures := exc.Futures{
