@@ -209,7 +209,8 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 }
 
 func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64, []CrossPair) {
-	matchProfit := matchCrossPair.GetProfit()
+	matchProfitNumber := matchCrossPair.GetProfitNumber()
+
 	matchVolume := matchCrossPair.GetMinTotalVolume()
 	// 確認利潤並統計總量
 	askTotalVolume := 0.0
@@ -217,6 +218,9 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 	totalMatchOrderUSDVolume := 0.0
 	for index, pcp := range crossPairArray {
 		positionCrossPair := pcp
+
+		//反向的利潤
+		matchProfit := matchProfitNumber / positionCrossPair.GetAskPriceWithFee()
 
 		//找出反向配對，確定利潤
 		positionProfit := positionCrossPair.GetProfit()

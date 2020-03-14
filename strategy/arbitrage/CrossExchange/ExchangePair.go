@@ -92,6 +92,15 @@ func (cp *CrossPair) GetBidVolumeByTotal(total float64) float64 {
 //profit
 func (cp *CrossPair) GetProfit() float64 {
 
+	aPrice := cp.GetAskPriceWithFee()
+	profitNumber := cp.GetProfitNumber()
+
+	profit := profitNumber / aPrice
+
+	return profit
+}
+
+func (cp *CrossPair) GetProfitNumber() float64 {
 	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
 
@@ -100,10 +109,11 @@ func (cp *CrossPair) GetProfit() float64 {
 		log.Println("laPrice <= 0")
 		return 0
 	}
+	return bPrice - aPrice
+}
 
-	profit := (bPrice - aPrice) / aPrice
-
-	return profit
+func (cp *CrossPair) GetAskPriceWithFee() float64 {
+	return cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 }
 
 func (cp *CrossPair) GetProfitString() string {
