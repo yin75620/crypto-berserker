@@ -49,18 +49,22 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 	jarray := exc.JArray{}
 	coinName := "BTC"
 	jarray["coin"] = coinName
-
-	response := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
-	fmt.Println(string(response))
-	err := json.Unmarshal(response, &ret)
-
 	w := exc.NewWallet()
-	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName)
 
+	response, err := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
 	if err != nil {
 		fmt.Println(err)
 		return *w
 	}
+	fmt.Println(string(response))
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		fmt.Println(err)
+		return *w
+	}
+
+	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName)
+
 	bb.account.WalletInfo = *w
 
 	return *w
@@ -105,11 +109,17 @@ func (bb *Bybit) GetAccount() exc.Account {
 }
 
 func (bb *Bybit) SendGetLeverage() GetLeverageResult {
-	res := bb.doRequest("GET", "/user/leverage", exc.JArray{})
 	leverageResult := GetLeverageResult{}
-	err := json.Unmarshal(res, &leverageResult)
+	res, err := bb.doRequest("GET", "/user/leverage", exc.JArray{})
+	if err != nil {
+		fmt.Println(err)
+		return leverageResult
+	}
+	err = json.Unmarshal(res, &leverageResult)
+
 	if err != nil {
 		fmt.Println("SendGetLeverage", err)
+		return leverageResult
 	}
 	return leverageResult
 }
@@ -155,12 +165,10 @@ func (bb *Bybit) doPostOrder(bo BybitOrder) (string, error) {
 		panic(err)
 	}
 
-	response := bb.doRequest("POST", "v2/private/order/create", jsonMap)
+	response, err := bb.doRequest("POST", "v2/private/order/create", jsonMap)
 	log.Println(fmt.Sprintf("%s", response))
 
-	var resErr error
-
-	return string(response), resErr
+	return string(response), err
 }
 
 func (bb *Bybit) GetFee() exc.Fee {
@@ -218,7 +226,7 @@ func (bb *Bybit) getAskBidPairByMarket(market string) (exc.PricePair, exc.PriceP
 	return booker.GetFirstPricePair()
 }
 
-func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
+func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) ([]byte, error) {
 	client := bb.client
 
 	ts := exc.GetTimeSpan()
@@ -245,7 +253,7 @@ func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) []byte {
 	req, err := http.NewRequest(method, fullURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		log.Println(err)
-		return res
+		return res, err
 	}
 
 	if method == "GET" {

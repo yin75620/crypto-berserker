@@ -252,7 +252,11 @@ func (ftx *Ftx) doPostOrder(fo FtxOrder) (string, error) {
 	}
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
-	response := ftx.doPost("orders", body)
+	response, err := ftx.doPost("orders", body)
+	if err != nil {
+		log.Println("doPostOrder fail.", err)
+		return "", err
+	}
 	log.Println(fmt.Sprintf("%s", response))
 
 	//{"error":"Not enough balances","success":false}
@@ -273,14 +277,16 @@ func (ftx *Ftx) doPostOrder(fo FtxOrder) (string, error) {
 }
 
 func (ftx *Ftx) doGet(apiName, body string) []byte {
-	return ftx.doRequest("GET", apiName, body)
+	//數量有點多，err先不往上丟
+	res, _ := ftx.doRequest("GET", apiName, body)
+	return res
 }
 
-func (ftx *Ftx) doPost(apiName, body string) []byte {
+func (ftx *Ftx) doPost(apiName, body string) ([]byte, error) {
 	return ftx.doRequest("POST", apiName, body)
 }
 
-func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
+func (ftx *Ftx) doRequest(method, apiName, body string) ([]byte, error) {
 	client := ftx.client
 
 	var res []byte
@@ -289,7 +295,7 @@ func (ftx *Ftx) doRequest(method, apiName, body string) []byte {
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
-		return res
+		return res, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")

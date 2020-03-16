@@ -166,12 +166,12 @@ func (co *CoinPair) SetByLinkMakertName(linkName string) {
 	fmt.Println("new linkName:", linkName)
 }
 
-func SendRequest(client *http.Client, req *http.Request) []byte {
+func SendRequest(client *http.Client, req *http.Request) ([]byte, error) {
 	var res []byte
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
-		return res
+		return res, err
 	}
 
 	defer resp.Body.Close()
@@ -179,11 +179,11 @@ func SendRequest(client *http.Client, req *http.Request) []byte {
 	if err != nil {
 		log.Fatal(err)
 		fmt.Printf("%s", err)
-		return res
+		return res, err
 	}
 
 	//log.Printf("%s", sitemap)
-	return sitemap
+	return sitemap, nil
 }
 
 type MarketInfo struct {
