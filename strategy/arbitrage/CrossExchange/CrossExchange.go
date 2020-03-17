@@ -114,12 +114,13 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
 	}
 
+	currentUSDVolume := getCurrentUSDVolume(ce.positionCrossPairMap)
 	execMinTotalValue := topCrossPair.GetMinTotalVolume()
-	orderTotalValue := math.Min(maxHoldVolume-m_currentUSDVolume, execMinTotalValue)
+	orderTotalValue := math.Min(maxHoldVolume-currentUSDVolume, execMinTotalValue)
 
 	// 交易判斷
 	// 有利可圖
-	if !canOrder(maxProfit, orderTotalValue, ce.init) {
+	if !canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init) {
 		// 無利可圖，重設偵測
 		return 0
 	}
@@ -275,8 +276,6 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	<-askChannel
 	<-bidChannel
 
-	m_currentUSDVolume = m_currentUSDVolume - totalMatchOrderUSDVolume
-
 	content := fmt.Sprintf(
 		"positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f \r\n sumString:%s",
 		positionPairName,
@@ -338,8 +337,6 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	m_currentUSDVolume = m_currentUSDVolume + orderTotalValue
-
 	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
 		fmt.Sprintf("resAsk:%f, orderVolume:%f, AskCoin:%s", askPair.Price, askPair.Volume, askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderVolume:%f, bidCoin:%s", bidPair.Price, bidPair.Volume, bidExchange.GetName()),
@@ -353,14 +350,23 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 
 var (
 	m_expectedTotalValue float64 = 0
-	m_currentUSDVolume   float64 = 0
 )
 
 const (
 	PairMapFileName = "PairMap.json"
 )
 
-func canOrder(profit, orderTotalValue float64, init CrossExchangeInit) bool {
+func getCurrentUSDVolume(positionCrossPairMap map[string][]CrossPair) float64 {
+	sum := 0.0
+	for _, array := range positionCrossPairMap {
+		for _, v := range array {
+			sum = sum + v.orderVolume
+		}
+	}
+	return sum
+}
+
+func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExchangeInit) bool {
 	// 有利可圖
 	if profit < init.MinCreateProfit { // 沒足夠利潤，直接下一圈
 		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
@@ -368,8 +374,8 @@ func canOrder(profit, orderTotalValue float64, init CrossExchangeInit) bool {
 	} else if orderTotalValue < init.MinVolume {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", init.MinVolume))
 		return false
-	} else if m_currentUSDVolume >= init.MaxHoldVolume {
-		log.Println(fmt.Sprintf("m_currentUSDVolume:%g >= init.MaxHoldVolume:%g", m_currentUSDVolume, init.MaxHoldVolume))
+	} else if currentUSDVolume >= init.MaxHoldVolume {
+		log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
 		return false
 	}
 	return true
