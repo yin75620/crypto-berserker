@@ -369,13 +369,13 @@ func getCurrentUSDVolume(positionCrossPairMap map[string][]CrossPair) float64 {
 func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExchangeInit) bool {
 	// 有利可圖
 	if profit < init.MinCreateProfit { // 沒足夠利潤，直接下一圈
-		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
+		//log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
 	} else if orderTotalValue < init.MinVolume {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", init.MinVolume))
+		//log.Println(fmt.Sprintf("orderTotalValue < %f", init.MinVolume))
 		return false
 	} else if currentUSDVolume >= init.MaxHoldVolume {
-		log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
+		//log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
 		return false
 	}
 	return true
