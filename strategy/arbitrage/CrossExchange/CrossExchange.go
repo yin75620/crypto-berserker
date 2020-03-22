@@ -316,7 +316,7 @@ func getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
-		log.Println(crossPair.GetProfitString())
+		//log.Println(crossPair.GetProfitString())
 
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()

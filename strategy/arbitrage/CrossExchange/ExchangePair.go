@@ -143,7 +143,7 @@ func (cp *CrossPair) GetMinTotalVolume() float64 {
 	}
 
 	minTotalVolume := math.Min(aVolume, bVolume)
-	log.Println(fmt.Sprintf("minTotalVolume:%f", minTotalVolume))
+	//log.Println(fmt.Sprintf("minTotalVolume:%f", minTotalVolume))
 	return minTotalVolume
 }
 
