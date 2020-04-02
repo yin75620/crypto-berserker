@@ -3,7 +3,7 @@ package binance
 import (
 	"encoding/json"
 
-	"github.com/thrasher-corp/gocryptotrader/currency"
+	//"github.com/thrasher-corp/gocryptotrader/currency"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
@@ -473,6 +473,7 @@ var (
 
 // WithdrawalFees the large list of predefined withdrawal fees
 // Prone to change
+/*
 var WithdrawalFees = map[currency.Code]float64{
 	currency.BNB:     0.13,
 	currency.BTC:     0.0005,
@@ -639,7 +640,7 @@ var WithdrawalFees = map[currency.Code]float64{
 	currency.APPC:    12.4,
 	currency.PIVX:    0.02,
 }
-
+*/
 // WithdrawResponse contains status of withdrawal request
 type WithdrawResponse struct {
 	Success bool   `json:"success"`
