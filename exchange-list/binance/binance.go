@@ -194,5 +194,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
 	req.Header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
 
-	return exc.SendRequest(client, req)
+	resByte, _ := exc.SendRequest(client, req)
+
+	return resByte
 }
