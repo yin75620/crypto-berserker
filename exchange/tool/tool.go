@@ -8,12 +8,31 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const RetryCount = 10
+
 func CreateConn(url string) *websocket.Conn {
+	var c *websocket.Conn
+	var err error
+
+	for i := 0; i < RetryCount; i++ {
+		c, err = doCreateConn(url)
+		if err != nil {
+			continue
+		}
+		return c
+	}
+
+	log.Fatal(err)
+	return c
+}
+
+func doCreateConn(url string) (*websocket.Conn, error) {
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		log.Println("dial:", err)
+		return c, err
 	}
-	return c
+	return c, nil
 }
 
 func Send(c *websocket.Conn, req interface{}) {
