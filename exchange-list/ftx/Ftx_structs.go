@@ -50,6 +50,6 @@ type Account struct {
 		ShortOrderSize               float64 `json:"shortOrderSize"`
 		Side                         string  `json:"side"`
 		Size                         float64 `json:"size"`
-		UnrealizedPnl                int     `json:"unrealizedPnl"`
+		UnrealizedPnl                float64 `json:"unrealizedPnl"`
 	}
 }
