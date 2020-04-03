@@ -40,11 +40,11 @@ func main() {
 
 	log.Println(version)
 
-	tInit, bunch := iniSetting()
+	tInit, bunchs := iniSetting()
 	s, _ := json.Marshal(tInit)
 	log.Println(string(s))
 
-	s2, _ := json.Marshal(bunch)
+	s2, _ := json.Marshal(bunchs)
 	log.Println(string(s2))
 
 	log.Println(mSwitchExchange)
@@ -80,12 +80,12 @@ func main() {
 	tri = Tri.NewTriangular(exchange)
 
 	tri.SetInit(tInit)
-	tri.SetCoinBunch(bunch)
+	tri.SetCoinBunchs(bunchs)
 	tri.Start()
 
 }
 
-func iniSetting() (Tri.TriangularInit, []Tri.CoinStrip) {
+func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 	cfg, err := ini.Load("main.ini")
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
@@ -114,14 +114,26 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinStrip) {
 	resFee := cfg.Section("").Key("TakerFee").MustFloat64()
 	log.Println(resFee)
 
-	resFlow := []Tri.CoinStrip{}
-	for _, value := range cfg.Section("CoinStrip").Keys() {
-		res := value.String()
-		log.Println(res)
+	const DefaultMaxCoinStrip = 10
+	resFlow := []Tri.CoinBunch{}
 
-		coins := strings.Split(res, ",")
-		resFlow = append(resFlow, Tri.CoinStrip{Coins: coins})
+	for i := 0; i < DefaultMaxCoinStrip; i++ {
+		coinStrips := []Tri.CoinStrip{}
+		sectionStripStr := fmt.Sprintf("CoinStrip%d", i)
+		sectionStrip, err := cfg.GetSection(sectionStripStr)
+		if err != nil {
+			continue
+		}
+		for _, value := range sectionStrip.Keys() {
+			res := value.String()
+			log.Println(res)
+
+			coins := strings.Split(res, ",")
+			coinStrips = append(coinStrips, Tri.CoinStrip{Coins: coins})
+		}
+		resFlow = append(resFlow, Tri.CoinBunch{CoinStrips: coinStrips})
 	}
+
 	return resInit, resFlow
 }
 

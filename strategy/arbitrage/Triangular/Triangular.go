@@ -49,9 +49,13 @@ type CoinStrip struct {
 	Coins []string
 }
 
+type CoinBunch struct {
+	CoinStrips []CoinStrip
+}
+
 type Triangular struct {
 	exchangeClient exc.Exchange
-	CoinStrip      []CoinStrip
+	CoinBunch      []CoinBunch
 	Init           TriangularInit
 }
 
@@ -68,15 +72,9 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 	return t
 }
 
-func (tri *Triangular) SetCoinBunch(CoinStrip []CoinStrip) {
-	for _, value := range CoinStrip {
-		tri.CoinStrip = append(tri.CoinStrip, value)
-	}
-}
-
-func (tri *Triangular) SetCoinArrays(coinArrays [][]string) {
-	for _, value := range coinArrays {
-		tri.CoinStrip = append(tri.CoinStrip, CoinStrip{Coins: value})
+func (tri *Triangular) SetCoinBunchs(coinBunchs []CoinBunch) {
+	for _, value := range coinBunchs {
+		tri.CoinBunch = append(tri.CoinBunch, value)
 	}
 }
 
@@ -285,10 +283,27 @@ var MAX_FAIL_COUNT = 3
 var mFinishCount = 0
 
 const EveryCountCheckWallet = 5
+const DefaultDelaySecond = 100
 
 var mPreWallet exc.Wallet
 
 func (tri *Triangular) stratStrategy() int {
+	res := DefaultDelaySecond
+	for _, coinBunch := range tri.CoinBunch {
+		dealFlows := []DealFlow{}
+		for _, coinStrip := range coinBunch.CoinStrips {
+			fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
+			dealFlows = append(dealFlows, fuDealFlow)
+		}
+		sec := tri.stratDealFlow(dealFlows)
+		if sec < res {
+			res = sec
+		}
+	}
+	return res
+}
+
+func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 
 	defer func() {
 		err := recover()
@@ -299,18 +314,18 @@ func (tri *Triangular) stratStrategy() int {
 		mFailCount = mFailCount + 1
 		if mFailCount < MAX_FAIL_COUNT {
 			//再重來一次
-			tri.stratStrategy()
+			tri.stratDealFlow(dealFlows)
 		}
 		log.Println(mFailCount)
 		// 失敗次數太多，直接結束
 	}()
 
-	dealFlows := []DealFlow{}
+	/*dealFlows := []DealFlow{}
 
 	for _, coinStrip := range tri.CoinStrip {
 		fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
 		dealFlows = append(dealFlows, fuDealFlow)
-	}
+	}*/
 
 	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
 	highestBidFlow := getHighestFlow(dealFlows, exc.Bid)
