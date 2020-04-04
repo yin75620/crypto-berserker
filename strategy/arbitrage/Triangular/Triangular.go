@@ -40,9 +40,6 @@ type TriangularInit struct {
 	RangePremium    float64
 	LeastTotalValue float64
 	DelayTime       int
-	// 利潤, 加速, 價值(美元計價)
-	RANK_S []float64 //{0.006, -3.0, 1000}
-	RANK_N []float64 //{0.003, -2.0, 300}
 }
 
 type CoinStrip struct {
@@ -50,7 +47,10 @@ type CoinStrip struct {
 }
 
 type CoinBunch struct {
-	CoinStrips []CoinStrip
+	CoinStrips    []CoinStrip
+	MinProfit     float64
+	PlusSecond    float64
+	TotalValuesUS float64
 }
 
 type Triangular struct {
@@ -65,9 +65,7 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 			RangePremium:    0.1, //10%
 			LeastTotalValue: 10,  //10 quoteCoin
 			DelayTime:       5,   //5second
-			// 利潤, 加速, 價值(美元計價)
-			RANK_S: []float64{0.006, -3.0, 1000},
-			RANK_N: []float64{0.001, -2.0, 300}}}
+		}}
 	t.exchangeClient = exchange
 	return t
 }
@@ -290,12 +288,8 @@ var mPreWallet exc.Wallet
 func (tri *Triangular) stratStrategy() int {
 	res := DefaultDelaySecond
 	for _, coinBunch := range tri.CoinBunch {
-		dealFlows := []DealFlow{}
-		for _, coinStrip := range coinBunch.CoinStrips {
-			fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
-			dealFlows = append(dealFlows, fuDealFlow)
-		}
-		sec := tri.stratDealFlow(dealFlows)
+
+		sec := tri.stratDealFlow(coinBunch)
 		if sec < res {
 			res = sec
 		}
@@ -303,7 +297,7 @@ func (tri *Triangular) stratStrategy() int {
 	return res
 }
 
-func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
+func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 
 	defer func() {
 		err := recover()
@@ -314,18 +308,17 @@ func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 		mFailCount = mFailCount + 1
 		if mFailCount < MAX_FAIL_COUNT {
 			//再重來一次
-			tri.stratDealFlow(dealFlows)
+			tri.stratDealFlow(coinBunch)
 		}
 		log.Println(mFailCount)
 		// 失敗次數太多，直接結束
 	}()
 
-	/*dealFlows := []DealFlow{}
-
-	for _, coinStrip := range tri.CoinStrip {
+	dealFlows := []DealFlow{}
+	for _, coinStrip := range coinBunch.CoinStrips {
 		fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
 		dealFlows = append(dealFlows, fuDealFlow)
-	}*/
+	}
 
 	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
 	highestBidFlow := getHighestFlow(dealFlows, exc.Bid)
@@ -359,13 +352,13 @@ func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 
 	log.Println(fmt.Sprintf("Profit:%f", profit))
 
-	currentOrderTotalValue := tri.Init.RANK_N[R_TOTAL_VALUE]
+	currentOrderTotalValue := coinBunch.TotalValuesUS
 
 	// 表示有人來搶單拉!!
 	if m_expectedTotalValue != 0 && m_expectedTotalValue > currentOrderTotalValue {
 		m_isFullPower = true
 
-	} else if profit > tri.Init.RANK_S[R_PROFIT] {
+	} else if profit > coinBunch.MinProfit {
 		// 利潤超高 買起來!!!
 		m_isFullPower = true
 	} else if m_expectedLowestProfit != 0 && m_expectedLowestProfit < profit {
@@ -374,7 +367,7 @@ func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 	}
 
 	if m_isFullPower {
-		currentOrderTotalValue = tri.Init.RANK_S[R_TOTAL_VALUE]
+		currentOrderTotalValue = coinBunch.TotalValuesUS
 	}
 
 	wnatOrderTotalValue := currentOrderTotalValue * (1 - (10 * rand.Float64() / 100.0)) // 隨機 -10%
@@ -386,7 +379,7 @@ func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 	m_expectedLowestProfit = profit
 
 	// 有利可圖
-	if !tri.canOrder(profit, orderTotalValue) {
+	if !tri.canOrder(profit, orderTotalValue, coinBunch) {
 		// 無利可圖，重設偵測
 		m_isFullPower = false
 		m_expectedTotalValue = 0
@@ -440,20 +433,20 @@ func (tri *Triangular) stratDealFlow(dealFlows []DealFlow) int {
 		mPreWallet = wallet
 	}
 
-	resPlusSecond := tri.Init.RANK_N[R_PLUS_SECOND]
+	resPlusSecond := coinBunch.PlusSecond
 	if m_isFullPower {
-		resPlusSecond = tri.Init.RANK_S[R_PLUS_SECOND]
+		resPlusSecond = coinBunch.PlusSecond
 	}
 
 	return int(resPlusSecond)
 }
 
-func (tri *Triangular) canOrder(profit, orderTotalValue float64) bool {
+func (tri *Triangular) canOrder(profit, orderTotalValue float64, coinBunch CoinBunch) bool {
 	// 有利可圖
 	if profit < 0 {
 		log.Println("No profit")
 		return false
-	} else if profit < tri.Init.RANK_N[R_PROFIT] {
+	} else if profit < coinBunch.MinProfit {
 		log.Println("No enough profit")
 		return false
 	} else if orderTotalValue < tri.Init.LeastTotalValue {

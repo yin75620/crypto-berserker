@@ -99,16 +99,6 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 		RangePremium:    cfg.Section("").Key("RangePremium").MustFloat64(),
 		LeastTotalValue: cfg.Section("").Key("LeastTotalValue").MustFloat64(),
 		DelayTime:       cfg.Section("").Key("DelayTime").MustInt(),
-		RANK_S: []float64{
-			cfg.Section("RankS").Key("MinProfit").MustFloat64(),
-			cfg.Section("RankS").Key("PlusSecond").MustFloat64(),
-			cfg.Section("RankS").Key("TotalValuesUS").MustFloat64(),
-		},
-		RANK_N: []float64{
-			cfg.Section("RankN").Key("MinProfit").MustFloat64(),
-			cfg.Section("RankN").Key("PlusSecond").MustFloat64(),
-			cfg.Section("RankN").Key("TotalValuesUS").MustFloat64(),
-		},
 	}
 
 	resFee := cfg.Section("").Key("TakerFee").MustFloat64()
@@ -118,6 +108,7 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 	resFlow := []Tri.CoinBunch{}
 
 	for i := 0; i < DefaultMaxCoinStrip; i++ {
+		coinBunch := Tri.CoinBunch{}
 		coinStrips := []Tri.CoinStrip{}
 		sectionStripStr := fmt.Sprintf("CoinStrip%d", i)
 		sectionStrip, err := cfg.GetSection(sectionStripStr)
@@ -125,12 +116,19 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 			continue
 		}
 		for _, value := range sectionStrip.Keys() {
+			if !strings.HasPrefix(value.Name(), "key") {
+				continue
+			}
 			res := value.String()
 			log.Println(res)
 
 			coins := strings.Split(res, ",")
 			coinStrips = append(coinStrips, Tri.CoinStrip{Coins: coins})
 		}
+		coinBunch.CoinStrips = coinStrips
+		coinBunch.MinProfit = sectionStrip.Key("MinProfit").MustFloat64()
+		coinBunch.PlusSecond = sectionStrip.Key("PlusSecond").MustFloat64()
+		coinBunch.TotalValuesUS = sectionStrip.Key("TotalValuesUS").MustFloat64()
 		resFlow = append(resFlow, Tri.CoinBunch{CoinStrips: coinStrips})
 	}
 
