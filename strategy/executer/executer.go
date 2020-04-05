@@ -129,7 +129,7 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 		coinBunch.MinProfit = sectionStrip.Key("MinProfit").MustFloat64()
 		coinBunch.PlusSecond = sectionStrip.Key("PlusSecond").MustFloat64()
 		coinBunch.TotalValuesUS = sectionStrip.Key("TotalValuesUS").MustFloat64()
-		resFlow = append(resFlow, Tri.CoinBunch{CoinStrips: coinStrips})
+		resFlow = append(resFlow, coinBunch)
 	}
 
 	return resInit, resFlow
