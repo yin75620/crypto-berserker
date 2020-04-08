@@ -33,7 +33,7 @@ type OrderBookSocketResponse struct {
 	Market     string                      `json:"market,omitempty"`
 	ActionType ActionType                  `json:"type,omitempty"`
 	Data       OrderBookSocketResponseData `json:"data,omitempty"`
-	//Success
+	Error      error                       // local use
 }
 
 func (obsr *OrderBookSocketResponse) IsUpdate() bool {

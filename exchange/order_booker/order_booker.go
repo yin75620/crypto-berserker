@@ -34,6 +34,14 @@ func (ob *OrderBooker) Receive() {
 	for {
 		res := <-ob.socketResponseChannel
 
+		if res.Error != nil {
+			ob.mutex.Lock()
+			clearMap(&ob.Asks)
+			clearMap(&ob.Bids)
+			ob.mutex.Unlock()
+			continue
+		}
+
 		// 比較市場
 		if res.Market != ob.MarketName {
 			continue

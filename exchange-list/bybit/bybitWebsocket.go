@@ -180,6 +180,7 @@ func (fws *ByBitWebSocket) doSubScribeOrderBook(marketName string, resChannel ch
 			//log.Println("message:", string(message))
 			if err != nil {
 				log.Println("error:", err)
+				response.Error = err
 				resChannel <- response
 				fws.doSubScribeOrderBook(market, resChannel)
 				return

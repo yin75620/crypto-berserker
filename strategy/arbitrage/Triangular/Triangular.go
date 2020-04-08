@@ -332,8 +332,8 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 	laVolume := lowestAskFlow.getFinalPair(exc.Ask).Volume
 	hbVolume := highestBidFlow.getFinalPair(exc.Bid).Volume
 	// 出現錯誤，放慢速度
-	if laPrice <= 0 {
-		log.Println("laPrice <= 0")
+	if laPrice <= 0 || hbPrice <= 0 {
+		log.Println("laPrice <= 0 || hbPrice <= 0")
 		return 60
 	}
 

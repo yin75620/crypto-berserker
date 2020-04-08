@@ -42,6 +42,7 @@ func (fws *BinanceWebSocket) doSubScribeOrderBook(marketName string, resChannel 
 			//log.Println("message:", string(message))
 			if err != nil {
 				log.Println("error:", err)
+				response.Error = err
 				resChannel <- response
 				fws.doSubScribeOrderBook(market, resChannel)
 				return

@@ -37,6 +37,7 @@ func (fws *FtxWebSocket) doSubScribeOrderBook(marketName string, resChannel chan
 
 			if err != nil {
 				log.Println("error:", err)
+				response.Error = err
 				resChannel <- response
 				fws.doSubScribeOrderBook(marketName, resChannel)
 				return

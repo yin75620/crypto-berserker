@@ -16,6 +16,7 @@ type OrderBookerResponseDetail struct {
 	Bids     [][]float64 `json:"bids,omitempty"`
 	Action   ActionType  `json:"action,omitempty"`
 	Market   string      `json:"market,omitempty"`
+	Error    error       //localUse
 }
 
 type ActionType string
