@@ -33,8 +33,12 @@ func main() {
 		setting.FTX_API_SECRET_KEY,
 		mSubAccount})
 	bybit := bybit.NewBybit(http.DefaultClient)
+
+	//binancef := binancef.NewBinancef(http.DefaultClient)
+
 	exchanges = append(exchanges, ft)
 	exchanges = append(exchanges, bybit)
+	//exchanges = append(exchanges, binancef)
 
 	ce := CrossExchange.NewCrossExchange(exchanges)
 	ce.SetInitByIni("main.ini")
