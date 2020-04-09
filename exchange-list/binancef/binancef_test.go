@@ -9,14 +9,14 @@ import (
 )
 
 func TestAccount(t *testing.T) {
-	ce := NewBinance(http.DefaultClient)
+	ce := NewBinancef(http.DefaultClient)
 	res := ce.GetAccountInfo()
 
 	fmt.Println(string(res))
 }
 
 func TestOrder(t *testing.T) {
-	ce := NewBinance(http.DefaultClient)
+	ce := NewBinancef(http.DefaultClient)
 
 	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 		CoinPair:  exc.CoinPair{"FTT", "USDT"},
@@ -69,7 +69,7 @@ func TestSign(t *testing.T) {
 }*/
 
 func TestPricePair(t *testing.T) {
-	ce := NewBinance(http.DefaultClient)
+	ce := NewBinancef(http.DefaultClient)
 	res1, res2 := ce.GetAskBidPair(exc.CoinPair{"BTC", "USDT"}, 1)
 	fmt.Println(fmt.Sprintf("res1:%g", res1.Price))
 	fmt.Println(fmt.Sprintf("res1:%g", res1.Volume))

@@ -20,7 +20,7 @@ var (
 
 type JArray exc.JArray
 
-func NewBinance(c *http.Client) *binance {
+func NewBinancef(c *http.Client) *binance {
 	bn := binance{}
 	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bn.client = c
@@ -69,7 +69,7 @@ func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
 		"price":       order.Price,
 	}
 
-	resByte := bn.doSignRequest("POST", "v3/order", body)
+	resByte := bn.doSignRequest("POST", "v1/order", body)
 	return string(resByte), nil
 }
 
@@ -80,7 +80,7 @@ func (bn *binance) GetFee() exc.Fee {
 	return fee
 }
 func (bn *binance) GetName() string {
-	return "Binance"
+	return "Binancef"
 }
 func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
@@ -91,7 +91,8 @@ func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
 }
 
 func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
-	return exc.PricePair{}, exc.PricePair{}
+	booker := ob.StartOrderBook(bn.orderBookCenter, futures.GetLinkMarketName())
+	return booker.GetFirstPricePair()
 }
 
 func (bn *binance) GetAccount() exc.Account {
@@ -99,6 +100,19 @@ func (bn *binance) GetAccount() exc.Account {
 }
 
 func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+
+	body := exc.JArray{
+		"symbol":      strings.ToUpper(order.Futures.GetLinkMarketName()),
+		"side":        order.Side,      //"BUY",
+		"type":        order.OrderType, //"LIMIT",
+		"timeInForce": "GTC",
+		"quantity":    order.Size,
+		"price":       order.Price,
+	}
+
+	resByte := bn.doSignRequest("POST", "v1/order", body)
+	return string(resByte), nil
+
 	/*bo := BybitOrder{}
 	bo.Side = strings.Title(order.CommodityOrder.Side)
 	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
@@ -108,7 +122,7 @@ func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	bo.TimeInForce = "GoodTillCancel"
 
 	return bb.doPostOrder(bo)*/
-	return "", nil
+	//return "", nil
 }
 
 type QuoteResponse struct {
