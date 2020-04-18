@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
+	"github.com/yin75620/crypto-berserker/message_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -18,5 +19,8 @@ func TestWsStart(t *testing.T) {
 			mSubAccount})
 	wallet := exchange.GetWallet()
 	message := getWalletMessage(wallet)
+
 	fmt.Println(message)
+	message_tool.StartTelegram()
+	message_tool.SendWatcherGroup(message)
 }

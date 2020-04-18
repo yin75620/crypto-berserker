@@ -92,7 +92,7 @@ func dailySendAccountInfo(exchange exchange.Exchange) {
 	wallet := exchange.GetWallet()
 	message := getWalletMessage(wallet)
 	message_tool.StartTelegram()
-	message_tool.SendTelegram(message)
+	message_tool.SendWatcherGroup(message)
 
 	dailySendAccountInfo(exchange)
 }

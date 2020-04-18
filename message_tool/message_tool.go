@@ -28,6 +28,8 @@ const (
 	PAUSE_SEND_TELEGRAM = false
 )
 
+//get chatId, https://api.telegram.org/bot***REMOVED***/getUpdates
+
 var bot *tgbotapi.BotAPI
 var broadcasterBot *tgbotapi.BotAPI
 
@@ -44,6 +46,10 @@ func SendTelegram(content string) {
 
 func SendBroadcastArcherGroup(content string) {
 	sendTo(broadcasterBot, -358468104, content)
+}
+
+func SendWatcherGroup(content string) {
+	sendTo(bot, -361312212, content)
 }
 
 func sendTo(bo *tgbotapi.BotAPI, groupId int64, content string) {
