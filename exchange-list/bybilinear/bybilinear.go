@@ -129,7 +129,7 @@ func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	bo.Side = strings.Title(order.CommodityOrder.Side)
 	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
 	bo.OrderType = strings.Title(string(order.CommodityOrder.OrderType))
-	bo.Quantity = int64(order.CommodityOrder.Size)
+	bo.Quantity = order.CommodityOrder.Size
 	bo.Price = order.CommodityOrder.Price
 	bo.TimeInForce = "GoodTillCancel"
 
@@ -140,13 +140,13 @@ type BybilinearOrder struct {
 	Side        string  `json:"side"`          //side	true	string	方向, 有效选项:Buy, Sell (Buy Sell )
 	Symbol      string  `json:"symbol"`        //symbol	true	string	产品类型, 有效选项:BTCUSD, ETHUSD (BTCUSD ETHUSD )
 	OrderType   string  `json:"order_type"`    //order_type	true	string	委托单价格类型, 有效选项:Limit, Market (Limit Market )
-	Quantity    int64   `json:"qty"`           //qty	true	integer	委托数量, 单比最大1百万
+	Quantity    float64 `json:"qty"`           //qty	true	integer	委托数量, 单比最大1百万
 	Price       float64 `json:"price"`         // price	false	number	委托价格, 在没有仓位时，做多的委托价格需高于市价的10%、低于1百万。如有仓位时则需优于强平价。单笔价格增减最小单位为0.5。如果下限价单，则price为必输字段
 	TimeInForce string  `json:"time_in_force"` //time_in_force	true	string	执行策略, 有效选项:GoodTillCancel, ImmediateOrCancel, FillOrKill,PostOnly
 	//TakeProfit  string  `json:"take_profit,omitempty"` // take_profit	false	number	止盈价格
 	//stop_loss	false	number	止损价格
-	//reduce_only	false	bool	只减仓
-	//close_on_trigger	false	bool	触发后平仓
+	ReduceOnly     bool `json:"reduce_only"`      //只减仓
+	CloseOnTrigger bool `json:"close_on_trigger"` //false	触发后平仓
 	//order_link_id	false	string	机构自定义订单ID, 最大长度36位，且同一机构下自定义ID不可重复
 	//trailing_stop	false	number	追踪止损
 }
@@ -165,7 +165,7 @@ func (bb *Bybilinear) doPostOrder(bo BybilinearOrder) (string, error) {
 		panic(err)
 	}
 
-	response, err := bb.doRequest("POST", "v2/private/order/create", jsonMap)
+	response, err := bb.doRequest("POST", "private/linear/order/create", jsonMap)
 	log.Println(fmt.Sprintf("%s", response))
 
 	return string(response), err

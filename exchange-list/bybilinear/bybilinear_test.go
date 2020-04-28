@@ -34,8 +34,8 @@ func TestOrderExecute(t *testing.T) {
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      "buy",
-			Price:     8900,
-			Size:      1,
+			Price:     7700,
+			Size:      0.001,
 			OrderType: exc.MARKET,
 		},
 		Futures: exc.Futures{
@@ -43,18 +43,10 @@ func TestOrderExecute(t *testing.T) {
 			// 商品名
 			TargetName: "BTC",
 			// 計價貨幣類型
-			QuoteCoin: "USD",
+			QuoteCoin: "USDT",
 		},
 	}
 	ce.PostFuturesOrder(myOrder)
-	// var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-	// 	Market:    "FTT/USD",
-	// 	Side:      exc.Buy,
-	// 	Price:     1.1,
-	// 	Size:      1.1255,
-	// 	OrderType: exc.LIMIT,
-	// }
-	//mftx.PostOrder(myOrder)
 }
 
 func TestGetWallet(t *testing.T) {
