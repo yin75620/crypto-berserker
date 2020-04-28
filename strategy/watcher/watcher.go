@@ -30,7 +30,7 @@ var mSwitchExchange = BITMAX
 var mSubAccount = setting.FTX_SUBACCOUNT
 
 const (
-	version = "0.9.0-0001"
+	version = "0.9.0-0002"
 )
 
 func main() {
@@ -100,8 +100,17 @@ func dailySendAccountInfo(exchange exchange.Exchange) {
 func getWalletMessage(wallet exchange.Wallet) string {
 	message := ""
 	for _, v := range wallet.Balances {
-		message += fmt.Sprintf("%4s, %.2f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
+		if isLarge(v.Coin) {
+			message += fmt.Sprintf("%4s, %.4f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
+		} else {
+			message += fmt.Sprintf("%4s, %.2f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
+		}
+
 	}
 	message += fmt.Sprintf("Total:US$%.2f", wallet.GetAllBalanceUSDValue())
 	return message
+}
+
+func isLarge(s string) bool {
+	return s == "BTC" || s == "ETH"
 }
