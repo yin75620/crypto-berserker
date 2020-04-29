@@ -91,7 +91,7 @@ func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
 }
 
 func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
-	booker := ob.StartOrderBook(bn.orderBookCenter, futures.GetLinkMarketName())
+	booker := ob.StartOrderBook(bn.orderBookCenter, strings.ToLower(futures.GetLinkMarketName()))
 	return booker.GetFirstPricePair()
 }
 
