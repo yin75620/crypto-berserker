@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	version = "0.9.0-0028-binancef-bybilinear"
+	version = "0.9.0-0029-binancef-bybilinear"
 )
 
 var (
