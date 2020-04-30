@@ -10,6 +10,7 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
+	"github.com/yin75620/crypto-berserker/jmath"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -24,6 +25,9 @@ func NewBinancef(c *http.Client) *binance {
 	bn := binance{}
 	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bn.client = c
+	bn.account.MakerFee = -0.0002
+	bn.account.TakerFee = -0.0004
+	bn.account.Leverage = 100
 
 	return &bn
 }
@@ -42,21 +46,35 @@ type binance struct {
 	key             string
 	secretKey       string
 	orderBookCenter *ob.OrderBookCenter
+	account         exc.Account
 }
 
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
-	w := exc.Wallet{}
-	return w
+	res := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+
+	account := Account{}
+
+	err := json.Unmarshal(res, &account)
+	if err != nil {
+		log.Fatal("GetWallet json.Unmarshal", err)
+	}
+
+	wallet := exc.Wallet{}
+	for _, asset := range account.Assets {
+		log.Println("asset:", asset)
+		wallet.Balances = append(wallet.Balances, exc.NewBalance(asset.Asset, asset.MaxWithdrawAmount, asset.WalletBalance, asset.WalletBalance))
+	}
+	bn.account.WalletInfo = wallet
+
+	return wallet
 }
 
 func (bn *binance) GetAccountInfo() []byte {
 
-	reqArray := exc.JArray{}
+	response := bn.GetWallet()
 
-	resByte := bn.doSignRequest("GET", "v1/account", reqArray)
-
-	return resByte
+	return []byte(fmt.Sprintf("%v", response))
 }
 
 func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
@@ -96,21 +114,24 @@ func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc
 }
 
 func (bn *binance) GetAccount() exc.Account {
-	return exc.Account{}
+	return bn.account
 }
 
 func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
-
 	body := exc.JArray{
-		"symbol":      strings.ToUpper(order.Futures.GetLinkMarketName()),
-		"side":        order.Side,      //"BUY",
-		"type":        order.OrderType, //"LIMIT",
-		"timeInForce": "GTC",
-		"quantity":    order.Size,
-		"price":       order.Price,
+		"symbol": strings.ToUpper(order.Futures.GetLinkMarketName()),
+		"side":   strings.ToUpper(order.Side),              //"BUY",
+		"type":   strings.ToUpper(string(order.OrderType)), //"LIMIT",
+
+		"quantity": jmath.FloatFloorByFloat(order.Size, 0.0001),
+	}
+	if order.OrderType == exc.LIMIT {
+		body["TimeInForce"] = "GTC"
+		body["price"] = order.Price
 	}
 
 	resByte := bn.doSignRequest("POST", "v1/order", body)
+	log.Println(fmt.Sprintf("%s", resByte))
 	return string(resByte), nil
 
 	/*bo := BybitOrder{}
@@ -208,7 +229,10 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
 	req.Header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
 
-	resByte, _ := exc.SendRequest(client, req)
+	resByte, err := exc.SendRequest(client, req)
+	if err != nil {
+		log.Println("binance doRequest err:", err)
+	}
 
 	return resByte
 }

@@ -47,7 +47,7 @@ type Bybilinear struct {
 func (bb *Bybilinear) GetWallet() exc.Wallet {
 	var ret GetBalanceResult
 	jarray := exc.JArray{}
-	coinName := "BTC"
+	coinName := "USDT"
 	jarray["coin"] = coinName
 	w := exc.NewWallet()
 
@@ -63,7 +63,7 @@ func (bb *Bybilinear) GetWallet() exc.Wallet {
 		return *w
 	}
 
-	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName)
+	w.Balances = appendToBalance(w.Balances, ret.Result.USDT, coinName)
 
 	bb.account.WalletInfo = *w
 
@@ -71,14 +71,14 @@ func (bb *Bybilinear) GetWallet() exc.Wallet {
 }
 
 func appendToBalance(balances []exc.Balance, BybilinearBalance Balance, coinName string) []exc.Balance {
-	const TempBTCToUSDValue = 5000.0
+	const TempUSDTToUSDValue = 1
 
 	bal := exc.Balance{
 		Coin:         coinName,
 		Free:         BybilinearBalance.AvailableBalance,
-		FreeUsdValue: BybilinearBalance.AvailableBalance * TempBTCToUSDValue,
+		FreeUsdValue: BybilinearBalance.AvailableBalance * TempUSDTToUSDValue,
 		Total:        BybilinearBalance.Equity,
-		UsdValue:     TempBTCToUSDValue * BybilinearBalance.Equity,
+		UsdValue:     TempUSDTToUSDValue * BybilinearBalance.Equity,
 	}
 	balances = append(balances, bal)
 	return balances
@@ -87,15 +87,16 @@ func appendToBalance(balances []exc.Balance, BybilinearBalance Balance, coinName
 func (bb *Bybilinear) GetAccountInfo() []byte {
 
 	jarray := exc.JArray{}
-	coinName := "BTC"
+	coinName := "USDT"
 	jarray["coin"] = coinName
 
 	response := bb.GetWallet()
 	fmt.Println(response)
 
-	res := bb.SendGetLeverage()
-	fmt.Println(res)
-	bb.account.Leverage = float64(res.Result["BTCUSD"].Leverage)
+	//res := bb.SendGetLeverage()
+	//fmt.Println(res)
+	// float64(res.Result["BTCUSDT"].Leverage)
+	bb.account.Leverage = 100 // there has no api, just manual set to 100.
 
 	return []byte(fmt.Sprintf("%v", response))
 }
@@ -115,12 +116,14 @@ func (bb *Bybilinear) SendGetLeverage() GetLeverageResult {
 		fmt.Println(err)
 		return leverageResult
 	}
+	fmt.Println(string(res))
 	err = json.Unmarshal(res, &leverageResult)
 
 	if err != nil {
 		fmt.Println("SendGetLeverage", err)
 		return leverageResult
 	}
+	//leverageResult.Result["BTCUSDT"] = LeverageItem{Leverage: 100}
 	return leverageResult
 }
 
@@ -185,7 +188,7 @@ func (bb *Bybilinear) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 }
 
 func (bb *Bybilinear) GetVolumeByTotal(total, price float64) float64 {
-	return total
+	return total / price
 }
 
 type QuoteResponse struct {

@@ -13,21 +13,33 @@ func TestAccount(t *testing.T) {
 	res := ce.GetAccountInfo()
 
 	fmt.Println(string(res))
+
+	fmt.Println(ce.GetAccount())
 }
 
 func TestOrder(t *testing.T) {
 	ce := NewBinancef(http.DefaultClient)
 
-	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		CoinPair:  exc.CoinPair{"FTT", "USDT"},
-		Side:      exc.Buy,
-		Price:     2.3,
-		Size:      5,
-		OrderType: exc.LIMIT,
+	var myOrder exc.FuturesOrder = exc.FuturesOrder{
+		CommodityOrder: exc.CommodityOrder{
+			Side:      exc.Buy,
+			Price:     7700,
+			Size:      0.001,
+			OrderType: exc.MARKET,
+		},
+		Futures: exc.Futures{
+			//ExpirationDate time.Time
+			// 商品名
+			TargetName: "BTC",
+			// 計價貨幣類型
+			QuoteCoin: "USDT",
+		},
 	}
-	res, _ := ce.PostOrder(myOrder)
-
-	fmt.Println(string(res))
+	res, err := ce.PostFuturesOrder(myOrder)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(res)
 }
 
 /*

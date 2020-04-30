@@ -370,23 +370,70 @@ type QueryOrderData struct {
 }
 
 // Balance holds query order data
-type Balance struct {
-	Asset  string `json:"asset"`
-	Free   string `json:"free"`
-	Locked string `json:"locked"`
+type Asset struct {
+	Asset                  string  `json:"asset"`
+	InitialMargin          float64 `json:"initialMargin,string"`
+	MainMargin             float64 `json:"mainMargin,string"`
+	MarginBalance          float64 `json:"marginBalance,string"`
+	MaxWithdrawAmount      float64 `json:"maxWithdrawAmount,string"`
+	OpenOrderInitialMargin float64 `json:"openOrderInitialMargin,string"`
+	PositionInitialMargin  float64 `json:"positionInitialMargin,string"`
+	UnrealizedProfit       float64 `json:"unrealizedProfit,string"`
+	WalletBalance          float64 `json:"walletBalance,string"`
 }
 
 // Account holds the account data
 type Account struct {
-	MakerCommission  int       `json:"makerCommission"`
-	TakerCommission  int       `json:"takerCommission"`
-	BuyerCommission  int       `json:"buyerCommission"`
-	SellerCommission int       `json:"sellerCommission"`
-	CanTrade         bool      `json:"canTrade"`
-	CanWithdraw      bool      `json:"canWithdraw"`
-	CanDeposit       bool      `json:"canDeposit"`
-	UpdateTime       int64     `json:"updateTime"`
-	Balances         []Balance `json:"balances"`
+	Assets []Asset `json:"assets"`
+	/*"canDeposit": true,
+	  "canTrade": true,
+	  "canWithdraw": true,
+	  "feeTier": 2,
+	  "maxWithdrawAmount": "8.41264592",
+	  "positions": [
+	      {
+	         "isolated": false,
+	         "leverage": "20",
+	         "initialMargin": "0.33683",
+	         "maintMargin": "0.02695",
+	         "openOrderInitialMargin": "0.00000",
+	         "positionInitialMargin": "0.33683",
+	         "symbol": "BTCUSDT",
+	         "unrealizedProfit": "-0.44537584",
+	         "positionSide": "BOTH", // BOTH means that it is the position of One-way Mode
+	      },
+	      {
+	         "isolated": false,
+	         "leverage": "20",
+	         "initialMargin": "0.00000",
+	         "maintMargin": "0.00000",
+	         "openOrderInitialMargin": "0.00000",
+	         "positionInitialMargin": "0.00000",
+	         "symbol": "BTCUSDT",
+	         "unrealizedProfit": "0.00000000",
+	         "positionSide": "LONG", // LONG or SHORT means that it is the position of Hedge Mode
+	      },
+	      {
+	         "isolated": false,
+	         "leverage": "20",
+	         "initialMargin": "0.00000",
+	         "maintMargin": "0.00000",
+	         "openOrderInitialMargin": "0.00000",
+	         "positionInitialMargin": "0.00000",
+	         "symbol": "BTCUSDT",
+	         "unrealizedProfit": "0.00000000",
+	         "positionSide": "SHORT", // LONG or SHORT means that it is the position of One-way Mode
+	      }
+	  ],
+	  "totalInitialMargin": "0.33683000",
+	  "totalMaintMargin": "0.02695000",
+	  "totalMarginBalance": "8.74947592",
+	  "totalOpenOrderInitialMargin": "0.00000000",
+	  "totalPositionInitialMargin": "0.33683000",
+	  "totalUnrealizedProfit": "-0.44537584",
+	  "totalWalletBalance": "9.19485176",
+	  "updateTime": 0*/
+
 }
 
 // RequestParamsSideType trade order side (buy or sell)

@@ -8,6 +8,8 @@ import (
 
 	"github.com/yin75620/crypto-berserker/message_tool"
 
+	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
+	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -55,28 +57,31 @@ func TestOrder(t *testing.T) {
 }
 
 func TestPositionCloseCheck(t *testing.T) {
-
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
-	bybit := bybit.NewBybit(http.DefaultClient)
+	/*
+		first := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
+			setting.FTX_KEY,
+			setting.FTX_API_SECRET_KEY,
+			"tester"})
+		bybit := bybit.NewBybit(http.DefaultClient)
+	*/
+	first := bybilinear.NewBybilinear(http.DefaultClient)
+	second := binancef.NewBinancef(http.DefaultClient)
 
 	crossPairsTable := map[string][]CrossPair{}
 	ftxBit := CrossPair{
-		askExchange:  ft,
-		bidExchange:  bybit,
+		askExchange:  first,
+		bidExchange:  second,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
-		orderVolume:  1.0,
+		orderVolume:  10.0,
 	}
 
 	bybitFtx := CrossPair{
-		askExchange:  bybit,
-		bidExchange:  ft,
+		askExchange:  second,
+		bidExchange:  first,
 		askPricePair: exc.PricePair{9500, 1000},
 		bidPricePair: exc.PricePair{9700, 1000},
-		orderVolume:  1.0,
+		orderVolume:  10.0,
 	}
 
 	cp := ftxBit
@@ -93,7 +98,7 @@ func TestPositionCloseCheck(t *testing.T) {
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
-		QuoteCoin:  "USD",
+		QuoteCoin:  "USDT",
 	}
 	message_tool.StartTelegram()
 	init := *NewCrossExchangeInit()
