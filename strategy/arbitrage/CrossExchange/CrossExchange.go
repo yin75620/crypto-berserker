@@ -372,7 +372,7 @@ func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExcha
 		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
 	} else if orderTotalValue < init.MinVolume {
-		log.Println(fmt.Sprintf("orderTotalValue < %f", init.MinVolume))
+		log.Println(fmt.Sprintf("orderTotalValue:%f < %f", orderTotalValue, init.MinVolume))
 		return false
 	} else if currentUSDVolume >= init.MaxHoldVolume {
 		log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
