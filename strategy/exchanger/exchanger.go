@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-ini/ini"
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -22,7 +23,9 @@ const (
 )
 
 var (
-	mSubAccount string
+	mSubAccount      string
+	mExchangeStrings []string
+	mFutures         exc.Futures
 )
 
 func main() {
@@ -31,20 +34,15 @@ func main() {
 	iniSetting()
 
 	exchanges := []exc.Exchange{}
-	first := getExchange(common.BINANCEF)
-	second := getExchange(common.BYBILINEAR)
 
-	exchanges = append(exchanges, first)
-	exchanges = append(exchanges, second)
+	for _, v := range mExchangeStrings {
+		ex := getExchange(v)
+		exchanges = append(exchanges, ex)
+	}
 
 	ce := CrossExchange.NewCrossExchange(exchanges)
 	ce.SetInitByIni("main.ini")
-	futures := exc.Futures{
-		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
-		TargetName: "BTC",
-		QuoteCoin:  "USDT",
-	}
-	ce.SetFuturesArray([]exc.Futures{futures})
+	ce.SetFuturesArray([]exc.Futures{mFutures})
 	ce.Start()
 }
 
@@ -56,6 +54,18 @@ func iniSetting() {
 	}
 
 	mSubAccount = cfg.Section("FTX").Key("SubAccount").String()
+
+	res := cfg.Section("Exchanger").Key("Exchanges").String()
+	mExchangeStrings = strings.Split(res, ",")
+
+	targetName := cfg.Section("Futures").Key("TargetName").String()
+	quoteCoin := cfg.Section("Futures").Key("QuoteCoin").String()
+
+	mFutures = exc.Futures{
+		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+		TargetName: targetName,
+		QuoteCoin:  quoteCoin,
+	}
 }
 
 func getExchange(exchangeName string) exc.Exchange {
