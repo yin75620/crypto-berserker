@@ -395,7 +395,7 @@ func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pTy
 			Side:      side,
 			Price:     adjPrice,
 			Size:      volume,
-			OrderType: exc.MARKET,
+			OrderType: exc.LIMIT,
 		},
 		Futures: futures,
 	}

@@ -36,7 +36,7 @@ func TestOrderExecute(t *testing.T) {
 			Side:      "buy",
 			Price:     8900,
 			Size:      1,
-			OrderType: exc.MARKET,
+			OrderType: exc.LIMIT,
 		},
 		Futures: exc.Futures{
 			//ExpirationDate time.Time
