@@ -170,7 +170,7 @@ func isLarge(s string) bool {
 
 func sendWallet(exchange exchange.Exchange) {
 	wallet := exchange.GetWallet()
-	message := fmt.Sprintf("%s (%s) \r\n ", exchange.GetName(), mSubAccount)
+	message := fmt.Sprintf("%s (%s) \r\n", exchange.GetName(), mSubAccount)
 	message += getWalletMessage(wallet)
 	message_tool.StartTelegram()
 	message_tool.SendWatcherGroup(message)
