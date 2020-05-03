@@ -73,9 +73,11 @@ func main() {
 		exchange = binance.NewBinance(http.DefaultClient)
 
 	} else {
+		log.Println("error, exchange not found", mSwitchExchange)
 	}
 
-	//go dailySendAccountInfo(exchange)
+	sendWallet(exchange)
+	go dailySendAccountInfo(exchange)
 
 	tri = Tri.NewTriangular(exchange)
 
@@ -143,9 +145,33 @@ func dailySendAccountInfo(exchange exchange.Exchange) {
 		4, 0, 0, 0, now.Location())
 	duration := midnoon.Sub(now)
 	time.Sleep(duration)
-	content := exchange.GetAccountInfo()
-	message_tool.StartTelegram()
-	message_tool.SendTelegram(string(content))
+	sendWallet(exchange)
 
 	dailySendAccountInfo(exchange)
+}
+
+func getWalletMessage(wallet exchange.Wallet) string {
+	message := ""
+	for _, v := range wallet.Balances {
+		if isLarge(v.Coin) {
+			message += fmt.Sprintf("%4s, %.4f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
+		} else {
+			message += fmt.Sprintf("%4s, %.2f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
+		}
+
+	}
+	message += fmt.Sprintf("Total:US$%.2f", wallet.GetAllBalanceUSDValue())
+	return message
+}
+
+func isLarge(s string) bool {
+	return s == "BTC" || s == "ETH"
+}
+
+func sendWallet(exchange exchange.Exchange) {
+	wallet := exchange.GetWallet()
+	message := fmt.Sprintf("%s (%s) \r\n ", exchange.GetName(), mSubAccount)
+	message += getWalletMessage(wallet)
+	message_tool.StartTelegram()
+	message_tool.SendWatcherGroup(message)
 }
