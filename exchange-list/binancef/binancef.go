@@ -73,6 +73,7 @@ func (bn *binance) GetWallet() exc.Wallet {
 func (bn *binance) GetAccountInfo() []byte {
 
 	response := bn.GetWallet()
+	log.Println(response)
 
 	return []byte(fmt.Sprintf("%v", response))
 }
