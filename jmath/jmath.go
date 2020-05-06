@@ -1,7 +1,9 @@
 package jmath
 
 import (
+	"fmt"
 	"math"
+	"strconv"
 )
 
 func FloatFloorByFloat(f float64, unit float64) float64 {
@@ -11,7 +13,12 @@ func FloatFloorByFloat(f float64, unit float64) float64 {
 	val := f / unit
 	val = math.Floor(val)
 	res := val * unit
-	return res
+
+	count := int(-math.Floor(math.Log10(unit)))
+
+	floatStr := fmt.Sprintf("%."+strconv.Itoa(count)+"f", res)
+	inst, _ := strconv.ParseFloat(floatStr, 64)
+	return inst
 }
 
 func FloatFloor(f float64, count int) float64 {

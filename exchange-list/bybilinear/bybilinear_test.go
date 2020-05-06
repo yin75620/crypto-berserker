@@ -34,8 +34,8 @@ func TestOrderExecute(t *testing.T) {
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      "buy",
-			Price:     7700,
-			Size:      0.001,
+			Price:     7700.0112640126,
+			Size:      0.00162621642642,
 			OrderType: exc.LIMIT,
 		},
 		Futures: exc.Futures{

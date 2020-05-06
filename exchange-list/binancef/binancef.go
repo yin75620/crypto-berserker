@@ -101,7 +101,16 @@ func (bn *binance) GetName() string {
 	return "Binancef"
 }
 func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
-	return exc.MarketInfo{}
+	return bn.doGetMarketInfo(coinPair.GetLinkMakertNameUpper())
+}
+
+func (bn *binance) doGetMarketInfo(name string) exc.MarketInfo {
+	switch name {
+	case "BTCUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	default:
+		return exc.MarketInfo{}
+	}
 }
 
 func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
@@ -118,16 +127,20 @@ func (bn *binance) GetAccount() exc.Account {
 }
 
 func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+
+	symbol := order.Futures.GetLinkMarketName()
+	var merketInfo = bn.doGetMarketInfo(symbol)
+
 	body := exc.JArray{
-		"symbol": strings.ToUpper(order.Futures.GetLinkMarketName()),
+		"symbol": strings.ToUpper(symbol),
 		"side":   strings.ToUpper(order.Side),              //"BUY",
 		"type":   strings.ToUpper(string(order.OrderType)), //"LIMIT",
 
-		"quantity": jmath.FloatFloorByFloat(order.Size, 0.0001),
+		"quantity": jmath.FloatFloorByFloat(order.Size, merketInfo.VolumeIncrement),
 	}
 	if order.OrderType == exc.LIMIT {
 		body["TimeInForce"] = "GTC"
-		body["price"] = order.Price
+		body["price"] = jmath.FloatFloorByFloat(order.Price, merketInfo.PriceIncrement)
 	}
 
 	resByte := bn.doSignRequest("POST", "v1/order", body)

@@ -14,6 +14,7 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
+	"github.com/yin75620/crypto-berserker/jmath"
 	"github.com/yin75620/crypto-berserker/object_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
@@ -128,12 +129,15 @@ func (bb *Bybilinear) SendGetLeverage() GetLeverageResult {
 }
 
 func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+	symbol := order.Futures.GetLinkMarketName()
+	var merketInfo = bb.doGetMarketInfo(symbol)
+
 	bo := BybilinearOrder{}
 	bo.Side = strings.Title(order.CommodityOrder.Side)
 	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
 	bo.OrderType = strings.Title(string(order.CommodityOrder.OrderType))
-	bo.Quantity = order.CommodityOrder.Size
-	bo.Price = order.CommodityOrder.Price
+	bo.Quantity = jmath.FloatFloorByFloat(order.CommodityOrder.Size, merketInfo.VolumeIncrement)
+	bo.Price = jmath.FloatFloorByFloat(order.CommodityOrder.Price, merketInfo.PriceIncrement)
 	bo.TimeInForce = "GoodTillCancel"
 
 	return bb.doPostOrder(bo)
@@ -184,7 +188,16 @@ func (bb *Bybilinear) GetName() string {
 	return "Bybilinear"
 }
 func (bb *Bybilinear) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
-	return exc.MarketInfo{}
+	return bb.doGetMarketInfo(coinPair.GetLinkMakertNameUpper())
+}
+
+func (bb *Bybilinear) doGetMarketInfo(name string) exc.MarketInfo {
+	switch name {
+	case "BTCUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	default:
+		return exc.MarketInfo{}
+	}
 }
 
 func (bb *Bybilinear) GetVolumeByTotal(total, price float64) float64 {
