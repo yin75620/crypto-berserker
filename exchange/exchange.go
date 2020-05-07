@@ -65,6 +65,14 @@ type PricePair struct {
 	Volume float64
 }
 
+func (p *PricePair) Total() float64 {
+	return p.Price * p.Volume
+}
+
+func (p *PricePair) CalcuVolumeToTatol() {
+	p.Volume = p.Volume / p.Price
+}
+
 func LowestPricePair(pps []PricePair) PricePair {
 	minAskPair := PricePair{}
 	minAskPair.Price = math.MaxInt64

@@ -121,8 +121,8 @@ func (cp *CrossPair) GetProfitString() string {
 	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
 
-	askStr := fmt.Sprintf("ask Exchange:%s, Cprice:%4.4f, S price:%4.4f, volume:%.4f", cp.bidExchange.GetName(), aPrice, cp.askPricePair.Price, cp.askPricePair.Volume)
-	bidStr := fmt.Sprintf("bid Exchange:%s, Cprice:%4.4f, S price:%4.4f, volume:%.4f", cp.bidExchange.GetName(), bPrice, cp.bidPricePair.Price, cp.bidPricePair.Volume)
+	askStr := fmt.Sprintf("ask Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.bidExchange.GetName(), aPrice, cp.askPricePair.Price, cp.askPricePair.Total())
+	bidStr := fmt.Sprintf("bid Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.bidExchange.GetName(), bPrice, cp.bidPricePair.Price, cp.bidPricePair.Total())
 
 	profit := 0.0
 	if aPrice > 0 {
@@ -134,8 +134,8 @@ func (cp *CrossPair) GetProfitString() string {
 
 func (cp *CrossPair) GetMinTotalVolume() float64 {
 
-	aVolume := cp.askPricePair.Volume
-	bVolume := cp.bidPricePair.Volume
+	aVolume := cp.askPricePair.Total()
+	bVolume := cp.bidPricePair.Total()
 	// 出現錯誤，放慢速度
 	if aVolume <= 0 {
 		log.Println("aVolume <= 0")
