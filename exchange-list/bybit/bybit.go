@@ -223,7 +223,10 @@ func (bb *Bybit) getAskBidPairByMarket(market string) (exc.PricePair, exc.PriceP
 	}
 
 	booker := bb.orderBookCenter.GetBooker(market)
-	return booker.GetFirstPricePair()
+	askPair, bidPair := booker.GetFirstPricePair()
+	askPair.CalcuVolumeToTatol()
+	bidPair.CalcuVolumeToTatol()
+	return askPair, bidPair
 }
 
 func (bb *Bybit) doRequest(method, apiName string, body exc.JArray) ([]byte, error) {
