@@ -97,6 +97,13 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	topCrossPair := getMaxProfitCrossPair(crossPairMap)
+
+	if isDisconnect(topCrossPair) {
+		var disconnectMiliSeccond int64 = 3000
+		log.Println(fmt.Sprintf("error: disconnect, wait... %v miliSecond.", disconnectMiliSeccond))
+		return disconnectMiliSeccond
+	}
+
 	maxProfit := topCrossPair.GetProfit()
 	maxHoldVolume := ce.init.MaxHoldVolume
 	//計算最大持有量
@@ -137,6 +144,10 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	plusMilliSecond := ce.init.DelayMilliSecond
 	return plusMilliSecond
+}
+
+func isDisconnect(cp CrossPair) bool {
+	return cp.askPricePair.Price == 0 || cp.askPricePair.Volume == 0 || cp.bidPricePair.Price == 0 || cp.bidPricePair.Volume == 0
 }
 
 func (ce *CrossExchange) updateExchangeWallet(exchangeName string) {
