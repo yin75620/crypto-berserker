@@ -139,6 +139,7 @@ func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	bo.Quantity = jmath.FloatFloorByFloat(order.CommodityOrder.Size, merketInfo.VolumeIncrement)
 	bo.Price = jmath.FloatFloorByFloat(order.CommodityOrder.Price, merketInfo.PriceIncrement)
 	bo.TimeInForce = "GoodTillCancel"
+	bo.CloseOnTrigger = order.IsClose
 
 	return bb.doPostOrder(bo)
 }

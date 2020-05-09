@@ -270,8 +270,9 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	matchAskExchange, askPair := matchCrossPair.GetAskInfo()
 	matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
 
-	askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume, init.OverPrice)
-	bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume, init.OverPrice)
+	isClose := true
+	askChannel := executeOrder(matchAskExchange, futures, askPair.Price, exc.Ask, bidTotalVolume, init.OverPrice, isClose)
+	bidChannel := executeOrder(matchBidExchange, futures, bidPair.Price, exc.Bid, askTotalVolume, init.OverPrice, isClose)
 	//等上面兩個交易都完成，再繼續
 	<-askChannel
 	<-bidChannel
@@ -331,8 +332,9 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
 	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
 
-	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume, init.OverPrice)
-	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume, init.OverPrice)
+	isClose := false
+	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume, init.OverPrice, isClose)
+	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume, init.OverPrice, isClose)
 	//等上面兩個交易都完成，再繼續
 	<-askChannel
 	<-bidChannel
@@ -381,7 +383,7 @@ func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExcha
 	return true
 }
 
-func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64, overPrice float64) chan int {
+func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pType exc.PriceType, volume float64, overPrice float64, isClose bool) chan int {
 	resultChannel := make(chan int)
 	side := "sell"
 	adjPrice := price * (1.0 - overPrice)
@@ -398,6 +400,7 @@ func executeOrder(exchange exc.Exchange, futures exc.Futures, price float64, pTy
 			OrderType: exc.LIMIT,
 		},
 		Futures: futures,
+		IsClose: isClose,
 	}
 	go func() {
 		exc.PostFuturesOrderRefry(exchange, myOrder)

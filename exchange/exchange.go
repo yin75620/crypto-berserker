@@ -116,6 +116,7 @@ type ExchangeOrder struct {
 type FuturesOrder struct {
 	CommodityOrder
 	Futures Futures
+	IsClose bool `json:"is_close"` // 特別為 bibilinear準備，設定微 true 就是平倉
 }
 
 type CommodityOrder struct {
