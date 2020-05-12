@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-const RetryCount = 10
+const RetryCount = 8640
+const WaitSecond = 10
 
 func CreateConn(url string) *websocket.Conn {
 	var c *websocket.Conn
@@ -17,6 +19,13 @@ func CreateConn(url string) *websocket.Conn {
 	for i := 0; i < RetryCount; i++ {
 		c, err = doCreateConn(url)
 		if err != nil {
+			waitChannel := make(chan int)
+			go func() {
+				time.Sleep(time.Second * WaitSecond)
+				waitChannel <- 0
+			}()
+			<-waitChannel
+			log.Println("Error: retryCreateConn, count:", i)
 			continue
 		}
 		return c
