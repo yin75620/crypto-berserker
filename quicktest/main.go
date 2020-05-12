@@ -28,7 +28,18 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	removeTest()
+	gosleep()
+}
+
+func gosleep() {
+	log.Println(time.Now())
+	waitChannel := make(chan int)
+	go func() {
+		time.Sleep(time.Second * 2)
+		waitChannel <- 0
+	}()
+	<-waitChannel
+	log.Println(time.Now())
 }
 
 func removeTest() {
