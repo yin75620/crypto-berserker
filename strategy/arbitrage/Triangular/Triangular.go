@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"net/http"
 	"os"
 	"time"
 
@@ -104,11 +103,11 @@ func (tri *Triangular) Start() {
 	}
 
 	///開啟伺服器讓程式留著
-	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
-	})
+	//http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+	//	fmt.Fprintf(w, "Hello World")
+	//})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	//log.Fatal(http.ListenAndServe(":8080", nil))
 	///
 }
 
