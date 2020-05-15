@@ -20,12 +20,18 @@ type CrossExchange struct {
 	init                 CrossExchangeInit
 }
 
+var (
+	mPreWallets []exc.Wallet
+)
+
 func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	ce := CrossExchange{}
 	ce.exchanges = exchanges
 	ce.positionCrossPairMap = map[string][]CrossPair{}
 	NewCrossExchangeInit()
 	ce.init = *NewCrossExchangeInit()
+
+	mPreWallets = make([]exc.Wallet, len(ce.exchanges))
 	return &ce
 }
 
@@ -119,6 +125,21 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		//更新交易所內幣別持有量
 		ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
 		ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
+
+		//完成N次交易報告資產變化值
+		const EveryCountCheckWallet = 1
+		var mFinishCount = 1
+		if mFinishCount%EveryCountCheckWallet == 0 {
+			sendInfo := ""
+			for i, exchange := range ce.exchanges {
+				wallet := exchange.GetWallet()
+				array := mPreWallets[i].GetAllBalanceProfit(wallet)
+				mPreWallets[i] = wallet
+				sendInfo = fmt.Sprintf("%s%s", sendInfo, fmt.Sprintf("%s:%v, ", exchange.GetName(), array))
+			}
+			log.Println(sendInfo)
+			message_tool.SendBroadcastArcherGroup(sendInfo)
+		}
 	}
 
 	currentUSDVolume := getCurrentUSDVolume(ce.positionCrossPairMap)
