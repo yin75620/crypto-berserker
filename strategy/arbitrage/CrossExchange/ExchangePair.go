@@ -121,7 +121,7 @@ func (cp *CrossPair) GetProfitString() string {
 	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
 
-	askStr := fmt.Sprintf("ask Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.bidExchange.GetName(), aPrice, cp.askPricePair.Price, cp.askPricePair.Total())
+	askStr := fmt.Sprintf("ask Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.askExchange.GetName(), aPrice, cp.askPricePair.Price, cp.askPricePair.Total())
 	bidStr := fmt.Sprintf("bid Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.bidExchange.GetName(), bPrice, cp.bidPricePair.Price, cp.bidPricePair.Total())
 
 	profit := 0.0
