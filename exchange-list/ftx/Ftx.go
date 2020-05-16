@@ -18,12 +18,6 @@ type OrderBookResponse struct {
 	Success bool            `json:"success"`
 }
 
-type FtxInit struct {
-	ApiKey       string
-	ApiSecretKey string
-	SubAccount   string
-}
-
 type Ftx struct {
 	client          *http.Client
 	initData        FtxInit
@@ -38,6 +32,10 @@ func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx.initData = initData
 	ftx.orderBookCenter = NewOrderBookCenter()
 	return ftx
+}
+
+func (ftx *Ftx) SetInitByIni(filename string) {
+	ftx.initData.IniSetting(filename)
 }
 
 var (

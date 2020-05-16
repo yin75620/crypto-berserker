@@ -3,18 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 
 	"github.com/go-ini/ini"
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
-	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
-	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 	"github.com/yin75620/crypto-berserker/exchange-list/common"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
 	"github.com/yin75620/crypto-berserker/strategy/arbitrage/CrossExchange"
 )
 
@@ -36,7 +30,7 @@ func main() {
 	exchanges := []exc.Exchange{}
 
 	for _, v := range mExchangeStrings {
-		ex := getExchange(v)
+		ex := common.GetExchange(v)
 		exchanges = append(exchanges, ex)
 	}
 
@@ -66,30 +60,4 @@ func iniSetting() {
 		TargetName: targetName,
 		QuoteCoin:  quoteCoin,
 	}
-}
-
-func getExchange(exchangeName string) exc.Exchange {
-	var res exc.Exchange
-	switch exchangeName {
-	case common.FTX:
-		res = ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-			setting.FTX_KEY,
-			setting.FTX_API_SECRET_KEY,
-			mSubAccount})
-		break
-	case common.BYBIT:
-		res = bybit.NewBybit(http.DefaultClient)
-		break
-	case common.BYBILINEAR:
-		res = bybilinear.NewBybilinear(http.DefaultClient)
-		break
-	case common.BINANCEF:
-		res = binancef.NewBinancef(http.DefaultClient)
-		break
-	default:
-		log.Println("error, not define exchangeName:", exchangeName)
-		break
-	}
-
-	return res
 }
