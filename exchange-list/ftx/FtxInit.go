@@ -14,9 +14,7 @@ type FtxInit struct {
 }
 
 func NewFtxInit() *FtxInit {
-	return &FtxInit{
-		//SubAccount: "",
-	}
+	return &FtxInit{}
 }
 
 func (fi *FtxInit) IniSetting(filename string) error {

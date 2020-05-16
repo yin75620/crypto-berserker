@@ -17,7 +17,6 @@ const (
 )
 
 var (
-	mSubAccount      string
 	mExchangeStrings []string
 	mFutures         exc.Futures
 )
@@ -46,8 +45,6 @@ func iniSetting() {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
-
-	mSubAccount = cfg.Section("FTX").Key("SubAccount").String()
 
 	res := cfg.Section("Exchanger").Key("Exchanges").String()
 	mExchangeStrings = strings.Split(res, ",")

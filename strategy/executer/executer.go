@@ -15,7 +15,6 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/binance"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
 
@@ -30,11 +29,12 @@ const (
 )
 
 var mSwitchExchange = BITMAX
-var mSubAccount = setting.FTX_SUBACCOUNT
+var mSubAccount = ""
 
 const (
 	version = "1.0.2-0020"
 )
+const IniFileName = "main.ini"
 
 func main() {
 
@@ -53,11 +53,10 @@ func main() {
 	var exchange exchange.Exchange = nil
 
 	if mSwitchExchange == FTX {
-		exchange = ftx.NewFtx(http.DefaultClient,
-			ftx.FtxInit{
-				setting.FTX_KEY,
-				setting.FTX_API_SECRET_KEY,
-				mSubAccount})
+		fi := ftx.NewFtxInit()
+		fi.IniSetting(IniFileName)
+		mSubAccount = fi.SubAccount
+		exchange = ftx.NewFtx(http.DefaultClient, *fi)
 	} else if mSwitchExchange == MAX {
 		//exchange = maicoin.NewMaicoin(http.DefaultClient)
 	} else if mSwitchExchange == OKEX {
@@ -88,15 +87,13 @@ func main() {
 }
 
 func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
-	cfg, err := ini.Load("main.ini")
+	cfg, err := ini.Load(IniFileName)
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
 
 	mSwitchExchange = cfg.Section("").Key("ExchangeName").String()
-	mSubAccount = cfg.Section("FTX").Key("SubAccount").String()
-
 	resInit := Tri.TriangularInit{
 		RangePremium:    cfg.Section("").Key("RangePremium").MustFloat64(),
 		LeastTotalValue: cfg.Section("").Key("LeastTotalValue").MustFloat64(),
