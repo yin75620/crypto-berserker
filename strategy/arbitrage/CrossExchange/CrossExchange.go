@@ -55,9 +55,10 @@ func (ce *CrossExchange) Start() {
 
 	//test api
 	infoAll := ""
-	for _, exchg := range ce.exchanges {
+	for i, exchg := range ce.exchanges {
 		info := exchg.GetAccountInfo()
 		infoAll = fmt.Sprintf("%s \r\n %s", infoAll, info)
+		mPreWallets[i] = exchg.GetWallet()
 	}
 	log.Println(string(infoAll))
 	message_tool.SendBroadcastArcherGroup(infoAll)
