@@ -24,11 +24,15 @@ func (fi *FtxInit) IniSetting(filename string) error {
 		return err
 	}
 
+	fi.IniSettingByFile(cfg)
+
+	return nil
+}
+
+func (fi *FtxInit) IniSettingByFile(cfg *ini.File) {
 	const section = "FTX"
 
 	fi.SubAccount = cfg.Section(section).Key("SubAccount").String()
 	fi.ApiKey = setting.FTX_KEY
 	fi.ApiSecretKey = setting.FTX_API_SECRET_KEY
-
-	return nil
 }
