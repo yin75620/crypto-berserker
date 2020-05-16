@@ -54,11 +54,11 @@ func (ce *CrossExchange) Start() {
 	message_tool.StartTelegram()
 
 	//test api
-	infoAll := ""
+	infoAll := "Start"
 	for i, exchg := range ce.exchanges {
-		info := exchg.GetAccountInfo()
-		infoAll = fmt.Sprintf("%s \r\n %s", infoAll, info)
-		mPreWallets[i] = exchg.GetWallet()
+		wallet := exchg.GetWallet()
+		infoAll = fmt.Sprintf("%s \r\n %s:%v", infoAll, exchg.GetName(), wallet)
+		mPreWallets[i] = wallet
 	}
 	log.Println(string(infoAll))
 	message_tool.SendBroadcastArcherGroup(infoAll)
