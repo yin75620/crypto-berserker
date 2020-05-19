@@ -63,22 +63,49 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 		return *w
 	}
 
-	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName)
+	coinPrice := bb.GetPrice("BTCUSD")
+
+	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName, coinPrice)
 
 	bb.account.WalletInfo = *w
 
 	return *w
 }
 
-func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName string) []exc.Balance {
-	const TempBTCToUSDValue = 5000.0
+func (bb *Bybit) GetPrice(symbol string) float64 {
+	var ret GetOrderBookResult
+	jarray := exc.JArray{}
+	jarray["symbol"] = symbol
+
+	response, err := bb.doRequest("GET", "v2/public/orderBook/L2", jarray)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	if len(ret.Result) < 1 {
+		fmt.Println("len(ret.Result) < 1")
+		return 0
+	}
+
+	return ret.Result[0].Price
+
+}
+
+func appendToBalance(balances []exc.Balance, bybitBalance Balance, coinName string, coinPrice float64) []exc.Balance {
 
 	bal := exc.Balance{
 		Coin:         coinName,
 		Free:         bybitBalance.AvailableBalance,
-		FreeUsdValue: bybitBalance.AvailableBalance * TempBTCToUSDValue,
+		FreeUsdValue: bybitBalance.AvailableBalance * coinPrice,
 		Total:        bybitBalance.Equity,
-		UsdValue:     TempBTCToUSDValue * bybitBalance.Equity,
+		UsdValue:     coinPrice * bybitBalance.Equity,
 	}
 	balances = append(balances, bal)
 	return balances
