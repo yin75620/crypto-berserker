@@ -1,5 +1,9 @@
 package exchange
 
+import (
+	"fmt"
+)
+
 type Wallet struct {
 	Balances []Balance
 }
@@ -92,4 +96,23 @@ func (w *Wallet) CalculerFreeUsdValue() {
 		w.Balances[i] = value
 	}
 
+}
+
+func (w *Wallet) GetWalletMessage() string {
+	message := ""
+	for _, v := range w.Balances {
+		if isLarge(v.Coin) {
+			a := v.UsdValue / v.Total
+			message += fmt.Sprintf("%4s, %.4f, p:%.2f, US$%.2f\r\n", v.Coin, v.Total, a, v.UsdValue)
+		} else {
+			message += fmt.Sprintf("%4s, %.2f, p:%.4f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue/v.Total, v.UsdValue)
+		}
+
+	}
+	message += fmt.Sprintf("Total:US$%.2f", w.GetAllBalanceUSDValue())
+	return message
+}
+
+func isLarge(s string) bool {
+	return s == "BTC" || s == "ETH"
 }

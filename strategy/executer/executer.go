@@ -147,28 +147,10 @@ func dailySendAccountInfo(exchange exchange.Exchange) {
 	dailySendAccountInfo(exchange)
 }
 
-func getWalletMessage(wallet exchange.Wallet) string {
-	message := ""
-	for _, v := range wallet.Balances {
-		if isLarge(v.Coin) {
-			message += fmt.Sprintf("%4s, %.4f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
-		} else {
-			message += fmt.Sprintf("%4s, %.2f, US$%.2f\r\n", v.Coin, v.Total, v.UsdValue)
-		}
-
-	}
-	message += fmt.Sprintf("Total:US$%.2f", wallet.GetAllBalanceUSDValue())
-	return message
-}
-
-func isLarge(s string) bool {
-	return s == "BTC" || s == "ETH"
-}
-
 func sendWallet(exchange exchange.Exchange) {
 	wallet := exchange.GetWallet()
 	message := fmt.Sprintf("%s (%s) \r\n", exchange.GetName(), mSubAccount)
-	message += getWalletMessage(wallet)
+	message += wallet.GetWalletMessage()
 	message_tool.StartTelegram()
 	message_tool.SendWatcherGroup(message)
 }
