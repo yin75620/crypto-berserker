@@ -5,10 +5,12 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-ini/ini"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/common"
+	"github.com/yin75620/crypto-berserker/message_tool"
 	"github.com/yin75620/crypto-berserker/strategy/arbitrage/CrossExchange"
 )
 
@@ -32,6 +34,9 @@ func main() {
 		ex := common.GetExchange(v)
 		exchanges = append(exchanges, ex)
 	}
+
+	sendWallet(exchanges)
+	go dailySendAccountInfo(exchanges)
 
 	ce := CrossExchange.NewCrossExchange(exchanges)
 	ce.SetInitByIni("main.ini")
@@ -57,4 +62,29 @@ func iniSetting() {
 		TargetName: targetName,
 		QuoteCoin:  quoteCoin,
 	}
+}
+
+// 台灣中午12點會呼叫一次AccountInfo()
+func dailySendAccountInfo(exchanges []exc.Exchange) {
+	now := time.Now().UTC()
+	tomorrow := now.AddDate(0, 0, 1)
+	midnoon := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(),
+		4, 0, 0, 0, now.Location())
+	duration := midnoon.Sub(now)
+	time.Sleep(duration)
+	sendWallet(exchanges)
+
+	dailySendAccountInfo(exchanges)
+}
+
+func sendWallet(exchanges []exc.Exchange) {
+	message := ""
+	for _, v := range exchanges {
+		wallet := v.GetWallet()
+		message += fmt.Sprintf("%s \r\n", v.GetName())
+		message += wallet.GetWalletMessage()
+		message += "\r\n"
+	}
+	message_tool.StartTelegram()
+	message_tool.SendWatcherGroup(message)
 }
