@@ -56,6 +56,7 @@ func (ce *CrossExchange) Start() {
 	//test api
 	infoAll := "Start"
 	for i, exchg := range ce.exchanges {
+		exchg.GetAccountInfo()
 		wallet := exchg.GetWallet()
 		infoAll = fmt.Sprintf("%s \r\n %s:%v", infoAll, exchg.GetName(), wallet)
 		mPreWallets[i] = wallet
