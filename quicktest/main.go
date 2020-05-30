@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/yin75620/crypto-berserker/jmath"
+	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/object_tool"
 )
 
@@ -28,7 +29,23 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	gosleep()
+	changelog()
+}
+
+func changelog() {
+	slog := simpleLog.StartLog()
+	go func() {
+		time.Sleep(1000)
+		fileName := fmt.Sprintf("a%s.log", time.Now().Format("2006-01-02"))
+		slog.Close()
+		simpleLog.StartFileLog(fileName)
+	}()
+	for {
+		log.Println("123")
+	}
+
+	defer slog.Close()
+
 }
 
 func gosleep() {
