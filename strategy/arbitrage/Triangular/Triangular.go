@@ -2,7 +2,6 @@ package Triangular
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -11,6 +10,8 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/jmath"
+	"github.com/yin75620/crypto-berserker/jtime"
+	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
 
@@ -81,7 +82,7 @@ func (tri *Triangular) SetInit(init TriangularInit) {
 
 func (tri *Triangular) Start() {
 	message_tool.StartTelegram()
-	var logFile *os.File = StartLog()
+	var logFile *os.File = simpleLog.StartLog()
 	defer logFile.Close()
 	tri.stratStrategy()
 
@@ -96,8 +97,18 @@ func (tri *Triangular) Start() {
 	t := time.NewTimer(d)
 	defer t.Stop()
 
+	startTime := time.Now()
+
 	for {
 		<-t.C
+
+		now := time.Now()
+		if !jtime.IsSameUtcDay(startTime, now) {
+			startTime = now
+			logFile = simpleLog.StartLog()
+			defer logFile.Close()
+		}
+
 		plusSecond := tri.stratStrategy()
 		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
 	}
@@ -109,19 +120,6 @@ func (tri *Triangular) Start() {
 
 	//log.Fatal(http.ListenAndServe(":8080", nil))
 	///
-}
-
-func StartLog() *os.File {
-	fileName := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02"))
-
-	logFile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-
-	mw := io.MultiWriter(os.Stdout, logFile)
-	log.SetOutput(mw)
-	return logFile
 }
 
 type Quote struct {

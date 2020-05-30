@@ -7,6 +7,7 @@ import (
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/jtime"
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
@@ -75,8 +76,17 @@ func (ce *CrossExchange) Start() {
 	t := time.NewTimer(d)
 	defer t.Stop()
 
+	startTime := time.Now()
+
 	for {
 		<-t.C
+
+		now := time.Now()
+		if !jtime.IsSameUtcDay(startTime, now) {
+			startTime = now
+			slog = simpleLog.StartLog()
+			defer slog.Close()
+		}
 
 		plusMilliSecond := ce.stratStrategy()
 		//fmt.Println("d1.5", plusMilliSecond)
