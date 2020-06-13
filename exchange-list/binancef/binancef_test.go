@@ -90,3 +90,11 @@ func TestPricePair(t *testing.T) {
 
 	//fmt.Println(string(res))
 }
+
+func TestGetWallet(t *testing.T) {
+
+	ce := NewBinancef(http.DefaultClient)
+
+	w := ce.GetWallet()
+	fmt.Println(w)
+}

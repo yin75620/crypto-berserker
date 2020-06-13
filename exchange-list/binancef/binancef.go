@@ -63,7 +63,7 @@ func (bn *binance) GetWallet() exc.Wallet {
 	wallet := exc.Wallet{}
 	for _, asset := range account.Assets {
 		log.Println("asset:", asset)
-		wallet.Balances = append(wallet.Balances, exc.NewBalance(asset.Asset, asset.MaxWithdrawAmount, asset.WalletBalance, asset.WalletBalance))
+		wallet.Balances = append(wallet.Balances, exc.NewBalance(asset.Asset, asset.MaxWithdrawAmount, asset.MarginBalance, asset.MarginBalance))
 	}
 	bn.account.WalletInfo = wallet
 
