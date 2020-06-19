@@ -79,12 +79,15 @@ func dailySendAccountInfo(exchanges []exc.Exchange) {
 
 func sendWallet(exchanges []exc.Exchange) {
 	message := ""
+	sumUSD := 0.0
 	for _, v := range exchanges {
 		wallet := v.GetWallet()
+		sumUSD += wallet.GetAllBalanceUSDValue()
 		message += fmt.Sprintf("%s \r\n", v.GetName())
 		message += wallet.GetWalletMessage()
 		message += "\r\n"
 	}
+	message += fmt.Sprintf("sumUSD:%.2f", sumUSD)
 	message_tool.StartTelegram()
 	message_tool.SendWatcherGroup(message)
 }
