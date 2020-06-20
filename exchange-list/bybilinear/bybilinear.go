@@ -67,7 +67,7 @@ func (bb *Bybilinear) GetWallet() exc.Wallet {
 	w.Balances = appendToBalance(w.Balances, ret.Result.USDT, coinName)
 
 	bb.account.WalletInfo = *w
-
+	bb.account.UnrealizedPnL = ret.Result.USDT.UnrealisedPnl
 	return *w
 }
 
@@ -108,6 +108,10 @@ func (bb *Bybilinear) PostOrder(order exc.ExchangeOrder) (string, error) {
 
 func (bb *Bybilinear) GetAccount() exc.Account {
 	return bb.account
+}
+
+func (bb *Bybilinear) SendGetAccount() {
+
 }
 
 func (bb *Bybilinear) SendGetLeverage() GetLeverageResult {

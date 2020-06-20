@@ -85,6 +85,7 @@ func (ftx *Ftx) GetAccountInfo() []byte {
 	ftx.account.TakerFee = accountResult.Result.TakerFee
 	ftx.account.Leverage = accountResult.Result.Leverage
 	ftx.account.MakerFee = accountResult.Result.MakerFee
+	ftx.account.UnrealizedPnL = accountResult.Result.GetTotalUnrealizedPnl()
 
 	wallet := ftx.GetWallet()
 

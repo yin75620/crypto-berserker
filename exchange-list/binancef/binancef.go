@@ -59,13 +59,14 @@ func (bn *binance) GetWallet() exc.Wallet {
 	if err != nil {
 		log.Fatal("GetWallet json.Unmarshal", err)
 	}
+	log.Println("account:", account)
 
 	wallet := exc.Wallet{}
 	for _, asset := range account.Assets {
-		log.Println("asset:", asset)
 		wallet.Balances = append(wallet.Balances, exc.NewBalance(asset.Asset, asset.MaxWithdrawAmount, asset.MarginBalance, asset.MarginBalance))
 	}
 	bn.account.WalletInfo = wallet
+	bn.account.UnrealizedPnL = account.TotalUnrealizedProfit
 
 	return wallet
 }

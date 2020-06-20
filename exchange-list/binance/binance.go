@@ -94,6 +94,7 @@ func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc
 	return exc.PricePair{}, exc.PricePair{}
 }
 
+// 未實作 UnrealizedPnL
 func (bn *binance) GetAccount() exc.Account {
 	return exc.Account{}
 }

@@ -68,6 +68,7 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 	w.Balances = appendToBalance(w.Balances, ret.Result.BTC, coinName, coinPrice)
 
 	bb.account.WalletInfo = *w
+	bb.account.UnrealizedPnL = ret.Result.BTC.UnrealisedPnl
 
 	return *w
 }

@@ -384,7 +384,8 @@ type Asset struct {
 
 // Account holds the account data
 type Account struct {
-	Assets []Asset `json:"assets"`
+	Assets                []Asset `json:"assets"`
+	TotalUnrealizedProfit float64 `json:"totalUnrealizedProfit,string"`
 	/*"canDeposit": true,
 	  "canTrade": true,
 	  "canWithdraw": true,

@@ -53,3 +53,11 @@ type Account struct {
 		UnrealizedPnl                float64 `json:"unrealizedPnl"`
 	}
 }
+
+func (ac *Account) GetTotalUnrealizedPnl() float64 {
+	sum := 0.0
+	for _, v := range ac.Positions {
+		sum += v.UnrealizedPnl
+	}
+	return sum
+}
