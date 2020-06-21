@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
@@ -34,6 +35,22 @@ func TestOrder(t *testing.T) {
 	// }
 	//mftx.PostOrder(myOrder)
 
+}
+
+func TestFuturesOrder(t *testing.T) {
+	order := exc.FuturesOrder{}
+	futures := exc.Futures{
+		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+		TargetName: "BTC",
+		QuoteCoin:  "USDT",
+	}
+
+	order.Futures = futures
+	order.Size = 0.0001
+	order.Price = 9201.1205
+	order.Side = exc.Buy
+	order.OrderType = exc.LIMIT
+	mftx.PostFuturesOrder(order)
 }
 
 func TestMarket(t *testing.T) {

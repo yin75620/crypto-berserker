@@ -42,6 +42,26 @@ func TestMain(t *testing.T) {
 	ce.Start()
 }
 
+func TestExchangesTrade(t *testing.T) {
+	exchanges := []exc.Exchange{}
+	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
+		setting.FTX_KEY,
+		setting.FTX_API_SECRET_KEY,
+		"tester"})
+	bybilinear := bybilinear.NewBybilinear(http.DefaultClient)
+	exchanges = append(exchanges, ft)
+	exchanges = append(exchanges, bybilinear)
+
+	ce := NewCrossExchange(exchanges)
+
+	futures := exc.Futures{
+		TargetName: "BTC",
+		QuoteCoin:  "USDT",
+	}
+	ce.SetFuturesArray([]exc.Futures{futures})
+	ce.Start()
+}
+
 func TestOrder(t *testing.T) {
 	/*
 		ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
