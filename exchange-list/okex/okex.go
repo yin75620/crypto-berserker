@@ -24,8 +24,10 @@ type Okex struct {
 }
 
 var (
-	apiURL    = "https://www.okex.com"
-	apiPrefix = "/api/spot/v3/" //幣幣交易
+	apiURL = "https://www.okex.com"
+	//apiPrefix = "/api/spot/v3/" //幣幣交易
+	//apiPrefix = "/api/futures/v3/" //期貨交易
+	apiPrefix = "/api/swap/v3/" //永續合約
 )
 
 // implement exchange
@@ -38,8 +40,8 @@ func (bm *Okex) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Deposit = 0
 	fee.WithDrawl = 0
-	fee.Taker = 0.0015
-	fee.Maker = 0.0015
+	fee.Taker = 0.0005
+	fee.Maker = 0.0005
 	return fee
 }
 
@@ -65,11 +67,14 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 func (bm *Okex) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	path := fmt.Sprintf("instruments/%s/book?size=%d",
 		coinPair.GetSymbal(), depth)
-	resByte := bm.doNormalRequest("GET", path, "")
+	resByte, err := bm.doNormalRequest("GET", path, "")
+	if err != nil {
+		log.Println("GetAskBidPair err:", err)
+	}
 
 	var resJson map[string]interface{}
 
-	err := json.Unmarshal(resByte, &resJson)
+	err = json.Unmarshal(resByte, &resJson)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,12 +89,18 @@ func (bm *Okex) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, 
 }
 
 func (bm *Okex) GetAccountInfo() []byte {
-	res := bm.doNormalRequest("GET", "accounts", "")
+	res, err := bm.doNormalRequest("GET", "accounts", "")
+	if err != nil {
+		log.Println("GetAskBidPair err:", err)
+	}
 	return res
 }
 
 func (bm *Okex) GetProducts() []byte {
-	res := bm.doNormalRequest("GET", "products", "")
+	res, err := bm.doNormalRequest("GET", "products", "")
+	if err != nil {
+		log.Println("GetAskBidPair err:", err)
+	}
 	return res
 }
 
@@ -130,7 +141,10 @@ func (bm *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
 
-	response := bm.doOrderRequest("order", body, bo.Time, bo.Coid)
+	response, err := bm.doOrderRequest("order", body, bo.Time, bo.Coid)
+	if err != nil {
+		log.Println("GetAskBidPair err:", err)
+	}
 
 	log.Println(fmt.Sprintf("%s", response))
 
@@ -153,16 +167,16 @@ func (bm *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return string(response), resErr
 }
 
-func (bm *Okex) doNormalRequest(method, apiName, body string) []byte {
+func (bm *Okex) doNormalRequest(method, apiName, body string) ([]byte, error) {
 	ts := exc.GetTimeSpan()
 	return bm.doRequest(method, apiName, body, false, ts, "")
 }
 
-func (bm *Okex) doOrderRequest(apiName, body string, ts int64, coid string) []byte {
+func (bm *Okex) doOrderRequest(apiName, body string, ts int64, coid string) ([]byte, error) {
 	return bm.doRequest("POST", apiName, body, true, ts, coid)
 }
 
-func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) []byte {
+func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) ([]byte, error) {
 	client := bm.client
 
 	var res []byte
@@ -172,13 +186,17 @@ func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64,
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
 		log.Println(err)
-		return res
+		return res, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, ts, body)
 
-	sendRes := exc.SendRequest(client, req)
+	sendRes, err := exc.SendRequest(client, req)
+	if err != nil {
+		log.Println("okex SendRequest:", err)
+	}
+	log.Println("RES:", string(sendRes))
 	//{"code":6010,"message":"Not enough balance."}
 	type OrderResponse struct {
 		Code    float64 `json:"code"`
