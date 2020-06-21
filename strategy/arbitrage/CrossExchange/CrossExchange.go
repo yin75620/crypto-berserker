@@ -187,6 +187,7 @@ func (ce *CrossExchange) updateExchangeWallet(exchangeName string) {
 	for i, _ := range ce.exchanges {
 		if ce.exchanges[i].GetName() == exchangeName {
 			ce.exchanges[i].GetWallet()
+			ce.exchanges[i].GetAccountInfo() // 更新未平倉損億
 		}
 	}
 }

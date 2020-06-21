@@ -49,8 +49,10 @@ func TestExchangesTrade(t *testing.T) {
 		setting.FTX_API_SECRET_KEY,
 		"tester"})
 	bybilinear := bybilinear.NewBybilinear(http.DefaultClient)
+	bnf := binancef.NewBinancef(http.DefaultClient)
 	exchanges = append(exchanges, ft)
 	exchanges = append(exchanges, bybilinear)
+	exchanges = append(exchanges, bnf)
 
 	ce := NewCrossExchange(exchanges)
 
