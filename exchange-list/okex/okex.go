@@ -19,8 +19,8 @@ func NewOkex(c *http.Client) *Okex {
 }
 
 type Okex struct {
-	client       *http.Client
-	accountGroup int
+	client  *http.Client
+	account exc.Account
 }
 
 var (
@@ -33,15 +33,74 @@ var (
 // implement exchange
 func (bm *Okex) GetWallet() exc.Wallet {
 	w := exc.Wallet{}
+	type WalletResponse struct {
+		Info SwapAccountInfo `json:"info"`
+	}
+	walletRes := WalletResponse{}
+
+	response, err := bm.doRequest("GET", "BTC-USDT-SWAP/accounts", "")
+	if err != nil {
+		log.Println("GetWallet err:", err)
+	}
+
+	json.Unmarshal(response, &walletRes)
+	if err != nil {
+		log.Fatal("Okex GetWallet", err)
+	}
+	fmt.Println(string(response))
+
+	fmt.Println(walletRes.Info)
+
+	wInfo := walletRes.Info
+
+	balance := exc.Balance{
+		Coin:         wInfo.Currency,
+		Free:         wInfo.MaxWithdraw,
+		FreeUsdValue: wInfo.MaxWithdraw,
+		Total:        wInfo.Equity,
+		UsdValue:     wInfo.Equity,
+	}
+	w.Balances = append(w.Balances, balance)
+
+	bm.account.UnrealizedPnL = wInfo.UnrealizedPnl
+	bm.account.WalletInfo = w
+
 	return w
 }
 
+func (bm *Okex) GetLeverage() float64 {
+	res, err := bm.doRequest("GET", "accounts/BTC-USD-SWAP/settings", "")
+	if err != nil {
+		log.Println("GetLeverage err:", err)
+	}
+	setting := SwapAccountsSetting{}
+	json.Unmarshal(res, &setting)
+	log.Println("leverage", setting.LongLeverage)
+
+	bm.account.Leverage = setting.LongLeverage
+	return setting.LongLeverage
+}
+
 func (bm *Okex) GetFee() exc.Fee {
+
+	res, err := bm.doRequest("GET", "trade_fee", "")
+	if err != nil {
+		log.Println("GetFee err:", err)
+	}
+	log.Println("tradeFee", string(res))
+
+	tradeFee := TradeFee{}
+	json.Unmarshal(res, &tradeFee)
+
 	fee := exc.Fee{}
 	fee.Deposit = 0
 	fee.WithDrawl = 0
-	fee.Taker = 0.0005
-	fee.Maker = 0.0005
+	fee.Taker = tradeFee.Taker
+	fee.Maker = tradeFee.Maker
+
+	bm.account.TakerFee = tradeFee.Taker
+	bm.account.MakerFee = tradeFee.Maker
+
 	return fee
 }
 
@@ -89,11 +148,27 @@ func (bm *Okex) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, 
 }
 
 func (bm *Okex) GetAccountInfo() []byte {
-	res, err := bm.doNormalRequest("GET", "accounts", "")
+
+	str := ""
+	out, err := json.Marshal(bm.GetWallet())
 	if err != nil {
-		log.Println("GetAskBidPair err:", err)
+		panic(err)
 	}
-	return res
+	str += string(out)
+
+	out, err = json.Marshal(bm.GetLeverage())
+	if err != nil {
+		panic(err)
+	}
+	str += string(out)
+
+	out, err = json.Marshal(bm.GetFee())
+	if err != nil {
+		panic(err)
+	}
+	str += string(out)
+
+	return []byte(str)
 }
 
 func (bm *Okex) GetProducts() []byte {
@@ -197,7 +272,7 @@ func (bm *Okex) doPostOrder(order OkexOrder) (string, error) {
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
 
-	response, err := bm.doOrderRequest("order", body)
+	response, err := bm.doPostRequest("order", body)
 	if err != nil {
 		log.Println("GetAskBidPair err:", err)
 	}
@@ -224,14 +299,14 @@ func (bm *Okex) doPostOrder(order OkexOrder) (string, error) {
 }
 
 func (bm *Okex) doNormalRequest(method, apiName, body string) ([]byte, error) {
-	return bm.doRequest(method, apiName, body, false)
+	return bm.doRequest(method, apiName, body)
 }
 
-func (bm *Okex) doOrderRequest(apiName, body string) ([]byte, error) {
-	return bm.doRequest("POST", apiName, body, true)
+func (bm *Okex) doPostRequest(apiName, body string) ([]byte, error) {
+	return bm.doRequest("POST", apiName, body)
 }
 
-func (bm *Okex) doRequest(method, apiName, body string, needAuth bool) ([]byte, error) {
+func (bm *Okex) doRequest(method, apiName, body string) ([]byte, error) {
 	ts := exc.GetTimeSpan()
 
 	client := bm.client

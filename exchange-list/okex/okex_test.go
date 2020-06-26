@@ -27,6 +27,7 @@ func TestAccount(t *testing.T) {
 
 	fmt.Println(string(res))
 }
+
 func TestGetPair(t *testing.T) {
 	res1, res2 := m_OkexClient.GetAskBidPair(exc.CoinPair{BTC, USDT}, 1)
 	fmt.Println(fmt.Sprintf("res1:%g", res1.Price))
@@ -48,4 +49,16 @@ func TestFutureOrder(t *testing.T) {
 		IsClose: false,
 	}
 	m_OkexClient.PostFutureOrder(myOrder)
+}
+
+func TestExchangeAPI(t *testing.T) {
+	//var exchange exc.Exchange = m_OkexClient
+}
+
+func TestWallet(t *testing.T) {
+	m_OkexClient.GetWallet()
+}
+
+func TestLeverage(t *testing.T) {
+	m_OkexClient.GetLeverage()
 }
