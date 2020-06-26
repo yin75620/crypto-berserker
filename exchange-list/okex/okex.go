@@ -105,53 +105,109 @@ func (bm *Okex) GetProducts() []byte {
 }
 
 type OkexOrder struct {
-	Coid       string `json:"coid"`       //"xxx...xxx"     a unique identifier of length 32
-	Time       int64  `json:"time"`       // 1528988100000   milliseconds since UNIX epoch in UTC
-	Symbol     string `json:"symbol"`     //"ETH/BTC"
-	OrderPrice string `json:"orderPrice"` //"13.5"          optional, limit price of the order. This field is required for limit orders and stop limit orders.
-	//StopPrice  string `json:"stopPrice"`  //"15.7"          optional, stop price of the order. This field is required for stop market orders and stop limit orders.
-	OrderQty  string `json:"orderQty"`  //"3.5"
-	OrderType string `json:"orderType"` //"limit"         order type, you shall specify one of the following: "limit", "market", "stop_market", "stop_limit".
-	Side      string `json:"side"`      //"buy"           "buy" or "sell"
+	//Coid       string  `json:"client_oid,omitempty"`         //"xxx...xxx"     a unique identifier of length 32
+	Symbol     string  `json:"instrument_id"`                // 合约名称，如BTC-USD-SWAP,BTC-USDT-SWAP
+	Price      float64 `json:"orderPrice,string"`            //"13.5"          optional, limit price of the order. This field is required for limit orders and stop limit orders.
+	Size       float64 `json:"size,string"`                  //（以张计数）
+	Side       int     `json:"type,string"`                  //	可填参数：1:开多2:开空3:平多4:平空
+	MatchPrice int     `json:"match_price,string,omitempty"` //是否以对手价下单。0:不是; 1:是。当以对手价下单，order_type只能选择0（普通委托）
+	//OrderTYpe string `json:"order_type"` //0：普通委托（order_type不填或填0都是普通委托）1：只做Maker（Post only）2：全部成交或立即取消（FOK）3：立即成交并取消剩余（IOC）4：市价委托
 	//PostOnly    bool   `json:"postOnly"`    //true            Optional, if true, the order will either be posted to the limit order book or be cancelled, i.e. the order cannot take liquidity; default value is false
 	//TimeInForce string `json:"timeInForce"` //"GTC"           Optional, default is "GTC". Currently, we support "GTC" (good-till-canceled) and "IOC" (immediate-or-cancel).
 }
 
-func (bo *OkexOrder) setBy(order exc.ExchangeOrder) {
-	bo.Coid = exc.Uuid(32)
-	bo.Time = exc.GetTimeSpan()
-	bo.Symbol = order.CoinPair.GetMarketName()
-	bo.OrderPrice = fmt.Sprintf("%g", order.Price)
-	//bo.StopPrice = "0"
-	bo.OrderQty = fmt.Sprintf("%g", order.Size)
-	bo.OrderType = string(order.OrderType)
-	bo.Side = order.Side
+const (
+	OPEN_LONG   = 1
+	OPEN_SHORT  = 2
+	CLOSE_LONG  = 3
+	CLOSE_SHORT = 4
+)
+
+func (oo *OkexOrder) setBy(order exc.ExchangeOrder) {
+
+	// 只允許做市價單
+	if order.OrderType == exc.LIMIT {
+		// 因為無法判斷強制平倉或溢價只允許做市價單
+	}
+
+	oo.Symbol = order.Market
+	panic("not yet implement ExchangeOrder")
+}
+
+func (oo *OkexOrder) getFuturesName(futures exc.Futures) string {
+	return fmt.Sprintf("%s-%s-SWAP", futures.TargetName, futures.QuoteCoin)
+}
+
+func (oo *OkexOrder) setByFutures(order exc.FuturesOrder) {
+	oo.Symbol = oo.getFuturesName(order.Futures)
+
+	//oo.Coid = exc.Uuid(32)
+
+	if !order.IsClose {
+		if order.Side == exc.Buy {
+			oo.Side = OPEN_LONG
+		} else {
+			oo.Side = OPEN_SHORT
+		}
+	} else {
+		if order.Side == exc.Buy {
+			oo.Side = CLOSE_LONG
+		} else {
+			oo.Side = CLOSE_SHORT
+		}
+	}
+
+	oo.Price = order.Price
+	if order.OrderType == exc.MARKET {
+
+		//oo.Price = order.Price
+		oo.MatchPrice = 1 //1=yes,0=no
+	} else {
+		// 因為無法判斷強制平倉或溢價只允許做市價單
+		oo.MatchPrice = 1
+	}
+
+	oo.Size = order.Size
+
+}
+
+func (ox *Okex) PostFutureOrder(order exc.FuturesOrder) (string, error) {
+
+	oo := OkexOrder{}
+	oo.setByFutures(order)
+
+	return ox.doPostOrder(oo)
+}
+
+func (ox *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
+
+	oo := OkexOrder{}
+	oo.setBy(order)
+
+	return ox.doPostOrder(oo)
 }
 
 //下訂單
-func (bm *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
+func (bm *Okex) doPostOrder(order OkexOrder) (string, error) {
 
-	bo := OkexOrder{}
-	bo.setBy(order)
-
-	request, err := json.Marshal(bo)
+	request, err := json.Marshal(order)
 	if err != nil {
 		log.Fatal(err)
 	}
 	body := string(request)
 	log.Println(fmt.Sprintf("body:%s", body))
 
-	response, err := bm.doOrderRequest("order", body, bo.Time, bo.Coid)
+	response, err := bm.doOrderRequest("order", body)
 	if err != nil {
 		log.Println("GetAskBidPair err:", err)
 	}
 
 	log.Println(fmt.Sprintf("%s", response))
 
-	//{"code":6010,"message":"Not enough balance."}
+	//{"error_message":"","result":"true","error_code":"0","client_oid":null,"order_id":"530018249871622144"}
 	type OrderResponse struct {
-		Code    float64 `json:"code"`
-		Message string  `json:"message"`
+		Code    float64 `json:"error_code,string"`
+		Message string  `json:"error_message"`
 	}
 	orderResponse := OrderResponse{}
 
@@ -168,15 +224,16 @@ func (bm *Okex) PostOrder(order exc.ExchangeOrder) (string, error) {
 }
 
 func (bm *Okex) doNormalRequest(method, apiName, body string) ([]byte, error) {
+	return bm.doRequest(method, apiName, body, false)
+}
+
+func (bm *Okex) doOrderRequest(apiName, body string) ([]byte, error) {
+	return bm.doRequest("POST", apiName, body, true)
+}
+
+func (bm *Okex) doRequest(method, apiName, body string, needAuth bool) ([]byte, error) {
 	ts := exc.GetTimeSpan()
-	return bm.doRequest(method, apiName, body, false, ts, "")
-}
 
-func (bm *Okex) doOrderRequest(apiName, body string, ts int64, coid string) ([]byte, error) {
-	return bm.doRequest("POST", apiName, body, true, ts, coid)
-}
-
-func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64, coid string) ([]byte, error) {
 	client := bm.client
 
 	var res []byte
@@ -197,10 +254,11 @@ func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64,
 		log.Println("okex SendRequest:", err)
 	}
 	log.Println("RES:", string(sendRes))
-	//{"code":6010,"message":"Not enough balance."}
+
+	//{"error_message":"","result":"true","error_code":"0","client_oid":null,"order_id":"530018249871622144"}
 	type OrderResponse struct {
-		Code    float64 `json:"code"`
-		Message string  `json:"message"`
+		Code    float64 `json:"error_code,string"`
+		Message string  `json:"error_message"`
 	}
 	orderResponse := OrderResponse{}
 
@@ -212,7 +270,7 @@ func (bm *Okex) doRequest(method, apiName, body string, needAuth bool, ts int64,
 		panic(resErr)
 	}
 
-	return exc.SendRequest(client, req)
+	return sendRes, err
 }
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, body string) {

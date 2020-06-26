@@ -35,15 +35,17 @@ func TestGetPair(t *testing.T) {
 	fmt.Println(fmt.Sprintf("res2:%g", res2.Volume))
 }
 
-/*
-func TestOrder(t *testing.T) {
-	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
-		Market:    "FTT/USDT",
-		Side:      exc.Buy,
-		Price:     1.3,
-		Size:      1,
-		OrderType: exc.LIMIT,
+func TestFutureOrder(t *testing.T) {
+	var myOrder exc.FuturesOrder = exc.FuturesOrder{
+		Futures: exc.Futures{TargetName: "BTC", QuoteCoin: "USDT"},
+		CommodityOrder: exc.CommodityOrder{
+			Side:      exc.Sell,
+			Price:     9200,
+			Size:      1,
+			OrderType: exc.LIMIT,
+		},
+
+		IsClose: false,
 	}
-	m_OkexClient.PostOrder(myOrder)
+	m_OkexClient.PostFutureOrder(myOrder)
 }
-*/
