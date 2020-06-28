@@ -83,8 +83,15 @@ func (bm *Okex) GetLeverage() float64 {
 	bm.account.Leverage = setting.LongLeverage
 	return setting.LongLeverage
 }
-
 func (bm *Okex) GetFee() exc.Fee {
+	fee := exc.Fee{}
+	fee.Deposit = 0
+	fee.WithDrawl = 0
+	fee.Taker = bm.account.TakerFee
+	fee.Maker = bm.account.MakerFee
+	return fee
+}
+func (bm *Okex) doGetFee() exc.Fee {
 
 	res, err := bm.doRequest("GET", "trade_fee", "")
 	if err != nil {
@@ -178,7 +185,7 @@ func (bm *Okex) GetAccountInfo() []byte {
 	}
 	str += string(out)
 
-	out, err = json.Marshal(bm.GetFee())
+	out, err = json.Marshal(bm.doGetFee())
 	if err != nil {
 		panic(err)
 	}
