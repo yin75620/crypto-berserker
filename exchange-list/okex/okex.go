@@ -9,18 +9,21 @@ import (
 	"net/http"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
 func NewOkex(c *http.Client) *Okex {
 	Okex := &Okex{}
 	Okex.client = c
+	Okex.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	return Okex
 }
 
 type Okex struct {
-	client  *http.Client
-	account exc.Account
+	client          *http.Client
+	account         exc.Account
+	orderBookCenter *ob.OrderBookCenter
 }
 
 var (
@@ -110,6 +113,19 @@ func (bm *Okex) GetName() string {
 
 func (bm *Okex) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{} //not yet implement
+}
+
+func (bm *Okex) GetVolumeByTotal(total, price float64) float64 {
+	return total / price
+}
+
+func (bm *Okex) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
+	booker := ob.StartOrderBook(bm.orderBookCenter, futures.GetSwapNameUpper())
+	return booker.GetFirstPricePair()
+}
+
+func (bm *Okex) GetAccount() exc.Account {
+	return bm.account
 }
 
 type QuoteResponse struct {
@@ -242,7 +258,7 @@ func (oo *OkexOrder) setByFutures(order exc.FuturesOrder) {
 
 }
 
-func (ox *Okex) PostFutureOrder(order exc.FuturesOrder) (string, error) {
+func (ox *Okex) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 
 	oo := OkexOrder{}
 	oo.setByFutures(order)

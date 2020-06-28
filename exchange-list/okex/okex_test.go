@@ -48,7 +48,7 @@ func TestFutureOrder(t *testing.T) {
 
 		IsClose: false,
 	}
-	m_OkexClient.PostFutureOrder(myOrder)
+	m_OkexClient.PostFuturesOrder(myOrder)
 }
 
 func TestExchangeAPI(t *testing.T) {
