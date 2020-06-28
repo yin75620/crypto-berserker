@@ -1,6 +1,8 @@
 package CrossExchange
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -49,6 +51,14 @@ func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePai
 	cp.askPricePair = askPircePair
 	cp.bidPricePair = bidPricePair
 	return &cp
+}
+
+func (cp *CrossPair) IsDefault() bool {
+	a, _ := json.Marshal(cp)
+	b, _ := json.Marshal(CrossPair{})
+	return bytes.Compare(a, b) == 0
+
+	//return cp.askExchange == nil && cp.bidExchange == nil && cp.askPricePair.Price == 0 && cp.bidPricePair.Price == 0
 }
 
 func (cp *CrossPair) toJson() CrossPairJson {

@@ -114,7 +114,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		log.Fatal("has no match pair exchange")
 	}
 
-	topCrossPair := getMaxProfitCrossPair(crossPairMap)
+	topCrossPair := ce.getMaxProfitCrossPair(crossPairMap)
 
 	if isDisconnect(topCrossPair) {
 		var disconnectMiliSeccond int64 = 3000
@@ -148,9 +148,16 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		}
 	}
 
+	topCrossPair = ce.getCanOrderMaxProfitCrossPair(crossPairMap)
+	if topCrossPair.IsDefault() {
+		// 無利可圖，重設偵測
+		return 0
+	}
+
 	// 交易判斷
 	// 有利可圖
-	if !coinPairCanOrder(topCrossPair) {
+	isCaneOrder, orderTotalValue, execMinTotalValue := ce.coinPairCanOrder(topCrossPair)
+	if !isCaneOrder {
 		// 無利可圖，重設偵測
 		return 0
 	}
@@ -344,11 +351,27 @@ func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) CrossPairStr
 	return crossPairMap
 }
 
-func getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
+func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
 	maxProfit := -math.MaxFloat64
 	var topCrossPair CrossPair
 	for _, crossPair := range mcp {
-		if !coinPairCanOrder(crossPair) {
+		if crossPair.GetProfit() > maxProfit {
+			maxProfit = crossPair.GetProfit()
+			topCrossPair = crossPair
+		}
+		log.Println(crossPair.GetProfitString())
+		//matchPair := crossPairMap[crossPair.GetMatchName()]
+		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
+	}
+	return topCrossPair
+}
+
+func (ce *CrossExchange) getCanOrderMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
+	maxProfit := -math.MaxFloat64
+	var topCrossPair CrossPair
+	for _, crossPair := range mcp {
+		canOrder, _, _ := ce.coinPairCanOrder(crossPair)
+		if !canOrder {
 			continue
 		}
 
@@ -356,10 +379,6 @@ func getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
-		log.Println(crossPair.GetProfitString())
-
-		//matchPair := crossPairMap[crossPair.GetMatchName()]
-		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
 	}
 	return topCrossPair
 }
@@ -458,7 +477,7 @@ func removeElement(a []CrossPair, i int) []CrossPair {
 	return a
 }
 
-func getCalculateMaxHoldVolume(crossPair CrossPair) float64 {
+func (ce *CrossExchange) getCalculateMaxHoldVolume(crossPair CrossPair) float64 {
 	maxHoldVolume := ce.init.MaxHoldVolume
 	//計算最大持有量
 	maxHoldVolume = math.Min(maxHoldVolume, crossPair.GetMaxHoldVolume()*ce.init.MaxHoldeExchangePercent)
@@ -466,12 +485,12 @@ func getCalculateMaxHoldVolume(crossPair CrossPair) float64 {
 	return maxHoldVolume
 }
 
-func coinPairCanOrder(crossPair CrossPair) bool {
+func (ce *CrossExchange) coinPairCanOrder(crossPair CrossPair) (bool, float64, float64) {
 	maxProfit := crossPair.GetProfit()
-	maxHoldVolume = getCalculateMaxHoldVolume(crossPair.GetMaxHoldVolume())
+	maxHoldVolume := ce.getCalculateMaxHoldVolume(crossPair)
 	currentUSDVolume := getCurrentUSDVolume(crossPair.GetName(), ce.positionCrossPairMap)
 	execMinTotalValue := crossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(maxHoldVolume-currentUSDVolume, execMinTotalValue)
 
-	return canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init)
+	return canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init), orderTotalValue, execMinTotalValue
 }
