@@ -122,12 +122,6 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		return disconnectMiliSeccond
 	}
 
-	maxProfit := topCrossPair.GetProfit()
-	maxHoldVolume := ce.init.MaxHoldVolume
-	//計算最大持有量
-	maxHoldVolume = math.Min(maxHoldVolume, topCrossPair.GetMaxHoldVolume()*ce.init.MaxHoldeExchangePercent)
-	maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
-
 	// 檢查部位是否可以平倉
 	hasClose, mp := positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
 	if hasClose {
@@ -154,13 +148,9 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		}
 	}
 
-	currentUSDVolume := getCurrentUSDVolume(ce.positionCrossPairMap)
-	execMinTotalValue := topCrossPair.GetMinTotalVolume()
-	orderTotalValue := math.Min(maxHoldVolume-currentUSDVolume, execMinTotalValue)
-
 	// 交易判斷
 	// 有利可圖
-	if !canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init) {
+	if !coinPairCanOrder(topCrossPair) {
 		// 無利可圖，重設偵測
 		return 0
 	}
@@ -358,6 +348,10 @@ func getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
 	maxProfit := -math.MaxFloat64
 	var topCrossPair CrossPair
 	for _, crossPair := range mcp {
+		if !coinPairCanOrder(crossPair) {
+			continue
+		}
+
 		if crossPair.GetProfit() > maxProfit {
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
@@ -403,9 +397,12 @@ const (
 	PairMapFileName = "PairMap.json"
 )
 
-func getCurrentUSDVolume(positionCrossPairMap map[string][]CrossPair) float64 {
+func getCurrentUSDVolume(name string, positionCrossPairMap map[string][]CrossPair) float64 {
 	sum := 0.0
-	for _, array := range positionCrossPairMap {
+	for keyName, array := range positionCrossPairMap {
+		if keyName != name {
+			continue
+		}
 		for _, v := range array {
 			sum = sum + v.orderVolume
 		}
@@ -459,4 +456,22 @@ func removeElement(a []CrossPair, i int) []CrossPair {
 	a[len(a)-1] = CrossPair{} // Erase last element (write zero value).
 	a = a[:len(a)-1]          // Truncate slice.
 	return a
+}
+
+func getCalculateMaxHoldVolume(crossPair CrossPair) float64 {
+	maxHoldVolume := ce.init.MaxHoldVolume
+	//計算最大持有量
+	maxHoldVolume = math.Min(maxHoldVolume, crossPair.GetMaxHoldVolume()*ce.init.MaxHoldeExchangePercent)
+	maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
+	return maxHoldVolume
+}
+
+func coinPairCanOrder(crossPair CrossPair) bool {
+	maxProfit := crossPair.GetProfit()
+	maxHoldVolume = getCalculateMaxHoldVolume(crossPair.GetMaxHoldVolume())
+	currentUSDVolume := getCurrentUSDVolume(crossPair.GetName(), ce.positionCrossPairMap)
+	execMinTotalValue := crossPair.GetMinTotalVolume()
+	orderTotalValue := math.Min(maxHoldVolume-currentUSDVolume, execMinTotalValue)
+
+	return canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init)
 }
