@@ -8,6 +8,7 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
+	"github.com/yin75620/crypto-berserker/exchange-list/okex"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
@@ -18,6 +19,7 @@ const (
 	BINANCEF   = "Binancef"
 	BYBIT      = "Bybit"
 	BYBILINEAR = "Bybilinear"
+	OKEX       = "Okex"
 )
 
 func GetExchange(exchangeName string) exc.Exchange {
@@ -38,6 +40,9 @@ func GetExchange(exchangeName string) exc.Exchange {
 		break
 	case BINANCEF:
 		res = binancef.NewBinancef(http.DefaultClient)
+		break
+	case OKEX:
+		res = okex.NewOkex(http.DefaultClient)
 		break
 	default:
 		log.Println("error, not define exchangeName:", exchangeName)
