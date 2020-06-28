@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/yin75620/crypto-berserker/exchange/tool"
@@ -108,4 +109,8 @@ func (f *Futures) GetMarketName() string {
 	}
 
 	return res
+}
+
+func (f *Futures) GetSwapNameUpper() string {
+	return strings.ToUpper(fmt.Sprintf("%s-%s-SWAP", f.TargetName, f.QuoteCoin))
 }

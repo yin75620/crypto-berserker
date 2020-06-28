@@ -209,12 +209,8 @@ func (oo *OkexOrder) setBy(order exc.ExchangeOrder) {
 	panic("not yet implement ExchangeOrder")
 }
 
-func (oo *OkexOrder) getFuturesName(futures exc.Futures) string {
-	return fmt.Sprintf("%s-%s-SWAP", futures.TargetName, futures.QuoteCoin)
-}
-
 func (oo *OkexOrder) setByFutures(order exc.FuturesOrder) {
-	oo.Symbol = oo.getFuturesName(order.Futures)
+	oo.Symbol = order.Futures.GetSwapNameUpper()
 
 	//oo.Coid = exc.Uuid(32)
 
