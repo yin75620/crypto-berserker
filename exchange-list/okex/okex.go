@@ -206,7 +206,7 @@ type OkexOrder struct {
 	//Coid       string  `json:"client_oid,omitempty"`         //"xxx...xxx"     a unique identifier of length 32
 	Symbol     string  `json:"instrument_id"`                // 合约名称，如BTC-USD-SWAP,BTC-USDT-SWAP
 	Price      float64 `json:"orderPrice,string"`            //"13.5"          optional, limit price of the order. This field is required for limit orders and stop limit orders.
-	Size       float64 `json:"size,string"`                  //（以张计数）
+	Size       int     `json:"size,string"`                  //（以张计数）
 	Side       int     `json:"type,string"`                  //	可填参数：1:开多2:开空3:平多4:平空
 	MatchPrice int     `json:"match_price,string,omitempty"` //是否以对手价下单。0:不是; 1:是。当以对手价下单，order_type只能选择0（普通委托）
 	//OrderTYpe string `json:"order_type"` //0：普通委托（order_type不填或填0都是普通委托）1：只做Maker（Post only）2：全部成交或立即取消（FOK）3：立即成交并取消剩余（IOC）4：市价委托
@@ -261,7 +261,10 @@ func (oo *OkexOrder) setByFutures(order exc.FuturesOrder) {
 		oo.MatchPrice = 1
 	}
 
-	oo.Size = order.Size
+	// resize from float to int
+
+	oo.Size = int(order.Size)
+	log.Println(fmt.Sprintf("%v to %v", order.Size, oo.Size))
 
 }
 

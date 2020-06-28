@@ -42,7 +42,7 @@ func TestFutureOrder(t *testing.T) {
 		CommodityOrder: exc.CommodityOrder{
 			Side:      exc.Sell,
 			Price:     9200,
-			Size:      1,
+			Size:      1.1,
 			OrderType: exc.LIMIT,
 		},
 
