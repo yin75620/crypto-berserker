@@ -123,7 +123,7 @@ func (bm *Okex) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 }
 
 func (bm *Okex) GetVolumeByTotal(total, price float64) float64 {
-	return total / price
+	return total / price * 100
 }
 
 func (bm *Okex) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
