@@ -41,7 +41,7 @@ func (fws *OkexWebSocket) doSubScribeOrderBook(marketName string, resChannel cha
 
 			//log.Println("message:", string(message))
 			if err != nil {
-				log.Println("error:", err)
+				log.Println("ReadMessage error:", err)
 				response.Error = err
 				resChannel <- response
 				fws.doSubScribeOrderBook(market, resChannel)
@@ -50,7 +50,7 @@ func (fws *OkexWebSocket) doSubScribeOrderBook(marketName string, resChannel cha
 
 			unMessage, err := tool.FlateDecompress(message)
 			if err != nil {
-				log.Println("error:", err)
+				log.Println("Flate error:", err)
 				response.Error = err
 				resChannel <- response
 				fws.doSubScribeOrderBook(market, resChannel)
@@ -59,7 +59,6 @@ func (fws *OkexWebSocket) doSubScribeOrderBook(marketName string, resChannel cha
 
 			orderBookData := OrderBookData{}
 			json.Unmarshal(unMessage, &orderBookData)
-			//log.Println("orderBookData:", orderBookData)
 			response = orderBookData.ToOrderBookDetail()
 			response.Market = market
 
@@ -70,21 +69,14 @@ func (fws *OkexWebSocket) doSubScribeOrderBook(marketName string, resChannel cha
 }
 
 func createConn(channelName string, marketName string) *websocket.Conn {
-	//const levels = "5" //5,10,20
-	//endpoint := fmt.Sprintf("%s/%s@%s%s", WEBSOCKET_URL, marketName, channelName, levels)
 	return tool.CreateConn(WEBSOCKET_URL)
 }
 
 func sendSubcribe(c *websocket.Conn) {
-	//"orderBookL2_25.BTCUSD"
-	//ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}');
-	//endpoint := fmt.Sprintf("%s/%s@depth%s", baseURL, strings.ToLower(symbol), levels)
-	//args := fmt.Sprintf("%sL2_25.%s", channelName, marketName)
 	req := SubscriptionRequest{
 		Op:   "subscribe",
 		Args: []string{"swap/depth5:BTC-USD-SWAP"},
 	}
 
 	tool.SendFlate(c, req)
-	//tool.SendPing(c, nil)
 }

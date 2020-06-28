@@ -12,12 +12,6 @@ type SubscriptionRequest struct {
 	Args []string `json:"args,omitempty"`
 }
 
-// OrderBookDataRequestParams represents Klines request data.
-type OrderBookDataRequestParams struct {
-	Symbol string `json:"symbol"` // Required field; example LTCBTC,BTCUSDT
-	Limit  int    `json:"limit"`  // Default 100; max 1000. Valid limits:[5, 10, 20, 50, 100, 500, 1000]
-}
-
 // OrderBookData is resp data from orderbook endpoint
 type OrderBookData struct {
 	Table int              `json:"table"`
