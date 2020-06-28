@@ -1,7 +1,10 @@
 package tool
 
 import (
+	"bytes"
+	"compress/flate"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"strconv"
 	"time"
@@ -45,23 +48,50 @@ func doCreateConn(url string) (*websocket.Conn, error) {
 }
 
 func Send(c *websocket.Conn, req interface{}) {
+	msg, err := doSend(c, req)
+	if err != nil {
+		log.Fatal("send has error:", err)
+		return
+	}
+	log.Printf("receive: %s\n", msg)
+}
+
+func SendFlate(c *websocket.Conn, req interface{}) {
+	msg, err := doSend(c, req)
+	if err != nil {
+		log.Fatal("SendFlate has error:", err)
+		return
+	}
+	unMsg, err := FlateDecompress(msg)
+	if err != nil {
+		log.Fatal("FlateDecompress has error:", err)
+		return
+	}
+	log.Printf("SendFlate receive: %s\n", unMsg)
+}
+
+func doSend(c *websocket.Conn, req interface{}) ([]byte, error) {
 	json, err := json.Marshal(req)
 	if err != nil {
 		log.Fatal("json.Marshal:", err)
-		return
+		return []byte{}, err
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, json)
 	if err != nil {
 		log.Println("send error:", err)
-		return
+		return []byte{}, err
 	}
 	_, msg, err := c.ReadMessage()
 	if err != nil {
 		log.Println("read:", err)
-		return
+		return []byte{}, err
 	}
-	log.Printf("receive: %s\n", msg)
+	return msg, nil
+}
+
+func FlateDecompress(data []byte) ([]byte, error) {
+	return ioutil.ReadAll(flate.NewReader(bytes.NewReader(data)))
 }
 
 func SendPing(c *websocket.Conn, req interface{}) {
