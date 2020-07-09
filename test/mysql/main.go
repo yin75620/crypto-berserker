@@ -35,7 +35,7 @@ func main() {
 	// Open up our database connection.
 	// I've set up a database on my local machine using phpmyadmin.
 	// The database is called testDb
-	db, err := sql.Open("mysql", "root:79125@tcp(127.0.0.1:3306)/test")
+	db, err := sql.Open("mysql", "root:79125@tcp(127.0.0.1:3306)/crypto")
 
 	// if there is an error opening the connection, handle it
 	if err != nil {
@@ -47,7 +47,9 @@ func main() {
 	defer db.Close()
 
 	// perform a db.Query insert
-	insert, err := db.Query("CREATE SCHEMA `crypto` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci")
+	insert, err := db.Query(`INSERT INTO crypto.log_cross_exchange_tick 
+	(ask_exchange, ask_c_price, ask_s_price, ask_total_volume, bid_exchange, bid_c_price, bid_s_price, bid_total_volume, profit, min_total_volume,
+	 create_time) VALUES ('x1', '0.1', '0.2', '0.3', 'x2', '1.1', '1.2', '1.3', '2.1', '3.1', '1594305390');`)
 
 	// if there is an error inserting, handle it
 	if err != nil {

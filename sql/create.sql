@@ -12,6 +12,6 @@ CREATE TABLE `crypto`.`log_cross_exchange_tick` (
 		  `bid_total_volume` DOUBLE NULL,
 		  `profit` DOUBLE NULL,
 		  `min_total_volume` DOUBLE NULL,
-		  `create_time` TIMESTAMP NULL,
+		  `create_time` BIGINT NULL ,
 		  PRIMARY KEY (`id`))
 		COMMENT = 'save every x ms data';
