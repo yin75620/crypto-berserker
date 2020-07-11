@@ -1,11 +1,9 @@
 package CrossExchange
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"time"
 
 	"github.com/yin75620/crypto-berserker/ksql"
@@ -62,7 +60,7 @@ func (ce *CrossExchange) Start() {
 	err := ce.sql.Start()
 	if err != nil {
 		log.Println("ERROR: Database not connect.", err)
-		
+
 	}
 	defer ce.sql.End()
 
