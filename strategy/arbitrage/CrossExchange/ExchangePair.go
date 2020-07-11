@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
@@ -111,8 +112,8 @@ func (cp *CrossPair) GetProfit() float64 {
 }
 
 func (cp *CrossPair) GetProfitNumber() float64 {
-	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
-	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
+	aPrice := cp.GetAskPriceWithFee()
+	bPrice := cp.GetBidPriceWithFee()
 
 	// 出現錯誤，放慢速度
 	if aPrice <= 0 {
@@ -126,10 +127,14 @@ func (cp *CrossPair) GetAskPriceWithFee() float64 {
 	return cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
 }
 
+func (cp *CrossPair) GetBidPriceWithFee() float64 {
+	return cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
+}
+
 func (cp *CrossPair) GetProfitString() string {
 
-	aPrice := cp.askPricePair.Price * (1.0 + cp.askExchange.GetFee().Taker)
-	bPrice := cp.bidPricePair.Price * (1.0 - cp.bidExchange.GetFee().Taker)
+	aPrice := cp.GetAskPriceWithFee()
+	bPrice := cp.GetBidPriceWithFee()
 
 	askStr := fmt.Sprintf("ask Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.askExchange.GetName(), aPrice, cp.askPricePair.Price, cp.askPricePair.Total())
 	bidStr := fmt.Sprintf("bid Exchange:%s, Cprice:%4.4f, S price:%4.4f, total:%.4f", cp.bidExchange.GetName(), bPrice, cp.bidPricePair.Price, cp.bidPricePair.Total())
@@ -177,6 +182,19 @@ func (cp *CrossPair) GetMinPricePercent(matchPair CrossPair) float64 {
 	minPercent := math.Min(askPercent, bidPercent)
 	return minPercent
 
+}
+
+func (cp *CrossPair) GetDbInserString() string {
+
+	return fmt.Sprintf(`INSERT INTO crypto.log_cross_exchange_tick 
+	(ask_exchange, ask_c_price, ask_s_price, ask_total_volume, bid_exchange, bid_c_price, bid_s_price, bid_total_volume, profit, min_total_volume,
+	 create_time) VALUES ('%s', '%f', '%f', '%f', '%s', '%f', '%f', '%f', '%f', '%f', '%d');`,
+		cp.askExchange.GetName(), cp.GetAskPriceWithFee(), cp.askPricePair.Price, cp.askPricePair.Total(),
+		cp.bidExchange.GetName(), cp.GetBidPriceWithFee(), cp.bidPricePair.Price, cp.bidPricePair.Total(),
+		cp.GetProfit(),
+		cp.GetMinTotalVolume(),
+		time.Now().Unix(),
+	)
 }
 
 // M0S0 表示 MainAsk, SubBid 有艙位

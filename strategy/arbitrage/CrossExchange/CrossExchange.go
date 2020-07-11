@@ -1,10 +1,14 @@
 package CrossExchange
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"time"
+
+	"github.com/yin75620/crypto-berserker/ksql"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/jtime"
@@ -19,6 +23,7 @@ type CrossExchange struct {
 	futuresArray         []exc.Futures
 	positionCrossPairMap map[string][]CrossPair
 	init                 CrossExchangeInit
+	sql                  *ksql.Ksql
 }
 
 var (
@@ -31,6 +36,7 @@ func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	ce.positionCrossPairMap = map[string][]CrossPair{}
 	NewCrossExchangeInit()
 	ce.init = *NewCrossExchangeInit()
+	ce.sql = ksql.NewKsql()
 
 	mPreWallets = make([]exc.Wallet, len(ce.exchanges))
 	return &ce
@@ -53,6 +59,12 @@ func (ce *CrossExchange) Start() {
 	defer slog.Close()
 
 	message_tool.StartTelegram()
+	err := ce.sql.Start()
+	if err != nil {
+		log.Println("ERROR: Database not connect.", err)
+		
+	}
+	defer ce.sql.End()
 
 	//test api
 	infoAll := "Start"
@@ -326,6 +338,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 		totalMatchOrderUSDVolume,
 		sumString)
 	message_tool.SendBroadcastArcherGroup(content)
+	log.Println(content)
 
 	return true, crossPairArray
 }
@@ -359,7 +372,10 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 			maxProfit = crossPair.GetProfit()
 			topCrossPair = crossPair
 		}
-		log.Println(crossPair.GetProfitString())
+
+		s := crossPair.GetDbInserString()
+		ce.sql.Insert(s)
+		//log.Println(crossPair.GetProfitString())
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
 	}
