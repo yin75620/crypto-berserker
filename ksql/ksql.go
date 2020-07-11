@@ -9,11 +9,13 @@ import (
 )
 
 type Ksql struct {
-	db *sql.DB
+	db      *sql.DB
+	isStart bool
 }
 
 func NewKsql() *Ksql {
 	ksql := Ksql{}
+	ksql.isStart = false
 
 	return &ksql
 }
@@ -24,22 +26,28 @@ func (k *Ksql) Start() error {
 	if err != nil {
 		return err
 	}
+	k.isStart = true
 	k.db = db
 	return nil
 }
 
-func (k *Ksql) Insert(s string) {
+func (k *Ksql) Insert(s string) error {
+	if !k.isStart {
+		return nil
+	}
 	// perform a db.Query insert
 	insert, err := k.db.Query(s)
 
 	// if there is an error inserting, handle it
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 	// be careful deferring Queries if you are using transactions
 	defer insert.Close()
+	return nil
 }
 
 func (k *Ksql) End() {
 	k.db.Close()
+	k.isStart = false
 }

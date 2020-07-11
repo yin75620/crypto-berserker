@@ -372,7 +372,13 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 		}
 
 		s := crossPair.GetDbInserString()
-		ce.sql.Insert(s)
+		go func() {
+			err := ce.sql.Insert(s)
+			if err != nil {
+				log.Println("ce.sql.Insert", err)
+			}
+		}()
+
 		//log.Println(crossPair.GetProfitString())
 		//matchPair := crossPairMap[crossPair.GetMatchName()]
 		//totalprofit := matchPair.GetProfit() + crossPair.GetProfit()
