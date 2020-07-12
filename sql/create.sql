@@ -1,4 +1,4 @@
-CREATE SCHEMA `crypto` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci
+CREATE SCHEMA `crypto` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 CREATE TABLE `crypto`.`log_cross_exchange_tick` (
 		  `id` INT NOT NULL AUTO_INCREMENT,
