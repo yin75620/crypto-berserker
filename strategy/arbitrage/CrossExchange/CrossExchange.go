@@ -57,12 +57,14 @@ func (ce *CrossExchange) Start() {
 	defer slog.Close()
 
 	message_tool.StartTelegram()
-	err := ce.sql.Start()
-	if err != nil {
-		log.Println("ERROR: Database not connect.", err)
+	if ce.init.IsEnableDBLog {
+		err := ce.sql.Start()
+		if err != nil {
+			log.Println("ERROR: Database not connect.", err)
 
+		}
+		defer ce.sql.End()
 	}
-	defer ce.sql.End()
 
 	//test api
 	infoAll := "Start"

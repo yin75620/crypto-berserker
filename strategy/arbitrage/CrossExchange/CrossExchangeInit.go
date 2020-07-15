@@ -17,6 +17,7 @@ type CrossExchangeInit struct {
 	MinCreateProfit         float64 // 0.001
 	MinVolume               float64 //1鎂
 	StopLosePercent         float64 // -0.02 多少%要停損
+	IsEnableDBLog           bool    // 是否要啟用db記錄 log
 }
 
 func NewCrossExchangeInit() *CrossExchangeInit {
@@ -31,6 +32,7 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 		MinCreateProfit:         0.001,
 		MinVolume:               1,
 		StopLosePercent:         -0.02,
+		IsEnableDBLog:           true,
 	}
 }
 
@@ -53,6 +55,7 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	cei.MinCreateProfit = cfg.Section(section).Key("MinCreateProfit").MustFloat64()
 	cei.MinVolume = cfg.Section(section).Key("MinVolume").MustFloat64()
 	cei.StopLosePercent = cfg.Section(section).Key("StopLosePercent").MustFloat64()
+	cei.IsEnableDBLog = cfg.Section(section).Key("EnableDBLog").MustBool()
 
 	return nil
 }
