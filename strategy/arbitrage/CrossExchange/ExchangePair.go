@@ -9,6 +9,7 @@ import (
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	common "github.com/yin75620/crypto-berserker/exchange-list/common"
 )
 
 type ExchangePair struct {
@@ -35,6 +36,7 @@ type CrossPairJson struct {
 	AskPair         exc.PricePair
 	BidPair         exc.PricePair
 	OrderVolume     float64
+	Symbol          string
 }
 
 type CrossPair struct {
@@ -43,14 +45,16 @@ type CrossPair struct {
 	askPricePair exc.PricePair
 	bidPricePair exc.PricePair
 	orderVolume  float64
+	Symbol       string
 }
 
-func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePair) *CrossPair {
+func NewCrossPair(ask, bid exc.Exchange, askPircePair, bidPricePair exc.PricePair, symbol string) *CrossPair {
 	cp := CrossPair{}
 	cp.askExchange = ask
 	cp.bidExchange = bid
 	cp.askPricePair = askPircePair
 	cp.bidPricePair = bidPricePair
+	cp.Symbol = symbol
 	return &cp
 }
 
@@ -187,10 +191,11 @@ func (cp *CrossPair) GetMinPricePercent(matchPair CrossPair) float64 {
 func (cp *CrossPair) GetDbInserString() string {
 
 	return fmt.Sprintf(`INSERT INTO crypto.log_cross_exchange_tick 
-	(ask_exchange, ask_c_price, ask_s_price, ask_total_volume, bid_exchange, bid_c_price, bid_s_price, bid_total_volume, profit, min_total_volume,
-	 create_time) VALUES ('%s', '%f', '%f', '%f', '%s', '%f', '%f', '%f', '%f', '%f', '%d');`,
-		cp.askExchange.GetName(), cp.GetAskPriceWithFee(), cp.askPricePair.Price, cp.askPricePair.Total(),
-		cp.bidExchange.GetName(), cp.GetBidPriceWithFee(), cp.bidPricePair.Price, cp.bidPricePair.Total(),
+	(symbol, ask_exchange, ask_c_price, ask_s_price, ask_total_volume, bid_exchange, bid_c_price, bid_s_price, bid_total_volume, profit, min_total_volume,
+	 create_time) VALUES ('%s', '%d', '%f', '%f', '%f', '%d', '%f', '%f', '%f', '%f', '%f', '%d');`,
+		cp.Symbol,
+		common.GetIndexByName(cp.askExchange.GetName()), cp.GetAskPriceWithFee(), cp.askPricePair.Price, cp.askPricePair.Total(),
+		common.GetIndexByName(cp.bidExchange.GetName()), cp.GetBidPriceWithFee(), cp.bidPricePair.Price, cp.bidPricePair.Total(),
 		cp.GetProfit(),
 		cp.GetMinTotalVolume(),
 		time.Now().Unix(),

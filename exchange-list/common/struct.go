@@ -22,6 +22,18 @@ const (
 	OKEX       = "Okex"
 )
 
+func GetIndexByName(name string) int {
+	m := map[string]int{
+		FTX:        1,
+		BINANCE:    2,
+		BINANCEF:   3,
+		BYBIT:      4,
+		BYBILINEAR: 5,
+		OKEX:       6,
+	}
+	return m[name]
+}
+
 func GetExchange(exchangeName string) exc.Exchange {
 	const initFileName = "Main.ini"
 	var res exc.Exchange

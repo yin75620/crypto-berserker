@@ -358,7 +358,7 @@ func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) CrossPairStr
 			if index == matchIndex {
 				continue
 			}
-			cp := NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid)
+			cp := NewCrossPair(ePair.exchange, matchPair.exchange, ePair.ask, matchPair.bid, futures.GetMarketName())
 			crossPairMap[cp.GetName()] = *cp
 		}
 	}
