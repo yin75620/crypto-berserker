@@ -112,6 +112,7 @@ func (ce *CrossExchange) stratStrategy() int64 {
 
 	var totalWaitTime int64
 	for _, futures := range ce.futuresArray {
+		log.Println(futures.GetMarketName())
 		totalWaitTime += ce.stratFuturesStrategy(futures)
 	}
 	return totalWaitTime
@@ -374,12 +375,16 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 		}
 
 		s := crossPair.GetDbInserString()
-		go func() {
-			err := ce.sql.Insert(s)
-			if err != nil {
-				log.Println("ce.sql.Insert", err)
-			}
-		}()
+		if ce.init.IsEnableDBLog {
+			go func() {
+				err := ce.sql.Insert(s)
+				if err != nil {
+					log.Println("ce.sql.Insert", err)
+				}
+			}()
+		} else {
+			log.Println(s)
+		}
 
 		//log.Println(crossPair.GetProfitString())
 		//matchPair := crossPairMap[crossPair.GetMatchName()]

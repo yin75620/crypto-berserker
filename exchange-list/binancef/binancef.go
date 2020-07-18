@@ -52,6 +52,7 @@ type binance struct {
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
 	res := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+	log.Println("Binance res:", string(res))
 
 	account := Account{}
 
