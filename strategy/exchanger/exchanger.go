@@ -20,7 +20,7 @@ const (
 
 var (
 	mExchangeStrings []string
-	mFutures         exc.Futures
+	mFutureses       []exc.Futures
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 
 	ce := CrossExchange.NewCrossExchange(exchanges)
 	ce.SetInitByIni("main.ini")
-	ce.SetFuturesArray([]exc.Futures{mFutures})
+	ce.SetFuturesArray(mFutureses)
 	ce.Start()
 }
 
@@ -54,14 +54,22 @@ func iniSetting() {
 	res := cfg.Section("Exchanger").Key("Exchanges").String()
 	mExchangeStrings = strings.Split(res, ",")
 
-	targetName := cfg.Section("Futures").Key("TargetName").String()
-	quoteCoin := cfg.Section("Futures").Key("QuoteCoin").String()
+	symbolNamesString := cfg.Section("Futures").Key("SymbolNames").String()
+	symbolNames := strings.Split(symbolNamesString, ",")
+	for _, v := range symbolNames {
+		parameters := strings.Split(v, "-")
+		targetName := parameters[0]
+		quoteCoin := parameters[1]
 
-	mFutures = exc.Futures{
-		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
-		TargetName: targetName,
-		QuoteCoin:  quoteCoin,
+		//time := p[2]
+		f := exc.Futures{
+			//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+			TargetName: targetName,
+			QuoteCoin:  quoteCoin,
+		}
+		mFutureses = append(mFutureses, f)
 	}
+
 }
 
 // 台灣中午12點會呼叫一次AccountInfo()
