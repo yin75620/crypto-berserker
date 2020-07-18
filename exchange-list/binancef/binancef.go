@@ -109,8 +109,42 @@ func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 
 func (bn *binance) doGetMarketInfo(name string) exc.MarketInfo {
 	switch name {
+	case "ADAUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
+	case "ALGOUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
+	case "BCHUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	case "BNBUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
 	case "BTCUSDT":
 		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	case "COMPUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	case "DOGEUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.000001, VolumeIncrement: 1}
+	case "EOSUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.1}
+	case "ETCUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
+	case "ETHUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	case "KNCUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
+	case "LINKUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
+	case "LTCUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+	case "THETAUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
+	case "TRXUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
+	case "VETUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.000001, VolumeIncrement: 1}
+	case "XRPUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
+	case "XTZUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.1}
 	default:
 		return exc.MarketInfo{}
 	}
