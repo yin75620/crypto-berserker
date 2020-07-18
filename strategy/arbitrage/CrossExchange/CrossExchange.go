@@ -333,7 +333,8 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	<-bidChannel
 
 	content := fmt.Sprintf(
-		"positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f \r\n sumString:%s",
+		"%s positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f \r\n sumString:%s",
+		futures.GetMarketName(),
 		positionPairName,
 		matchCrossPair.GetProfitString(),
 		totalMatchOrderUSDVolume,
@@ -424,7 +425,8 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	content := fmt.Sprintf("%s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
+	content := fmt.Sprintf("%s, %s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
+		futures.GetMarketName(),
 		fmt.Sprintf("resAsk:%f, orderTotal:%f, AskCoin:%s", askPair.Price, askPair.Total(), askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderTotal:%f, bidCoin:%s", bidPair.Price, bidPair.Total(), bidExchange.GetName()),
 		orderTotalValue,
