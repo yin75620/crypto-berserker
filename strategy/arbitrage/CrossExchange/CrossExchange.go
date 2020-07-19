@@ -257,14 +257,10 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPa
 	return hasClose, crossPairsTable
 }
 
-func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures) CrossPair {
+func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap) CrossPair {
 	// key check
 	matchName := ""
 	for _, crossPair := range crossPairArray {
-		if futures.GetMarketName() != crossPair.Symbol {
-			// 不是同一種貨幣，換下一組
-			continue
-		}
 		if positionPairName != crossPair.GetName() {
 			log.Println(fmt.Sprintf("map has not same key:%s, positionPairName:%s", crossPair.GetName(), positionPairName))
 			return CrossPair{}
@@ -336,7 +332,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 
 func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
 
-	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap, futures)
+	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
 	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, sumString := getTotalVolume(crossPairArray, matchCrossPair, init)
 
