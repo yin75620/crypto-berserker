@@ -27,7 +27,7 @@ func NewBinancef(c *http.Client) *binance {
 	bn.client = c
 	bn.account.MakerFee = -0.0002
 	bn.account.TakerFee = -0.0004
-	bn.account.Leverage = 100
+	bn.account.Leverage = 50
 
 	return &bn
 }
