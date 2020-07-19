@@ -209,9 +209,22 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPa
 		return false, crossPairsTable
 	}
 
+	sameFutures := make(map[string][]CrossPair)
+	diffFutures := make(map[string][]CrossPair)
+	// 拆成想要這次的貨幣與非這次的貨幣
+	for key, arrayPairs := range crossPairsTable {
+		for _, v := range arrayPairs {
+			if v.Symbol == futures.GetMarketName() {
+				sameFutures[key] = append(sameFutures[key], v)
+			} else {
+				diffFutures[key] = append(diffFutures[key], v)
+			}
+		}
+	}
+
 	hasClose := false
 
-	for key, arrayPairs := range crossPairsTable {
+	for key, arrayPairs := range sameFutures {
 
 		isClose, arrayPairs := isCloseCheck(key, arrayPairs, matchMap, futures, init)
 		if !isClose {
@@ -229,11 +242,17 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPa
 		}
 
 		if len(arrayPairs) == 0 {
-			delete(crossPairsTable, key)
+			delete(sameFutures, key)
 		} else {
-			crossPairsTable[key] = arrayPairs
+			sameFutures[key] = arrayPairs
 		}
 	}
+
+	//再組合
+	for k, v := range sameFutures {
+		diffFutures[k] = append(diffFutures[k], v...)
+	}
+	crossPairsTable = diffFutures
 
 	return hasClose, crossPairsTable
 }
