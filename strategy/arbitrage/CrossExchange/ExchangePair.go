@@ -149,7 +149,7 @@ func (cp *CrossPair) GetProfitString() string {
 		profit = (bPrice - aPrice) / aPrice
 	}
 
-	return fmt.Sprintf("A%s,B%s, Profit:%.5f, %s, %s", cp.askExchange.GetName(), cp.bidExchange.GetName(), profit, askStr, bidStr)
+	return fmt.Sprintf("[%s] A%s,B%s, Profit:%.5f, %s, %s", cp.Symbol, cp.askExchange.GetName(), cp.bidExchange.GetName(), profit, askStr, bidStr)
 }
 
 func (cp *CrossPair) GetMinTotalVolume() float64 {
