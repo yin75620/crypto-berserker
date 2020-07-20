@@ -73,6 +73,7 @@ func (cp *CrossPair) toJson() CrossPairJson {
 	j.AskPair = cp.askPricePair
 	j.BidPair = cp.bidPricePair
 	j.OrderVolume = cp.orderVolume
+	j.Symbol = cp.Symbol
 	return j
 }
 
