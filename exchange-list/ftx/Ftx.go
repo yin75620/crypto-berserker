@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 )
 
 type PriceType exc.PriceType
@@ -21,7 +22,7 @@ type OrderBookResponse struct {
 type Ftx struct {
 	client          *http.Client
 	initData        FtxInit
-	orderBookCenter *OrderBookCenter
+	orderBookCenter *ob.OrderBookCenter
 
 	account exc.Account
 }
@@ -30,7 +31,7 @@ func NewFtx(c *http.Client, initData FtxInit) *Ftx {
 	ftx := &Ftx{}
 	ftx.client = c
 	ftx.initData = initData
-	ftx.orderBookCenter = NewOrderBookCenter()
+	ftx.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	return ftx
 }
 

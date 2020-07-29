@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 )
 
 func TestWebsocketInfo(t *testing.T) {
@@ -13,7 +14,7 @@ func TestWebsocketInfo(t *testing.T) {
 	coin := exc.CoinPair{"BTC", "USD"}
 	ch := socket.SubScribeOrderBook(coin.GetMarketName())
 
-	nob := NewOrderBooker(coin.GetMarketName(), ch)
+	nob := ob.NewOrderBooker(coin.GetMarketName(), ch)
 	nob.Start()
 	for {
 		<-nob.UpdateChannel
@@ -28,7 +29,7 @@ func TestWebsocketInfoFutures(t *testing.T) {
 	marketName := "BTC-PERP"
 	ch := socket.SubScribeOrderBook(marketName)
 
-	nob := NewOrderBooker(marketName, ch)
+	nob := ob.NewOrderBooker(marketName, ch)
 	nob.Start()
 	for {
 		<-nob.UpdateChannel
