@@ -11,7 +11,6 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/jmath"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 var (
@@ -25,28 +24,20 @@ func NewBinancef(c *http.Client) *binance {
 	bn := binance{}
 	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bn.client = c
-	bn.account.MakerFee = -0.0002
-	bn.account.TakerFee = -0.0004
+	bn.account.MakerFee = 0.0002
+	bn.account.TakerFee = 0.0004
 	bn.account.Leverage = 50
+	bn.init = NewBinancefInit()
+	bn.init.IniSetting("main.ini")
 
-	return &bn
-}
-
-func NewBinance1(key, secretKey string) *binance {
-	bn := binance{}
-	bn.client = http.DefaultClient
-	bn.key = key
-	bn.secretKey = secretKey
-	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	return &bn
 }
 
 type binance struct {
 	client          *http.Client
-	key             string
-	secretKey       string
 	orderBookCenter *ob.OrderBookCenter
 	account         exc.Account
+	init            *BinancefInit
 }
 
 // implement exchange
@@ -257,7 +248,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 		bodyEncode := body.ToValues().Encode()
 
 		raw := fmt.Sprintf("%s", bodyEncode)
-		sign, err := exc.GetParamHmacSHA256HexSign(setting.BINANCE_SECRET_KEY, raw)
+		sign, err := exc.GetParamHmacSHA256HexSign(bn.init.SecretKey, raw)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -277,7 +268,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	}
 
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
-	req.Header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
+	req.Header.Add("X-MBX-APIKEY", bn.init.Key)
 
 	resByte, err := exc.SendRequest(client, req)
 	if err != nil {

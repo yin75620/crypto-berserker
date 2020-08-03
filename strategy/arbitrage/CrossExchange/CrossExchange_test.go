@@ -129,3 +129,9 @@ func TestPositionCloseCheck(t *testing.T) {
 	assert.True(t, isClose)
 	assert.Zero(t, len(res))
 }
+
+func TestInit(t *testing.T) {
+	getMinSellProfit
+	getMinSumProfit
+	getMinCreateProfit
+}
