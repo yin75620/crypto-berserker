@@ -40,12 +40,16 @@ func NewCrossExchange(exchanges []exc.Exchange) *CrossExchange {
 	return &ce
 }
 
-func (ce *CrossExchange) SetInit(init CrossExchangeInit) {
-	ce.init = init
-}
+//func (ce *CrossExchange) SetInit(init CrossExchangeInit) {
+//	ce.init = init
+//}
 
 func (ce *CrossExchange) SetInitByIni(filename string) {
 	ce.init.IniSetting(filename)
+}
+
+func (ce *CrossExchange) SetInitExtraProfitByIni(filename string, futureNames []string) {
+	ce.init.InitExtraProfit(filename, futureNames)
 }
 
 func (ce *CrossExchange) SetFuturesArray(futuresArray []exc.Futures) {
@@ -160,7 +164,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 		}
 	}
 
-	topCrossPair = ce.getCanOrderMaxProfitCrossPair(crossPairMap)
+	topCrossPair = ce.getCanOrderMaxProfitCrossPair(crossPairMap, futures)
 	if topCrossPair.IsDefault() {
 		// 無利可圖，重設偵測
 		return 0
@@ -168,7 +172,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	// 交易判斷
 	// 有利可圖
-	isCaneOrder, orderTotalValue, execMinTotalValue := ce.coinPairCanOrder(topCrossPair)
+	isCaneOrder, orderTotalValue, execMinTotalValue := ce.coinPairCanOrder(topCrossPair, futures)
 	if !isCaneOrder {
 		// 無利可圖，重設偵測
 		return 0
@@ -282,7 +286,7 @@ func getMatchCrossPair(positionPairName string, crossPairArray []CrossPair, matc
 	return matchCrossPair
 }
 
-func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit) (float64, float64, float64, []CrossPair, string) {
+func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init CrossExchangeInit, futures exc.Futures) (float64, float64, float64, []CrossPair, string) {
 	resSumString := ""
 	matchProfitNumber := matchCrossPair.GetProfitNumber()
 
@@ -303,7 +307,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 		log.Println(fmt.Sprintf("position profit:%f; orderVolume:%f, matchProfit:%f", positionProfit, positionCrossPair.orderVolume, matchProfit))
 		sum := positionProfit + matchProfit
 
-		hasProfit := (matchProfit > init.MinSellProfit && sum > init.MinSumProfit && matchVolume > init.MinVolume)
+		hasProfit := (matchProfit > getMinSellProfit(init, futures) && sum > getMinSumProfit(init, futures) && matchVolume > init.MinVolume)
 
 		percent := positionCrossPair.GetMinPricePercent(matchCrossPair)
 		hasClose := percent < init.StopLosePercent
@@ -333,7 +337,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
-	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, sumString := getTotalVolume(crossPairArray, matchCrossPair, init)
+	askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, sumString := getTotalVolume(crossPairArray, matchCrossPair, init, futures)
 
 	if totalMatchOrderUSDVolume <= 0 {
 		return false, crossPairArray
@@ -413,11 +417,11 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 	return topCrossPair
 }
 
-func (ce *CrossExchange) getCanOrderMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair {
+func (ce *CrossExchange) getCanOrderMaxProfitCrossPair(mcp CrossPairStringMap, futures exc.Futures) CrossPair {
 	maxProfit := -math.MaxFloat64
 	var topCrossPair CrossPair
 	for _, crossPair := range mcp {
-		canOrder, _, _ := ce.coinPairCanOrder(crossPair)
+		canOrder, _, _ := ce.coinPairCanOrder(crossPair, futures)
 		if !canOrder {
 			continue
 		}
@@ -477,9 +481,9 @@ func getCurrentUSDVolume(name string, positionCrossPairMap map[string][]CrossPai
 	return sum
 }
 
-func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExchangeInit) bool {
+func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExchangeInit, futures exc.Futures) bool {
 	// 有利可圖
-	if profit < init.MinCreateProfit { // 沒足夠利潤，直接下一圈
+	if profit < getMinCreateProfit(init, futures) { // 沒足夠利潤，直接下一圈
 		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
 	} else if orderTotalValue < init.MinVolume {
@@ -533,12 +537,33 @@ func (ce *CrossExchange) getCalculateMaxHoldVolume(crossPair CrossPair) float64 
 	return maxHoldVolume
 }
 
-func (ce *CrossExchange) coinPairCanOrder(crossPair CrossPair) (bool, float64, float64) {
+func (ce *CrossExchange) coinPairCanOrder(crossPair CrossPair, futures exc.Futures) (bool, float64, float64) {
 	maxProfit := crossPair.GetProfit()
 	maxHoldVolume := ce.getCalculateMaxHoldVolume(crossPair)
 	currentUSDVolume := getCurrentUSDVolume(crossPair.GetName(), ce.positionCrossPairMap)
 	execMinTotalValue := crossPair.GetMinTotalVolume()
 	orderTotalValue := math.Min(maxHoldVolume-currentUSDVolume, execMinTotalValue)
 
-	return canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init), orderTotalValue, execMinTotalValue
+	return canOrder(maxProfit, orderTotalValue, currentUSDVolume, ce.init, futures), orderTotalValue, execMinTotalValue
+}
+
+func getMinSellProfit(cei CrossExchangeInit, futures exc.Futures) float64 {
+	if v, ok := cei.ExtraFutures[futures.GetIniNameUpper()]; ok {
+		return v.MinSellProfit
+	}
+	return cei.MinSellProfit
+}
+
+func getMinSumProfit(cei CrossExchangeInit, futures exc.Futures) float64 {
+	if v, ok := cei.ExtraFutures[futures.GetIniNameUpper()]; ok {
+		return v.MinSumProfit
+	}
+	return cei.MinSumProfit
+}
+
+func getMinCreateProfit(cei CrossExchangeInit, futures exc.Futures) float64 {
+	if v, ok := cei.ExtraFutures[futures.GetIniNameUpper()]; ok {
+		return v.MinCreateProfit
+	}
+	return cei.MinCreateProfit
 }

@@ -114,3 +114,8 @@ func (f *Futures) GetMarketName() string {
 func (f *Futures) GetSwapNameUpper() string {
 	return strings.ToUpper(fmt.Sprintf("%s-%s-SWAP", f.TargetName, f.QuoteCoin))
 }
+
+func (f *Futures) GetIniNameUpper() string {
+	time := 0
+	return strings.ToUpper(fmt.Sprintf("%s-%s-%d", f.TargetName, f.QuoteCoin, time))
+}

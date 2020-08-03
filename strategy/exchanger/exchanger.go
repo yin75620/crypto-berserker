@@ -38,8 +38,17 @@ func main() {
 	sendWallet(exchanges)
 	go dailySendAccountInfo(exchanges)
 
+	configName := "main.ini"
+
 	ce := CrossExchange.NewCrossExchange(exchanges)
-	ce.SetInitByIni("main.ini")
+	ce.SetInitByIni(configName)
+
+	futureArray := []string{}
+	for _, v := range mFutureses {
+		futureArray = append(futureArray, v.GetIniNameUpper())
+	}
+	ce.SetInitExtraProfitByIni(configName, futureArray)
+
 	ce.SetFuturesArray(mFutureses)
 	ce.Start()
 }

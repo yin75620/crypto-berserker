@@ -6,6 +6,12 @@ import (
 	"github.com/go-ini/ini"
 )
 
+type ProfitInit struct {
+	MinSellProfit   float64 // = -0.0007
+	MinSumProfit    float64 //= 0.0001
+	MinCreateProfit float64 // 0.001
+}
+
 type CrossExchangeInit struct {
 	DelayMilliSecond        int64
 	OverPrice               float64 //= 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
@@ -18,6 +24,8 @@ type CrossExchangeInit struct {
 	MinVolume               float64 //1鎂
 	StopLosePercent         float64 // -0.02 多少%要停損
 	IsEnableDBLog           bool    // 是否要啟用db記錄 log
+
+	ExtraFutures map[string]ProfitInit
 }
 
 func NewCrossExchangeInit() *CrossExchangeInit {
@@ -33,6 +41,7 @@ func NewCrossExchangeInit() *CrossExchangeInit {
 		MinVolume:               1,
 		StopLosePercent:         -0.02,
 		IsEnableDBLog:           true,
+		ExtraFutures:            make(map[string]ProfitInit),
 	}
 }
 
@@ -56,6 +65,28 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	cei.MinVolume = cfg.Section(section).Key("MinVolume").MustFloat64()
 	cei.StopLosePercent = cfg.Section(section).Key("StopLosePercent").MustFloat64()
 	cei.IsEnableDBLog = cfg.Section(section).Key("EnableDBLog").MustBool()
+
+	return nil
+}
+
+func (cei *CrossExchangeInit) InitExtraProfit(filename string, futureNames []string) error {
+	cfg, err := ini.Load(filename)
+	if err != nil {
+		fmt.Printf("Fail to read file: %v", err)
+		return err
+	}
+
+	for _, section := range futureNames {
+		sec, err := cfg.GetSection(section)
+		if err != nil {
+			continue
+		}
+		profitInit := ProfitInit{}
+		profitInit.MinSellProfit = sec.Key("MinSellProfit").MustFloat64()
+		profitInit.MinSumProfit = sec.Key("MinSumProfit").MustFloat64()
+		profitInit.MinCreateProfit = sec.Key("MinCreateProfit").MustFloat64()
+		cei.ExtraFutures[section] = profitInit
+	}
 
 	return nil
 }
