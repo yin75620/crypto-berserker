@@ -90,24 +90,30 @@ func (ce *CrossExchange) Start() {
 	d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
 
 	t := time.NewTimer(d)
+	const ShowLiveTimeSecond = 60
+	printTime := time.NewTimer(time.Second * ShowLiveTimeSecond)
 	defer t.Stop()
 
 	startTime := time.Now()
 
 	for {
-		<-t.C
-
-		now := time.Now()
-		if !jtime.IsSameUtcDay(startTime, now) {
-			startTime = now
-			slog = simpleLog.StartLog()
-			defer slog.Close()
+		select {
+		case <-t.C:
+			now := time.Now()
+			if !jtime.IsSameUtcDay(startTime, now) {
+				startTime = now
+				slog = simpleLog.StartLog()
+				defer slog.Close()
+			}
+			plusMilliSecond := ce.stratStrategy()
+			//fmt.Println("d1.5", plusMilliSecond)
+			t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
+			//fmt.Println("d2", time.Millisecond*time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
+		case <-printTime.C:
+			log.Println("live")
+			printTime.Reset(time.Second * ShowLiveTimeSecond)
 		}
 
-		plusMilliSecond := ce.stratStrategy()
-		//fmt.Println("d1.5", plusMilliSecond)
-		t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
-		//fmt.Println("d2", time.Millisecond*time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
 	}
 
 }
@@ -406,8 +412,8 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 				}
 			}()
 		} else {
-			s := crossPair.GetProfitString()
-			log.Println(s)
+			//s := crossPair.GetProfitString()
+			//log.Println(s) /CloseLog
 		}
 
 		//log.Println(crossPair.GetProfitString())
@@ -484,14 +490,17 @@ func getCurrentUSDVolume(name string, positionCrossPairMap map[string][]CrossPai
 func canOrder(profit, orderTotalValue, currentUSDVolume float64, init CrossExchangeInit, futures exc.Futures) bool {
 	// 有利可圖
 	if profit < getMinCreateProfit(init, futures) { // 沒足夠利潤，直接下一圈
-		log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
+		//log.Println(fmt.Sprintf("No enough profit. profit:%f", profit))
 		return false
-	} else if orderTotalValue < init.MinVolume {
-		log.Println(fmt.Sprintf("orderTotalValue:%f < %f", orderTotalValue, init.MinVolume))
-		return false
-	} else if currentUSDVolume >= init.MaxHoldVolume {
-		log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
-		return false
+	} else {
+		log.Println(fmt.Sprintf("Futures:%s,  profit:%f", futures.GetMarketName(), profit))
+		if orderTotalValue < init.MinVolume {
+			log.Println(fmt.Sprintf("orderTotalValue:%f < init.MinVolume:%f", orderTotalValue, init.MinVolume))
+			return false
+		} else if currentUSDVolume >= init.MaxHoldVolume {
+			log.Println(fmt.Sprintf("currentUSDVolume:%g >= init.MaxHoldVolume:%g", currentUSDVolume, init.MaxHoldVolume))
+			return false
+		}
 	}
 	return true
 }
