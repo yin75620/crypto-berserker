@@ -412,8 +412,11 @@ func (ce *CrossExchange) getMaxProfitCrossPair(mcp CrossPairStringMap) CrossPair
 				}
 			}()
 		} else {
-			//s := crossPair.GetProfitString()
-			//log.Println(s) /CloseLog
+			if ce.init.IsShowProfitLog {
+				s := crossPair.GetProfitString()
+				log.Println(s)
+			}
+
 		}
 
 		//log.Println(crossPair.GetProfitString())
