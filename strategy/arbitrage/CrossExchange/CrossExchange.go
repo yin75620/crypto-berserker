@@ -90,8 +90,8 @@ func (ce *CrossExchange) Start() {
 	d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
 
 	t := time.NewTimer(d)
-	const ShowLiveTimeSecond = 60
-	printTime := time.NewTimer(time.Second * ShowLiveTimeSecond)
+	liveTime := time.Second * time.Duration(ce.init.ShowLiveSecond)
+	liveTimer := time.NewTimer(liveTime)
 	defer t.Stop()
 
 	startTime := time.Now()
@@ -109,9 +109,9 @@ func (ce *CrossExchange) Start() {
 			//fmt.Println("d1.5", plusMilliSecond)
 			t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
 			//fmt.Println("d2", time.Millisecond*time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
-		case <-printTime.C:
+		case <-liveTimer.C:
 			log.Println("live")
-			printTime.Reset(time.Second * ShowLiveTimeSecond)
+			liveTimer.Reset(liveTime)
 		}
 
 	}
