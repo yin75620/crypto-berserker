@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -29,7 +31,23 @@ type LoginRequestDetail struct {
 }
 
 func main() {
-	keyIn()
+	slog := simpleLog.StartLog()
+	defer slog.Close()
+	LogFilAmount()
+}
+
+func LogFilAmount() {
+	res, _ := http.Get("https://api.node.glif.io/statecirculatingsupply/fil")
+	body, _ := ioutil.ReadAll(res.Body)
+
+	log.Println(string(body))
+	now := time.Now().UTC()
+	nextHour := now.Add(time.Hour * 1)
+	midnoon := time.Date(nextHour.Year(), nextHour.Month(), nextHour.Day(),
+		nextHour.Hour(), 0, 0, 0, now.Location())
+	duration := midnoon.Sub(now)
+	time.Sleep(duration)
+	LogFilAmount()
 }
 
 func keyIn() {
