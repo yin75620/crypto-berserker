@@ -40,6 +40,7 @@ type TriangularInit struct {
 	RangePremium    float64
 	LeastTotalValue float64
 	DelayTime       int
+	ShowLiveSecond  int
 }
 
 type CoinStrip struct {
@@ -65,6 +66,7 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 			RangePremium:    0.1, //10%
 			LeastTotalValue: 10,  //10 quoteCoin
 			DelayTime:       5,   //5second
+			ShowLiveSecond:  60,
 		}}
 	t.exchangeClient = exchange
 	return t
@@ -91,7 +93,7 @@ func (tri *Triangular) Start() {
 
 	mPreWallet = tri.exchangeClient.GetWallet()
 
-	liveTime := time.Second * time.Duration(tri.init.ShowLiveSecond)
+	liveTime := time.Second * time.Duration(tri.Init.ShowLiveSecond)
 	liveTimer := time.NewTimer(liveTime)
 
 	var delay_time_ms int = tri.Init.DelayTime
@@ -348,15 +350,15 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 
 	minSourceTotalValue := math.Min(laValue, hbValue)
 
-	log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
-	log.Println(fmt.Sprintf("m_expectedTotalValue:%g", m_expectedTotalValue))
+	//log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
+	//log.Println(fmt.Sprintf("m_expectedTotalValue:%g", m_expectedTotalValue))
 
-	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
-	log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
+	//log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
+	//log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
 
 	profit := (hbPrice - laPrice) / laPrice
 
-	log.Println(fmt.Sprintf("Profit:%f", profit))
+	//log.Println(fmt.Sprintf("Profit:%f", profit))
 
 	currentOrderTotalValue := coinBunch.TotalValuesUS
 

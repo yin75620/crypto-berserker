@@ -98,6 +98,7 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 		RangePremium:    cfg.Section("").Key("RangePremium").MustFloat64(),
 		LeastTotalValue: cfg.Section("").Key("LeastTotalValue").MustFloat64(),
 		DelayTime:       cfg.Section("").Key("DelayTime").MustInt(),
+		ShowLiveSecond:  cfg.Section("").Key("ShowLiveSecond").MustInt(),
 	}
 
 	resFee := cfg.Section("").Key("TakerFee").MustFloat64()
