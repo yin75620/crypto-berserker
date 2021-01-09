@@ -35,4 +35,14 @@ func (fi *FtxInit) IniSettingByFile(cfg *ini.File) {
 	fi.SubAccount = cfg.Section(section).Key("SubAccount").String()
 	fi.ApiKey = setting.FTX_KEY
 	fi.ApiSecretKey = setting.FTX_API_SECRET_KEY
+
+	apiKey := cfg.Section(section).Key("ApiKey").String()
+	if apiKey != "" {
+		fi.ApiKey = apiKey
+	}
+
+	apiSecretKey := cfg.Section(section).Key("ApiSecretKey").String()
+	if apiSecretKey != "" {
+		fi.ApiSecretKey = apiSecretKey
+	}
 }
