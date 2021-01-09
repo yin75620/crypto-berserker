@@ -253,7 +253,7 @@ func getLowestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		log.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		//log.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if lowest > pair.Price {
 			lowest = pair.Price
 			resDealFlow = value
@@ -267,7 +267,7 @@ func getHighestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		log.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		//log.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
 		if highest < pair.Price {
 			highest = pair.Price
 			resDealFlow = value
@@ -454,7 +454,7 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 func (tri *Triangular) canOrder(profit, orderTotalValue float64, coinBunch CoinBunch) bool {
 	// 有利可圖
 	if profit < 0 {
-		log.Println("No profit")
+		//log.Println("No profit")
 		return false
 	} else if profit < coinBunch.MinProfit {
 		log.Println("No enough profit")
