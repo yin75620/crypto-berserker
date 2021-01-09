@@ -47,10 +47,10 @@ type CoinStrip struct {
 }
 
 type CoinBunch struct {
-	CoinStrips    []CoinStrip
-	MinProfit     float64
-	PlusSecond    float64
-	TotalValuesUS float64
+	CoinStrips      []CoinStrip
+	MinProfit       float64
+	PlusMilliSecond float64
+	TotalValuesUS   float64
 }
 
 type Triangular struct {
@@ -91,8 +91,11 @@ func (tri *Triangular) Start() {
 
 	mPreWallet = tri.exchangeClient.GetWallet()
 
-	var delay_time int = tri.Init.DelayTime
-	d := time.Duration(time.Second * time.Duration(delay_time))
+	liveTime := time.Second * time.Duration(tri.init.ShowLiveSecond)
+	liveTimer := time.NewTimer(liveTime)
+
+	var delay_time_ms int = tri.Init.DelayTime
+	d := time.Duration(time.Millisecond * time.Duration(delay_time_ms))
 
 	t := time.NewTimer(d)
 	defer t.Stop()
@@ -100,17 +103,23 @@ func (tri *Triangular) Start() {
 	startTime := time.Now()
 
 	for {
-		<-t.C
+		select {
+		case <-t.C:
 
-		now := time.Now()
-		if !jtime.IsSameUtcDay(startTime, now) {
-			startTime = now
-			logFile = simpleLog.StartLog()
-			defer logFile.Close()
+			now := time.Now()
+			if !jtime.IsSameUtcDay(startTime, now) {
+				startTime = now
+				logFile = simpleLog.StartLog()
+				defer logFile.Close()
+			}
+
+			plusMilliSecond := tri.stratStrategy()
+			t.Reset(time.Millisecond * time.Duration(delay_time_ms+plusMilliSecond))
+		case <-liveTimer.C:
+			log.Println("live")
+			liveTimer.Reset(liveTime)
 		}
 
-		plusSecond := tri.stratStrategy()
-		t.Reset(time.Second * time.Duration(delay_time+plusSecond))
 	}
 
 	///開啟伺服器讓程式留著
@@ -278,17 +287,17 @@ var MAX_FAIL_COUNT = 3
 var mFinishCount = 0
 
 const EveryCountCheckWallet = 5
-const DefaultDelaySecond = 100
+const DefaultDelayMilliSecond = 100
 
 var mPreWallet exc.Wallet
 
 func (tri *Triangular) stratStrategy() int {
-	res := DefaultDelaySecond
+	res := DefaultDelayMilliSecond
 	for _, coinBunch := range tri.CoinBunch {
 
-		sec := tri.stratDealFlow(coinBunch)
-		if sec < res {
-			res = sec
+		ms := tri.stratDealFlow(coinBunch)
+		if ms < res {
+			res = ms
 		}
 	}
 	return res
@@ -331,7 +340,7 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 	// 出現錯誤，放慢速度
 	if laPrice <= 0 || hbPrice <= 0 {
 		log.Println("laPrice <= 0 || hbPrice <= 0")
-		return 60
+		return 6000
 	}
 
 	laValue := laPrice * laVolume
@@ -432,12 +441,12 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 		mPreWallet = wallet
 	}
 
-	resPlusSecond := coinBunch.PlusSecond
+	resPlusMS := coinBunch.PlusMilliSecond
 	if m_isFullPower {
-		resPlusSecond = coinBunch.PlusSecond
+		resPlusMS = coinBunch.PlusMilliSecond
 	}
 
-	return int(resPlusSecond)
+	return int(resPlusMS)
 }
 
 func (tri *Triangular) canOrder(profit, orderTotalValue float64, coinBunch CoinBunch) bool {
