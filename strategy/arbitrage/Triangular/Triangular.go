@@ -417,8 +417,10 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 	if mFinishCount%EveryCountCheckWallet == 0 {
 		wallet := tri.exchangeClient.GetWallet()
 		//完成N次交易報告資產變化值
-		array := mPreWallet.GetAllBalanceProfit(wallet)
-		sendInfo := fmt.Sprintf("earn:%v", array)
+		balanceArray := mPreWallet.GetAllBalanceProfit(wallet)
+		message := getWalletChangedMessage(balanceArray)
+
+		sendInfo := fmt.Sprintf("earn:%v", message)
 		log.Println(sendInfo)
 		message_tool.SendTelegram(sendInfo)
 
@@ -552,4 +554,13 @@ func (tri *Triangular) executeOrder(df DealFlow, pType exc.PriceType, startVolum
 
 func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
 	exc.PostOrderRefry(tri.exchangeClient, order)
+}
+
+func getWalletChangedMessage(array []exc.Balance) string {
+	message := ""
+	for _, v := range array {
+		message += fmt.Sprintf("%s,%0.4f,%0.4f\n", v.Coin, v.Total, v.UsdValue)
+	}
+
+	return message
 }

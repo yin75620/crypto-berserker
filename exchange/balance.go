@@ -64,7 +64,8 @@ func (w *Wallet) GetAllBalanceProfit(after Wallet) []Balance {
 		for _, afterValue := range after.Balances {
 			if value.Coin == afterValue.Coin {
 				changedValue := afterValue.Total - value.Total
-				result = append(result, Balance{Coin: value.Coin, Total: changedValue})
+				usdValue := afterValue.UsdValue - value.UsdValue
+				result = append(result, Balance{Coin: value.Coin, Total: changedValue, UsdValue: usdValue})
 			}
 		}
 	}

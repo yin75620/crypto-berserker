@@ -8,16 +8,15 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/exchange-list/maicoin"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
-var mMai = maicoin.NewMaicoin(http.DefaultClient)
+//var mMai = maicoin.NewMaicoin(http.DefaultClient)
 var mFtx = ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
 	setting.FTX_KEY,
 	setting.FTX_API_SECRET_KEY,
 	"MOONORDOOM2"})
-var mTri *Triangular = NewTriangular(mMai)
+var mTri *Triangular = NewTriangular(mFtx)
 
 func TestExecuteOrder(t *testing.T) {
 	dealFlow := mTri.NewDealFlow("FTT", []string{"USD"})
@@ -37,4 +36,11 @@ func TestDealFlow(t *testing.T) {
 	laValue := laPrice * laVolume
 
 	log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
+}
+
+func TestGetWalletChangedMessage(t *testing.T) {
+	barray := []exc.Balance{exc.NewBalance("TEST", 100, 100, 2000), exc.NewBalance("TEST2", 0.000112, 0.00012, 102546)}
+
+	mes := getWalletChangedMessage(barray)
+	fmt.Println(mes)
 }

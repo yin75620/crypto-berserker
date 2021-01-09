@@ -253,7 +253,13 @@ func (ma *maicoin) doRequest(method, apiName string, body JArray) []byte {
 	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, ts, sendBody)
 
-	return exc.SendRequest(client, req)
+	res, err = exc.SendRequest(client, req)
+	if err != nil {
+		log.Println(err)
+		return res
+	}
+
+	return res
 }
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, sendBody string) {
