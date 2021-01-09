@@ -569,9 +569,14 @@ func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
 
 func getWalletChangedMessage(array []exc.Balance) string {
 	message := ""
+	sumUSD := 0.0
 	for _, v := range array {
 		message += fmt.Sprintf("%s,%0.4f,%0.4f\n", v.Coin, v.Total, v.UsdValue)
+		if v.Total != 0 {
+			sumUSD += v.UsdValue
+		}
 	}
+	message += fmt.Sprintf("sumTradeUSD:%.4f", sumUSD)
 
 	return message
 }
