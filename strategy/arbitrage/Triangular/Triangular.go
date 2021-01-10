@@ -289,17 +289,18 @@ var MAX_FAIL_COUNT = 3
 var mFinishCount = 0
 
 const EveryCountCheckWallet = 5
-const DefaultDelayMilliSecond = 1000
 
 var mPreWallet exc.Wallet
 
 func (tri *Triangular) stratStrategy() int {
-	res := DefaultDelayMilliSecond
+	max := 0
 	for _, coinBunch := range tri.CoinBunch {
-
-		res = tri.stratDealFlow(coinBunch)
+		ms := tri.stratDealFlow(coinBunch)
+		if ms > max {
+			max = ms
+		}
 	}
-	return res
+	return max
 }
 
 func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
@@ -318,7 +319,6 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 		log.Println(mFailCount)
 		// 失敗次數太多，直接結束
 	}()
-
 	dealFlows := []DealFlow{}
 	for _, coinStrip := range coinBunch.CoinStrips {
 		fuDealFlow := tri.NewDealFlow(coinStrip.Coins[0], coinStrip.Coins[1:])
