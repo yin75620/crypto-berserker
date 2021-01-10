@@ -289,7 +289,7 @@ var MAX_FAIL_COUNT = 3
 var mFinishCount = 0
 
 const EveryCountCheckWallet = 5
-const DefaultDelayMilliSecond = 100
+const DefaultDelayMilliSecond = 1000
 
 var mPreWallet exc.Wallet
 
@@ -297,10 +297,7 @@ func (tri *Triangular) stratStrategy() int {
 	res := DefaultDelayMilliSecond
 	for _, coinBunch := range tri.CoinBunch {
 
-		ms := tri.stratDealFlow(coinBunch)
-		if ms < res {
-			res = ms
-		}
+		res = tri.stratDealFlow(coinBunch)
 	}
 	return res
 }
