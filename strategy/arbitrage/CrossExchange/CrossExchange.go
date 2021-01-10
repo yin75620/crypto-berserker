@@ -310,7 +310,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 		//找出反向配對，確定利潤
 		positionProfit := positionCrossPair.GetProfit()
 
-		log.Println(fmt.Sprintf("position profit:%f; orderVolume:%f, matchProfit:%f", positionProfit, positionCrossPair.orderVolume, matchProfit))
+		//log.Println(fmt.Sprintf("position profit:%f; orderVolume:%f, matchProfit:%f", positionProfit, positionCrossPair.orderVolume, matchProfit))
 		sum := positionProfit + matchProfit
 
 		hasProfit := (matchProfit > getMinSellProfit(init, futures) && sum > getMinSumProfit(init, futures) && matchVolume > init.MinVolume)
