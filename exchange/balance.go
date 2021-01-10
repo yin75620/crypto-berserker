@@ -30,7 +30,14 @@ func (b *Balance) CalculerFreeUsdValue() {
 	if b.UsdValue == 0 {
 		return
 	}
-	b.FreeUsdValue = b.Free * b.Total / b.UsdValue
+	b.FreeUsdValue = b.Free * b.GetPrice()
+}
+
+func (b *Balance) GetPrice() float64 {
+	if b.UsdValue == 0 {
+		return 0
+	}
+	return b.Total / b.UsdValue
 }
 
 func NewWallet() *Wallet {
