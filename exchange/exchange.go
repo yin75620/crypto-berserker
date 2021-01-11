@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Exchange interface {
@@ -33,6 +34,8 @@ func PostOrderRefry(ex Exchange, order ExchangeOrder) {
 			break
 		}
 		log.Println(fmt.Sprintf("retry Count:%d", i))
+		// FTX need wait 200ms
+		time.Sleep(time.Duration(time.Millisecond * time.Duration(200)))
 	}
 }
 
