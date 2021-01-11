@@ -10,7 +10,8 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/jmath"
-	"github.com/yin75620/crypto-berserker/jtime"
+
+	//"github.com/yin75620/crypto-berserker/jtime"
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
@@ -102,18 +103,11 @@ func (tri *Triangular) Start() {
 	t := time.NewTimer(d)
 	defer t.Stop()
 
-	startTime := time.Now()
+	//startTime := time.Now()
 
 	for {
 		select {
 		case <-t.C:
-
-			now := time.Now()
-			if !jtime.IsSameUtcDay(startTime, now) {
-				startTime = now
-				logFile = simpleLog.StartLog()
-				defer logFile.Close()
-			}
 
 			plusMilliSecond := tri.stratStrategy()
 			t.Reset(time.Millisecond * time.Duration(delay_time_ms+plusMilliSecond))
