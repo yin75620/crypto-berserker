@@ -448,7 +448,7 @@ func (tri *Triangular) canOrder(profit, orderTotalValue float64, coinBunch CoinB
 		//log.Println("No profit")
 		return false
 	} else if profit < coinBunch.MinProfit {
-		log.Println("No enough profit")
+		//log.Println("No enough profit")
 		return false
 	} else if orderTotalValue < tri.Init.LeastTotalValue {
 		log.Println(fmt.Sprintf("orderTotalValue < %f", tri.Init.LeastTotalValue))
