@@ -420,7 +420,7 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 		wallet := tri.exchangeClient.GetWallet()
 		//完成N次交易報告資產變化值
 		balanceArray := mPreWallet.GetAllBalanceProfit(wallet)
-		message := getWalletChangedMessage(balanceArray)
+		message := getWalletChangedMessage(balanceArray, wallet)
 
 		sendInfo := fmt.Sprintf("earn:%v", message)
 		log.Println(sendInfo)
@@ -558,16 +558,18 @@ func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
 	exc.PostOrderRefry(tri.exchangeClient, order)
 }
 
-func getWalletChangedMessage(array []exc.Balance) string {
+func getWalletChangedMessage(array []exc.Balance, wallet exc.Wallet) string {
 	message := ""
 	sumUSD := 0.0
 	for _, v := range array {
-		message += fmt.Sprintf("%s,%0.4f,%0.4f\n", v.Coin, v.Total, v.UsdValue)
+		balance := wallet.GetBalance(v.Coin)
+		changedUSD := balance.GetPrice() * v.Total
+		message += fmt.Sprintf("%s,%0.4f,%0.4f,%0.4f\n", v.Coin, v.Total, v.UsdValue, changedUSD)
 		if v.Total != 0 {
-			sumUSD += v.UsdValue
+			sumUSD += changedUSD
 		}
 	}
-	message += fmt.Sprintf("sumTradeUSD:%.4f", sumUSD)
+	message += fmt.Sprintf("sumChangedUSD:%.4f", sumUSD)
 
 	return message
 }

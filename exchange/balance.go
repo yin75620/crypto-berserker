@@ -121,6 +121,15 @@ func (w *Wallet) GetWalletMessage() string {
 	return message
 }
 
+func (w *Wallet) GetBalance(name string) Balance {
+	for _, v := range w.Balances {
+		if v.Coin == name {
+			return v
+		}
+	}
+	return Balance{}
+}
+
 func isLarge(s string) bool {
 	return s == "BTC" || s == "ETH"
 }
