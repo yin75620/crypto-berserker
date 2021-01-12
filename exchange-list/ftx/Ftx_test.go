@@ -60,3 +60,12 @@ func TestMarket(t *testing.T) {
 func TestBalance(t *testing.T) {
 
 }
+
+func TestAPI(t *testing.T) {
+	res := mftx.GetLendingInfo()
+	li := res.GetLendInfo("USD")
+	fmt.Print(res)
+
+	lo := NewLendOrder("USD", li.Lendable, li.MinRate)
+	mftx.PostLendingOffer(*lo)
+}

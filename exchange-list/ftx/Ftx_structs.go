@@ -61,3 +61,46 @@ func (ac *Account) GetTotalUnrealizedPnl() float64 {
 	}
 	return sum
 }
+
+// Lending
+
+type LendInfoResponse struct {
+	Success bool `json:"success"`
+	Result  []LendInfo
+}
+
+type LendInfo struct {
+	Coin     string  `json:"coin"`
+	Lendable float64 `json:"lendable"`
+	Locked   float64 `json:"locked"`
+	MinRate  float64 `json:"minRate"`
+	Offerd   float64 `json:"offered"`
+}
+
+func (lr *LendInfoResponse) GetLendInfo(coin string) LendInfo {
+	for _, v := range lr.Result {
+		if v.Coin == coin {
+			return v
+		}
+	}
+	return LendInfo{}
+}
+
+type LendOrder struct {
+	Coin string  `json:"coin"`
+	Size float64 `json:"size"`
+	Rate float64 `json:"rate"`
+}
+
+func NewLendOrder(coin string, size, rate float64) *LendOrder {
+	lend := LendOrder{}
+	lend.Coin = coin
+	lend.Size = size
+	lend.Rate = rate
+	return &lend
+}
+
+type LendOrderResponse struct {
+	Success bool   `json:"success"`
+	Result  string `json:"result"`
+}

@@ -313,3 +313,49 @@ func (ftx *Ftx) addHeader(header *http.Header, reqMethod, path, body string) {
 	header.Add("FTX-SIGN", sign)
 	header.Add("FTX-SUBACCOUNT", initData.SubAccount)
 }
+
+// Lending
+func (ftx *Ftx) GetLendingRate() []byte {
+	res := ftx.doGet("spot_margin/lending_rates", "")
+	return res
+}
+
+func (ftx *Ftx) GetLendingInfo() LendInfoResponse {
+	byteRes := ftx.doGet("spot_margin/lending_info", "")
+	response := LendInfoResponse{}
+	err := json.Unmarshal(byteRes, &response)
+	if err != nil {
+		log.Println("GetLendingInfo json.Unmashal error:", err)
+		return response
+	}
+
+	return response
+}
+
+func (ftx *Ftx) PostLendingOffer(lo LendOrder) error {
+	body, err := json.Marshal(lo)
+	if err != nil {
+		log.Println("json.Marshal", err)
+		return err
+	}
+
+	byteRes, err := ftx.doPost("spot_margin/offers", string(body))
+	if err != nil {
+		log.Println("ftx.doPost", err)
+		return err
+	}
+
+	lr := LendOrderResponse{}
+	err = json.Unmarshal(byteRes, &lr)
+	if err != nil {
+		log.Println("json.Unmarshal", err)
+		return err
+	}
+
+	if !lr.Success {
+		log.Println(lr.Result)
+		return errors.New(lr.Result)
+	}
+
+	return nil
+}
