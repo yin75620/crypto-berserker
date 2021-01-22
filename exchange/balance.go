@@ -37,7 +37,7 @@ func (b *Balance) GetPrice() float64 {
 	if b.UsdValue == 0 {
 		return 0
 	}
-	return b.Total / b.UsdValue
+	return b.UsdValue / b.Total
 }
 
 func NewWallet() *Wallet {

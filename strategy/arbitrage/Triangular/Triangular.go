@@ -558,10 +558,10 @@ func (tri *Triangular) PostOrderRefry(order exc.ExchangeOrder) {
 	exc.PostOrderRefry(tri.exchangeClient, order)
 }
 
-func getWalletChangedMessage(array []exc.Balance, wallet exc.Wallet) string {
+func getWalletChangedMessage(diffArray []exc.Balance, wallet exc.Wallet) string {
 	message := ""
 	sumUSD := 0.0
-	for _, v := range array {
+	for _, v := range diffArray {
 		balance := wallet.GetBalance(v.Coin)
 		changedUSD := balance.GetPrice() * v.Total
 		message += fmt.Sprintf("%s,%0.4f,%0.4f,%0.4f\n", v.Coin, v.Total, v.UsdValue, changedUSD)
