@@ -2,6 +2,7 @@ package ftx
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"testing"
 
@@ -68,4 +69,19 @@ func TestAPI(t *testing.T) {
 
 	lo := NewLendOrder("USD", li.Lendable, li.MinRate)
 	mftx.PostLendingOffer(*lo)
+}
+
+func TestDeleteAllOrder(t *testing.T) {
+	order := FtxOrder{}
+	order.Market = "FIDA/USD"
+	order.Side = "buy"
+	order.Price = 0.5
+	order.Size = 1
+	order.OrderType = LIMIT
+	mftx.doPostOrder(order)
+	res, err := mftx.DeleteAllOrders()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(res)
 }

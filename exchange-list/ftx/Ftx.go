@@ -234,6 +234,11 @@ func (ftx *Ftx) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return ftx.doPostOrder(fo)
 }
 
+func (ftx *Ftx) DeleteAllOrders() (string, error) {
+	res, err := ftx.doRequest("DELETE", "orders", "")
+	return string(res), err
+}
+
 func (ftx *Ftx) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 
 	fo := FtxOrder{}
