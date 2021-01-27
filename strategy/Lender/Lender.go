@@ -55,8 +55,10 @@ func doOffer(myFtx ftx.Ftx) {
 	li := res.GetLendInfo("USD")
 	fmt.Println(res)
 
-	lo := ftx.NewLendOrder("USD", li.Lendable, li.MinRate)
-	myFtx.PostLendingOffer(*lo)
+	if li.Offerd != 0 {
+		lo := ftx.NewLendOrder("USD", li.Lendable, li.MinRate)
+		myFtx.PostLendingOffer(*lo)
+	}
 
 	res = myFtx.GetLendingInfo()
 	fmt.Println(res)
