@@ -12,7 +12,7 @@ import (
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 )
 
-const version = "0.9.0-0001"
+const version = "0.9.0-0002"
 
 type Buyer struct {
 	mftx *ftx.Ftx
