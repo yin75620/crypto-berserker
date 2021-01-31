@@ -20,10 +20,11 @@ type Buyer struct {
 }
 
 type BuyerInit struct {
-	subAccount  string
-	targetPrice float64
-	size        float64
-	coinName    string
+	subAccount       string
+	targetPrice      float64
+	size             float64
+	coinName         string
+	delayMilliSecond float64
 }
 
 var (
@@ -57,6 +58,7 @@ func (b *Buyer) SetInit() {
 	init.targetPrice = sec.Key("TargetPrice").MustFloat64(1.25)
 	init.size = sec.Key("Size").MustFloat64(1)
 	init.coinName = sec.Key("CoinName").MustString("MAP")
+	init.delayMilliSecond = sec.Key("DelayMilliSecond").MustFloat64(100)
 	b.init = init
 }
 
@@ -76,7 +78,7 @@ func (b *Buyer) Start() {
 	infoAll = fmt.Sprintf("%s \r\n %s:%v", infoAll, mftx.GetName(), wallet)
 	log.Println(string(infoAll))
 
-	delayMilliSecond := time.Millisecond * time.Duration(500)
+	delayMilliSecond := time.Millisecond * time.Duration(100)
 
 	d := time.Duration(delayMilliSecond)
 	t := time.NewTimer(d)
@@ -105,6 +107,15 @@ func (b *Buyer) stratStrategy() int64 {
 		OrderType: exc.LIMIT,
 	}
 	exchange.PostOrder(myOrder)
+
+	var myOrder2 exc.ExchangeOrder = exc.ExchangeOrder{
+		CoinPair:  exc.CoinPair{b.init.coinName, "USDT"},
+		Side:      exc.Buy,
+		Price:     b.init.targetPrice,
+		Size:      b.init.size,
+		OrderType: exc.LIMIT,
+	}
+	exchange.PostOrder(myOrder2)
 
 	return 0
 }
