@@ -27,7 +27,10 @@ func main() {
 	mSubAccount = fi.SubAccount
 	myFtx := ftx.NewFtx(http.DefaultClient, *fi)
 
-	hour := time.Hour * time.Duration(1)
+	// get first on the our + 1 minute
+	const HOUR = 60
+	waitMinute := HOUR - time.Now().Minute() + 1
+	hour := time.Minute * time.Duration(waitMinute)
 	hTimer := time.NewTimer(hour)
 	defer hTimer.Stop()
 
