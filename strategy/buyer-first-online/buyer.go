@@ -10,7 +10,6 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 	simpleLog "github.com/yin75620/crypto-berserker/log"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 type Buyer struct {
@@ -33,7 +32,6 @@ func main() {
 
 	b := NewBuyer()
 	b.SetInit()
-	b.InitFtx()
 	b.Start()
 }
 
@@ -48,21 +46,16 @@ func (b *Buyer) SetInit() {
 		log.Fatal(err)
 	}
 
+	fi := ftx.NewFtxInit()
+	fi.IniSettingByFile(cfg)
+	b.mftx = ftx.NewFtx(http.DefaultClient, *fi)
+
 	sec := cfg.Section("BUYER")
 	init := BuyerInit{}
-	init.subAccount = sec.Key("SubAccount").MustString("Buy")
 	init.targetPrice = sec.Key("TargetPrice").MustFloat64(1.25)
 	init.size = sec.Key("Size").MustFloat64(1)
 	init.coinName = sec.Key("CoinName").MustString("MAP")
 	b.init = init
-}
-
-func (b *Buyer) InitFtx() {
-	fi := ftx.NewFtxInit()
-	fi.ApiKey = setting.FTX_KEY
-	fi.ApiSecretKey = setting.FTX_API_SECRET_KEY
-	fi.SubAccount = b.init.subAccount
-	b.mftx = ftx.NewFtx(http.DefaultClient, *fi)
 }
 
 func (b *Buyer) Start() {
