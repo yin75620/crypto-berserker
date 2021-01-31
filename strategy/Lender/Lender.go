@@ -53,18 +53,21 @@ func main() {
 }
 
 func doOffer(myFtx ftx.Ftx) {
-	const coin = "USD"
-	res := myFtx.GetLendingInfo()
-	li := res.GetLendInfo("USD")
-	fmt.Println(res)
 
-	if li.Offerd != 0 {
-		lo := ftx.NewLendOrder("USD", li.Lendable, li.MinRate)
-		myFtx.PostLendingOffer(*lo)
+	res := myFtx.GetLendingInfo()
+	log.Println(res)
+
+	wallet := myFtx.GetWallet()
+	for _, balance := range wallet.Balances {
+		li := res.GetLendInfo(balance.Coin)
+		if li.Offerd != 0 {
+			lo := ftx.NewLendOrder(balance.Coin, li.Lendable, li.MinRate)
+			myFtx.PostLendingOffer(*lo)
+		}
 	}
 
 	res = myFtx.GetLendingInfo()
-	fmt.Println(res)
+	log.Println(res)
 }
 
 // 台灣中午12點會呼叫一次AccountInfo()
