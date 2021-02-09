@@ -35,13 +35,16 @@ var broadcasterBot *tgbotapi.BotAPI
 
 const BroadcasterToken = "***REMOVED***"
 
+//[UserId]
+const JeffYinUserId = 945156610
+
 func StartTelegram() {
 	bot, _ = tgbotapi.NewBotAPI(setting.TELEGRAM_BOT_TOKEN)
 	broadcasterBot, _ = tgbotapi.NewBotAPI(BroadcasterToken)
 }
 
 func SendTelegram(content string) {
-	sendTo(bot, 945156610, content)
+	sendTo(bot, JeffYinUserId, content)
 }
 
 func SendBroadcastArcherGroup(content string) {
