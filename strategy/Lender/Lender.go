@@ -27,6 +27,11 @@ func main() {
 	mSubAccount = fi.SubAccount
 	myFtx := ftx.NewFtx(http.DefaultClient, *fi)
 
+	go func() {
+		sendWallet(myFtx)
+		dailySendAccountInfo(myFtx)
+	}()
+
 	// get first on the our + 1 minute
 	const HOUR = 60
 	waitMinute := HOUR - time.Now().Minute() + 1
