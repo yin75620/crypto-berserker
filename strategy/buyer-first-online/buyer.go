@@ -12,7 +12,7 @@ import (
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 )
 
-const version = "0.9.0-0002"
+const version = "0.9.0-0003"
 
 type Buyer struct {
 	mftx *ftx.Ftx
@@ -25,6 +25,8 @@ type BuyerInit struct {
 	size             float64
 	coinName         string
 	delayMilliSecond float64
+	sellPrice        float64
+	sellSize         float64
 }
 
 var (
@@ -59,6 +61,8 @@ func (b *Buyer) SetInit() {
 	init.size = sec.Key("Size").MustFloat64(1)
 	init.coinName = sec.Key("CoinName").MustString("MAP")
 	init.delayMilliSecond = sec.Key("DelayMilliSecond").MustFloat64(100)
+	init.sellPrice = sec.Key("SellPrice").MustFloat64(3)
+	init.sellSize = sec.Key("SellSize").MustFloat64(1)
 	b.init = init
 }
 
@@ -109,10 +113,10 @@ func (b *Buyer) stratStrategy() int64 {
 	exchange.PostOrder(myOrder)
 
 	var myOrder2 exc.ExchangeOrder = exc.ExchangeOrder{
-		CoinPair:  exc.CoinPair{b.init.coinName, "USDT"},
-		Side:      exc.Buy,
-		Price:     b.init.targetPrice,
-		Size:      b.init.size,
+		CoinPair:  exc.CoinPair{b.init.coinName, "USD"},
+		Side:      exc.Sell,
+		Price:     b.init.sellPrice,
+		Size:      b.init.sellSize,
 		OrderType: exc.LIMIT,
 	}
 	exchange.PostOrder(myOrder2)
