@@ -14,7 +14,7 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
 )
 
-const version = "0.9.0-0003"
+const version = "0.9.0-0004"
 
 const IniFileName = "main.ini"
 
