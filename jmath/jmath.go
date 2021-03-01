@@ -4,8 +4,22 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 )
 
+// unit is like 3.123456 or 125.1234
+func FloatFloorByFloatCount(f float64, unit float64) float64 {
+	if unit == 0 {
+		return f //不運算
+	}
+	str := strconv.FormatFloat(unit, 'f', -1, 64)
+	index := strings.LastIndex(str, ".")
+	floatcount := len(str) - 1 - index
+
+	return FloatFloor(f, floatcount)
+}
+
+// unit is mean 0.001 or 0.0001 and so
 func FloatFloorByFloat(f float64, unit float64) float64 {
 	if unit == 0 {
 		return f //不運算

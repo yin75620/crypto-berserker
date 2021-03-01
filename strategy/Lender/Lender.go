@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/yin75620/crypto-berserker/jmath"
+	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 
 	"github.com/yin75620/crypto-berserker/exchange"
@@ -19,6 +21,9 @@ const IniFileName = "main.ini"
 var mSubAccount = ""
 
 func main() {
+
+	slog := simpleLog.StartLog()
+	defer slog.Close()
 
 	log.Println(version)
 
@@ -50,9 +55,10 @@ func main() {
 		case <-hTimer.C:
 			doOffer(*myFtx)
 
-			hTimer.Reset(time.Hour * time.Duration(1))
+			hTimer.Reset(hour)
 		case <-minTimer.C:
 			log.Println("Live")
+			minTimer.Reset(min)
 		}
 	}
 }
@@ -66,7 +72,8 @@ func doOffer(myFtx ftx.Ftx) {
 	for _, balance := range wallet.Balances {
 		li := res.GetLendInfo(balance.Coin)
 		if li.Offerd != 0 {
-			lo := ftx.NewLendOrder(balance.Coin, li.Lendable, li.MinRate)
+			lendMoney := jmath.FloatFloorByFloatCount(li.Lendable, li.Offerd)
+			lo := ftx.NewLendOrder(balance.Coin, lendMoney, li.MinRate)
 			myFtx.PostLendingOffer(*lo)
 		}
 	}
