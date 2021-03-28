@@ -153,9 +153,10 @@ func (bm *Bitmax) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return string(response), resErr
 }
 
-func (bm *Bitmax) DeleteAllOrders() []byte {
+func (bm *Bitmax) DeleteAllOrders() (string, error) {
 	ts := exc.GetTimeSpan()
-	return bm.doRequest("DELETE", "order/all", "", true, ts, "0")
+	res := bm.doRequest("DELETE", "order/all", "", true, ts, "0")
+	return string(res), nil
 }
 
 func (bm *Bitmax) doNormalRequest(method, apiName, body string) []byte {
