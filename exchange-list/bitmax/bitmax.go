@@ -25,7 +25,7 @@ type Bitmax struct {
 
 var (
 	apiURL    = "https://bitmax.io/"
-	apiPrefix = "api/v1/"
+	apiPrefix = "api/pro/v1/"
 )
 
 // implement exchange
@@ -48,17 +48,19 @@ func (bm *Bitmax) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 
 type QuoteResponse struct {
 	exc.PriceStatus
-	MarketName string `json:"s"`
+	MarketName string `json:"data"`
 }
 
 func (qr *QuoteResponse) setBy(json map[string]interface{}) {
-	qr.MarketName = json["s"].(string)
+	dataJson := json["data"].(map[string]interface{})
+	qr.MarketName = dataJson["symbol"].(string)
 
-	qr.PriceStatus.SetByJArray(json)
+	qr.PriceStatus.SetByJArray(dataJson["data"].(map[string]interface{}))
 }
 
 func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
-	path := fmt.Sprintf("depth?symbol=%s&n=%d", coinPair.GetSymbal(), depth)
+	//path := fmt.Sprintf("depth?symbol=%s&n=%d", coinPair.GetSymbal(), depth)
+	path := fmt.Sprintf("depth?symbol=%s", coinPair.GetMarketName())
 	resByte := bm.doNormalRequest("GET", path, "")
 
 	var resJson map[string]interface{}
@@ -67,6 +69,8 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(string(resByte))
 
 	quoteResponse := QuoteResponse{}
 	quoteResponse.setBy(resJson)
@@ -79,7 +83,8 @@ func (bm *Bitmax) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair
 
 func (bm *Bitmax) GetAccountInfo() []byte {
 	// 這交易所沒有使用者資料
-	res := []byte("Bitmax")
+	res := bm.doNormalRequest("GET", "info", "")
+	//res := []byte("Bitmax")
 	return res
 }
 
@@ -172,7 +177,13 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 		accountGroupStr = bm.auth()
 	}
 
-	fullUrl := fmt.Sprintf("%s%s%s%s", apiURL, accountGroupStr, apiPrefix, apiName)
+	accountCategory := ""
+	if coid != "" {
+		const accountCategoryName = "cash/" //tocash for cash account and margin
+		accountCategory = accountCategoryName
+	}
+
+	fullUrl := fmt.Sprintf("%s%s%s%s%s", apiURL, accountGroupStr, apiPrefix, accountCategory, apiName)
 
 	req, err := http.NewRequest(method, fullUrl, bytes.NewBuffer([]byte(body)))
 	if err != nil {
@@ -183,7 +194,13 @@ func (bm *Bitmax) doRequest(method, apiName, body string, needAuth bool, ts int6
 	req.Header.Set("Content-Type", "application/json")
 	addHeader(&req.Header, method, apiName, ts, coid)
 
-	return exc.SendRequest(client, req)
+	res, err = exc.SendRequest(client, req)
+	if err != nil {
+		log.Println(err)
+		return res
+	}
+
+	return res
 }
 
 func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid string) {
@@ -193,9 +210,9 @@ func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid stri
 	header.Add("x-auth-timestamp", strTs)
 
 	coid := ""
-	if sCoid != "" {
+	/*if sCoid != "" {
 		coid = fmt.Sprintf("+%s", sCoid)
-	}
+	}*/
 	payload := fmt.Sprintf("%s+%s%s", strTs, path, coid)
 	//fmt.Println(payload)
 	sign, _ := exc.GetParamHmacSHA256Base64Sign(setting.BITMAX_API_SECRET_KEY, payload)
@@ -205,17 +222,20 @@ func addHeader(header *http.Header, reqMethod, path string, ts int64, sCoid stri
 
 func (bm *Bitmax) auth() string {
 	if bm.accountGroup == 0 {
-		type TempUserInfo struct {
+		type TempData struct {
 			AccountGroup int `json:"accountGroup"`
 		}
+		type TempUserInfo struct {
+			Data TempData `json:"data"`
+		}
 
-		byt := bm.doNormalRequest("GET", "user/info", "")
+		byt := bm.doNormalRequest("GET", "info", "")
 		userInfo := TempUserInfo{}
 		if err := json.Unmarshal(byt, &userInfo); err != nil {
 			panic(err)
 		}
 
-		bm.accountGroup = userInfo.AccountGroup
+		bm.accountGroup = userInfo.Data.AccountGroup
 	}
 	accountGroupStr := fmt.Sprintf("%d/", bm.accountGroup)
 	return accountGroupStr

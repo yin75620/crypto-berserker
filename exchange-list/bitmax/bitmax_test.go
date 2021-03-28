@@ -42,3 +42,18 @@ func TestAccount(t *testing.T) {
 	// }
 	// m_bitmaxClient.PostOrder(myOrder)
 }
+
+func TestOrder(t *testing.T) {
+	order := exc.ExchangeOrder{}
+	order.CoinPair = exc.CoinPair{"FTT", "USDT"}
+	order.Side = "buy"
+	order.Price = 32
+	order.Size = 1
+	order.OrderType = exc.LIMIT
+
+	res, err := m_bitmaxClient.PostOrder(order)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(res)
+}
