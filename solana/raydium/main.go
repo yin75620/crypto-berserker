@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	postWithJson()
+	getAccountInfo("56kGnD4FhM6uB1m1cZmNaaAxAiRJJTrYWCunCYANQkW1")
+	getBalance("56kGnD4FhM6uB1m1cZmNaaAxAiRJJTrYWCunCYANQkW1")
 }
 
 const SOLONA_API = "https://solana-api.projectserum.com/"
 const JsonMode = "application/json"
 
-func postWithJson() {
+func getTokenSupply() {
 	//post請求提交json數據
 	sendContent := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -23,7 +24,32 @@ func postWithJson() {
 		"method":  "getTokenSupply",
 		"params":  []interface{}{"4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"},
 	}
+	doPostWithJson(sendContent)
+}
 
+func getAccountInfo(pubkey string) {
+	//post請求提交json數據
+	sendContent := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "getAccountInfo",
+		"params":  []interface{}{pubkey},
+	}
+	doPostWithJson(sendContent)
+}
+
+func getBalance(pubkey string) {
+	//post請求提交json數據
+	sendContent := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "getBalance",
+		"params":  []interface{}{pubkey},
+	}
+	doPostWithJson(sendContent)
+}
+
+func doPostWithJson(sendContent map[string]interface{}) {
 	jContent, err := json.Marshal(sendContent)
 	if err != nil {
 		fmt.Println(err)
