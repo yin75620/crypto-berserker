@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -13,8 +12,7 @@ import (
 
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/exchange-list/binance"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
+	"github.com/yin75620/crypto-berserker/exchange-list/common"
 	Tri "github.com/yin75620/crypto-berserker/strategy/arbitrage/Triangular"
 )
 
@@ -52,28 +50,7 @@ func main() {
 	var tri *Tri.Triangular = nil
 	var exchange exchange.Exchange = nil
 
-	if mSwitchExchange == FTX {
-		fi := ftx.NewFtxInit()
-		fi.IniSetting(IniFileName)
-		mSubAccount = fi.SubAccount
-		exchange = ftx.NewFtx(http.DefaultClient, *fi)
-	} else if mSwitchExchange == MAX {
-		//exchange = maicoin.NewMaicoin(http.DefaultClient)
-	} else if mSwitchExchange == OKEX {
-		//exchange = okex.NewOkex(http.DefaultClient)
-	} else if mSwitchExchange == FTXOTC {
-		/*exchange = ftxotc.NewFtxotc(http.DefaultClient,
-		ftxotc.FtxotcInit{
-			setting.FTXOTC_KEY,
-			setting.FTXOTC_SECRET_KEY})*/
-	} else if mSwitchExchange == COINEX {
-		//exchange = coinex.NewCoinEx(http.DefaultClient)
-	} else if mSwitchExchange == BINANCE {
-		exchange = binance.NewBinance(http.DefaultClient)
-
-	} else {
-		log.Println("error, exchange not found", mSwitchExchange)
-	}
+	exchange = common.GetExchange(mSwitchExchange)
 
 	sendWallet(exchange)
 	go dailySendAccountInfo(exchange)

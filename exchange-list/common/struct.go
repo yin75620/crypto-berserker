@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/yin75620/crypto-berserker/exchange-list/binance"
 	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
@@ -52,6 +53,11 @@ func GetExchange(exchangeName string) exc.Exchange {
 		break
 	case BINANCEF:
 		res = binancef.NewBinancef(http.DefaultClient)
+		break
+	case BINANCE:
+		bi := binance.NewBinance(http.DefaultClient)
+		bi.SetInitByIni(initFileName)
+		res = bi
 		break
 	case OKEX:
 		res = okex.NewOkex(http.DefaultClient)
