@@ -20,37 +20,32 @@ var (
 
 type JArray exc.JArray
 
-func NewBinance(c *http.Client) *binance {
-	bn := binance{}
+func NewBinance(c *http.Client) *Binance {
+	bn := Binance{}
 	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bn.client = c
+	bn.initData = NewBinanceInit()
 
 	return &bn
 }
 
-func NewBinance1(key, secretKey string) *binance {
-	bn := binance{}
-	bn.client = http.DefaultClient
-	bn.key = key
-	bn.secretKey = secretKey
-	bn.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
-	return &bn
-}
-
-type binance struct {
+type Binance struct {
 	client          *http.Client
-	key             string
-	secretKey       string
+	initData        *BinanceInit
 	orderBookCenter *ob.OrderBookCenter
 }
 
+func (bn *Binance) SetInitByIni(filename string) {
+	bn.initData.IniSetting(filename)
+}
+
 // implement exchange
-func (bn *binance) GetWallet() exc.Wallet {
+func (bn *Binance) GetWallet() exc.Wallet {
 	w := exc.Wallet{}
 	return w
 }
 
-func (bn *binance) GetAccountInfo() []byte {
+func (bn *Binance) GetAccountInfo() []byte {
 
 	reqArray := exc.JArray{}
 
@@ -59,7 +54,7 @@ func (bn *binance) GetAccountInfo() []byte {
 	return resByte
 }
 
-func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
+func (bn *Binance) PostOrder(order exc.ExchangeOrder) (string, error) {
 	body := exc.JArray{
 		"symbol":      order.CoinPair.GetLinkMakertNameUpper(),
 		"side":        order.Side,      //"BUY",
@@ -73,33 +68,33 @@ func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
 	return string(resByte), nil
 }
 
-func (bn *binance) GetFee() exc.Fee {
+func (bn *Binance) GetFee() exc.Fee {
 	fee := exc.Fee{}
 	fee.Taker = 0.00075
 	fee.Maker = 0.00075
 	return fee
 }
-func (bn *binance) GetName() string {
+func (bn *Binance) GetName() string {
 	return "Binance"
 }
-func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
+func (bn *Binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
 }
 
-func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
+func (bn *Binance) GetVolumeByTotal(total, price float64) float64 {
 	return total / price
 }
 
-func (bn *binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
+func (bn *Binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
 	return exc.PricePair{}, exc.PricePair{}
 }
 
 // 未實作 UnrealizedPnL
-func (bn *binance) GetAccount() exc.Account {
+func (bn *Binance) GetAccount() exc.Account {
 	return exc.Account{}
 }
 
-func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
+func (bn *Binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	/*bo := BybitOrder{}
 	bo.Side = strings.Title(order.CommodityOrder.Side)
 	bo.Symbol = strings.ToUpper(order.Futures.GetLinkMarketName())
@@ -122,12 +117,12 @@ func (qr *QuoteResponse) setBy(json map[string]interface{}) {
 	qr.LastUpdateId = json["lastUpdateId"].(float64)
 	qr.TradeData.SetByJArray(json)
 }
-func (bn *binance) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+func (bn *Binance) GetAskBidPair(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	booker := ob.StartOrderBook(bn.orderBookCenter, coinPair.GetLinkMakertName())
 	return booker.GetFirstPricePair()
 }
 
-func (bn *binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
+func (bn *Binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.PricePair, exc.PricePair) {
 	const minLimit = 5
 	/*reqString := fmt.Sprintf("depth?symbol=%s&limit=%d",
 	strings.ToUpper(coinPair.GetLinkMakertName()),
@@ -152,15 +147,15 @@ func (bn *binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.P
 
 	return askPair, bidPair
 }
-func (bn *binance) doSignRequest(method, apiName string, body exc.JArray) []byte {
+func (bn *Binance) doSignRequest(method, apiName string, body exc.JArray) []byte {
 	return bn.doRequest(method, apiName, true, body)
 }
 
-func (bn *binance) doAPIRequest(method, apiName string, body exc.JArray) []byte {
+func (bn *Binance) doAPIRequest(method, apiName string, body exc.JArray) []byte {
 	return bn.doRequest(method, apiName, false, body)
 }
 
-func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArray) []byte {
+func (bn *Binance) doRequest(method, apiName string, isSign bool, body exc.JArray) []byte {
 	client := bn.client
 
 	var res []byte
