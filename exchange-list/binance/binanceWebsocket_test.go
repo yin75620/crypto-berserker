@@ -11,6 +11,7 @@ import (
 func TestWebsocketInfo(t *testing.T) {
 
 	socket := NewSocket()
+	// 如果是不存在的交易對，會停住
 	coin := exc.CoinPair{"BTC", "USDT"}
 	ch := socket.SubScribeOrderBook(coin.GetLinkMakertName())
 

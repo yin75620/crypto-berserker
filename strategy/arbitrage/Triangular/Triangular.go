@@ -42,6 +42,7 @@ type TriangularInit struct {
 	LeastTotalValue float64
 	DelayTime       int
 	ShowLiveSecond  int
+	IsShowDebugLog  bool
 }
 
 type CoinStrip struct {
@@ -68,6 +69,7 @@ func NewTriangular(exchange exc.Exchange) *Triangular {
 			LeastTotalValue: 10,  //10 quoteCoin
 			DelayTime:       5,   //5second
 			ShowLiveSecond:  60,
+			IsShowDebugLog:  false,
 		}}
 	t.exchangeClient = exchange
 	return t
@@ -242,12 +244,12 @@ func (df *DealFlow) getFinalPairWithFee(pType exc.PriceType, hasFee bool) exc.Pr
 	finalAskPair.Volume = resTotalValue / finalPrice
 	return finalAskPair
 }
-func getLowestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
+func getLowestFlow(dealFlows []DealFlow, pType exc.PriceType, tri Triangular) DealFlow {
 	lowest := math.MaxFloat64
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		//log.Println(fmt.Sprintf("getLowestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		tri.debugPrintln("getLowestFlow:%f, Coin:%s", pair.Price, value.getName())
 		if lowest > pair.Price {
 			lowest = pair.Price
 			resDealFlow = value
@@ -256,12 +258,12 @@ func getLowestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
 	return resDealFlow
 }
 
-func getHighestFlow(dealFlows []DealFlow, pType exc.PriceType) DealFlow {
+func getHighestFlow(dealFlows []DealFlow, pType exc.PriceType, tri Triangular) DealFlow {
 	highest := 0.0
 	resDealFlow := DealFlow{}
 	for _, value := range dealFlows {
 		pair := value.getFinalPair(pType)
-		//log.Println(fmt.Sprintf("getHighestFlow:%f, Coin:%s", pair.Price, value.getName()))
+		tri.debugPrintln("getHighestFlow:%f, Coin:%s", pair.Price, value.getName())
 		if highest < pair.Price {
 			highest = pair.Price
 			resDealFlow = value
@@ -319,8 +321,8 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 		dealFlows = append(dealFlows, fuDealFlow)
 	}
 
-	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask)
-	highestBidFlow := getHighestFlow(dealFlows, exc.Bid)
+	lowestAskFlow := getLowestFlow(dealFlows, exc.Ask, *tri)
+	highestBidFlow := getHighestFlow(dealFlows, exc.Bid, *tri)
 
 	laName := lowestAskFlow.getName()
 	hbName := highestBidFlow.getName()
@@ -341,15 +343,15 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 
 	minSourceTotalValue := math.Min(laValue, hbValue)
 
-	//log.Println(fmt.Sprintf("minSourceTotalValue:%g", minSourceTotalValue))
-	//log.Println(fmt.Sprintf("m_expectedTotalValue:%g", m_expectedTotalValue))
+	tri.debugPrintln("minSourceTotalValue:%g", minSourceTotalValue)
+	tri.debugPrintln("m_expectedTotalValue:%g", m_expectedTotalValue)
 
-	//log.Println(fmt.Sprintf("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName))
-	//log.Println(fmt.Sprintf("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName))
+	tri.debugPrintln("resAsk:%f, laValue:%f, AskCoin:%s", laPrice, laValue, laName)
+	tri.debugPrintln("resBid:%f, hbValue:%f, bidCoin:%s", hbPrice, hbValue, hbName)
 
 	profit := (hbPrice - laPrice) / laPrice
 
-	//log.Println(fmt.Sprintf("Profit:%f", profit))
+	//debugPrintln("Profit:%f", profit))
 
 	currentOrderTotalValue := coinBunch.TotalValuesUS
 
@@ -572,4 +574,11 @@ func getWalletChangedMessage(diffArray []exc.Balance, wallet exc.Wallet) string 
 	message += fmt.Sprintf("sumChangedUSD:%.4f", sumUSD)
 
 	return message
+}
+
+func (tri *Triangular) debugPrintln(format string, a ...interface{}) {
+	if tri.Init.IsShowDebugLog {
+		res := fmt.Sprintf(format, a...)
+		log.Println(res)
+	}
 }
