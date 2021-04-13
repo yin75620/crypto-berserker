@@ -8,20 +8,26 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
-func TestAccount(t *testing.T) {
+func GetExchange() *Binance {
+
 	ce := NewBinance(http.DefaultClient)
+	ce.SetInitByIni("main.ini")
+	return ce
+}
+func TestAccount(t *testing.T) {
+	ce := GetExchange()
 	res := ce.GetAccountInfo()
 
 	fmt.Println(string(res))
 }
 
 func TestOrder(t *testing.T) {
-	ce := NewBinance(http.DefaultClient)
+	ce := GetExchange()
 
 	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
 		CoinPair:  exc.CoinPair{"FTT", "USDT"},
 		Side:      exc.Buy,
-		Price:     2.3,
+		Price:     49.3,
 		Size:      5,
 		OrderType: exc.LIMIT,
 	}
