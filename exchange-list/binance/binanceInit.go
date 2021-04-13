@@ -13,6 +13,6 @@ func NewBinanceInit() *BinanceInit {
 	bi := BinanceInit{}
 	bi.ApiKey = setting.BINANCE_KEY
 	bi.ApiSecretKey = setting.BINANCE_SECRET_KEY
-	bi.SectionName = "BINANCE"
+	bi.SectionName = "Binance"
 	return &bi
 }

@@ -10,7 +10,6 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 var (
@@ -168,7 +167,7 @@ func (bn *Binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 		bodyEncode := body.ToValues().Encode()
 
 		raw := fmt.Sprintf("%s", bodyEncode)
-		sign, err := exc.GetParamHmacSHA256HexSign(setting.BINANCE_SECRET_KEY, raw)
+		sign, err := exc.GetParamHmacSHA256HexSign(bn.initData.ApiSecretKey, raw)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -188,7 +187,7 @@ func (bn *Binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	}
 
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
-	req.Header.Add("X-MBX-APIKEY", setting.BINANCE_KEY)
+	req.Header.Add("X-MBX-APIKEY", bn.initData.ApiKey)
 
 	resByte, _ := exc.SendRequest(client, req)
 
