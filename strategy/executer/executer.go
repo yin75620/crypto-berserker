@@ -30,7 +30,7 @@ var mSwitchExchange = BITMAX
 var mSubAccount = ""
 
 const (
-	version = "1.0.3-0032-binance"
+	version = "1.0.3-0034"
 )
 const IniFileName = "main.ini"
 
@@ -53,6 +53,7 @@ func main() {
 	exchange = common.GetExchange(mSwitchExchange)
 
 	sendWallet(exchange)
+	log.Println(string(exchange.GetAccountInfo()))
 	go dailySendAccountInfo(exchange)
 
 	tri = Tri.NewTriangular(exchange)
@@ -82,7 +83,7 @@ func iniSetting() (Tri.TriangularInit, []Tri.CoinBunch) {
 	resFee := cfg.Section("").Key("TakerFee").MustFloat64()
 	log.Println(resFee)
 
-	const DefaultMaxCoinStrip = 10
+	const DefaultMaxCoinStrip = 99
 	resFlow := []Tri.CoinBunch{}
 
 	for i := 0; i < DefaultMaxCoinStrip; i++ {
