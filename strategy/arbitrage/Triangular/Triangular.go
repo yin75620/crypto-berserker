@@ -280,7 +280,7 @@ var (
 var m_isFullPower = false
 
 var mFailCount = 0
-var MAX_FAIL_COUNT = 3
+var MAX_FAIL_COUNT = 20
 
 var mFinishCount = 0
 
