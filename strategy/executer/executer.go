@@ -30,7 +30,7 @@ var mSwitchExchange = BITMAX
 var mSubAccount = ""
 
 const (
-	version = "1.0.3-0034"
+	version = "1.0.3-0035"
 )
 const IniFileName = "main.ini"
 
