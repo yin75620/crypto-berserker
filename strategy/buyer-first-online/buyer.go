@@ -12,11 +12,16 @@ import (
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 )
 
-const version = "0.9.0-0004"
+const version = "0.9.0-0006"
 
 type Buyer struct {
 	mftx *ftx.Ftx
 	init BuyerInit
+}
+
+type BuyOrder struct {
+	Price float64
+	Size  float64
 }
 
 type BuyerInit struct {
@@ -27,6 +32,7 @@ type BuyerInit struct {
 	delayMilliSecond float64
 	sellPrice        float64
 	sellSize         float64
+	buyOrders        []BuyOrder
 }
 
 var (
@@ -64,6 +70,25 @@ func (b *Buyer) SetInit() {
 	init.sellPrice = sec.Key("SellPrice").MustFloat64(3)
 	init.sellSize = sec.Key("SellSize").MustFloat64(1)
 
+	const DefaultMaxBuy = 9
+
+	orders := []BuyOrder{}
+	for i := 0; i < DefaultMaxBuy; i++ {
+		sectionBuyStr := fmt.Sprintf("Buy%d", i)
+		sectionBuy, err := cfg.GetSection(sectionBuyStr)
+		if err != nil {
+			continue
+		}
+
+		order := BuyOrder{}
+		order.Price = sectionBuy.Key("Price").MustFloat64(0.1)
+		order.Size = sectionBuy.Key("Size").MustFloat64(1)
+
+		orders = append(orders, order)
+	}
+
+	init.buyOrders = orders
+
 	b.init = init
 }
 
@@ -83,31 +108,59 @@ func (b *Buyer) Start() {
 	infoAll = fmt.Sprintf("%s \r\n %s:%v", infoAll, mftx.GetName(), wallet)
 	log.Println(string(infoAll))
 
-	delayMilliSecond := time.Millisecond * time.Duration(100)
+	delayMilliSecond := time.Millisecond * time.Duration(b.init.delayMilliSecond)
 
 	d := time.Duration(delayMilliSecond)
 	t := time.NewTimer(d)
 	defer t.Stop()
 
-	for {
-		<-t.C
+	exchange := b.mftx
 
-		b.stratStrategy()
+	for {
+
+		exchange.DeleteAllOrders()
+
+		for _, order := range b.init.buyOrders {
+			<-t.C
+			t.Reset(delayMilliSecond)
+			b.OrderPrice(exchange, "USD", order.Price, order.Size)
+		}
+
+		<-t.C
 		t.Reset(delayMilliSecond)
+		b.SellPrice(exchange, "USD", b.init.sellPrice, b.init.sellSize)
 	}
 
 }
 
 func (b *Buyer) stratStrategy() int64 {
 
-	exchange := b.mftx
-
-	exchange.DeleteAllOrders()
-
-	b.OrderBoth(exchange, "USD")
-	b.OrderBoth(exchange, "USDT")
+	//	b.OrderBoth(exchange, "USD")
+	//b.OrderBoth(exchange, "USDT")
 
 	return 0
+}
+
+func (b *Buyer) OrderPrice(exchange *ftx.Ftx, baseCoin string, Price float64, size float64) {
+	var myOrder exc.ExchangeOrder = exc.ExchangeOrder{
+		CoinPair:  exc.CoinPair{b.init.coinName, baseCoin},
+		Side:      exc.Buy,
+		Price:     Price,
+		Size:      size,
+		OrderType: exc.LIMIT,
+	}
+	exchange.PostOrder(myOrder)
+}
+
+func (b *Buyer) SellPrice(exchange *ftx.Ftx, baseCoin string, Price float64, size float64) {
+	var myOrder2 exc.ExchangeOrder = exc.ExchangeOrder{
+		CoinPair:  exc.CoinPair{b.init.coinName, baseCoin},
+		Side:      exc.Sell,
+		Price:     Price,
+		Size:      size,
+		OrderType: exc.LIMIT,
+	}
+	exchange.PostOrder(myOrder2)
 }
 
 func (b *Buyer) OrderBoth(exchange *ftx.Ftx, baseCoin string) {
