@@ -60,6 +60,6 @@ func TestOrder(t *testing.T) {
 
 func TestDeleteAllOrder(t *testing.T) {
 
-	res := m_bitmaxClient.DeleteAllOrders()
+	res, _ := m_bitmaxClient.DeleteAllOrders()
 	fmt.Println(string(res))
 }
