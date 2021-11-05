@@ -64,6 +64,7 @@ func (bn *Binance) PostOrder(order exc.ExchangeOrder) (string, error) {
 	}
 
 	resByte := bn.doSignRequest("POST", "v3/order", body)
+
 	return string(resByte), nil
 }
 
@@ -86,6 +87,15 @@ func (bn *Binance) GetVolumeByTotal(total, price float64) float64 {
 
 func (bn *Binance) GetFuturesAskBidPair(futures exc.Futures) (exc.PricePair, exc.PricePair) {
 	return exc.PricePair{}, exc.PricePair{}
+}
+
+func (bn *Binance) DeleteAllOrders(symbol string) []byte {
+	reqArray := exc.JArray{}
+	reqArray["symbol"] = symbol
+
+	resByte := bn.doSignRequest("DELETE", "v3/openOrders", reqArray)
+
+	return resByte
 }
 
 // 未實作 UnrealizedPnL
@@ -189,7 +199,10 @@ func (bn *Binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
 	req.Header.Add("X-MBX-APIKEY", bn.initData.ApiKey)
 
-	resByte, _ := exc.SendRequest(client, req)
+	resByte, err := exc.SendRequest(client, req)
+	if err != nil {
+		log.Println(err)
+	}
 
 	return resByte
 }
