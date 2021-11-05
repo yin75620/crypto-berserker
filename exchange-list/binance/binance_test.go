@@ -31,8 +31,17 @@ func TestOrder(t *testing.T) {
 		Size:      5,
 		OrderType: exc.LIMIT,
 	}
-	res, _ := ce.PostOrder(myOrder)
+	res, err := ce.PostOrder(myOrder)
+	if err != nil {
+		fmt.Println(err)
+	}
 
+	fmt.Println(string(res))
+}
+func TestCancelOrders(t *testing.T) {
+	ce := GetExchange()
+	co := exc.CoinPair{"FTT", "USDT"}
+	res := ce.DeleteAllOrders(co.GetLinkMakertNameUpper())
 	fmt.Println(string(res))
 }
 
