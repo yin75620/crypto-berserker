@@ -95,6 +95,8 @@ func (tri *Triangular) Start() {
 	message_tool.SendTelegram(infoStr)
 
 	mPreWallet = tri.exchangeClient.GetWallet()
+	mPreTime = time.Now()
+	mPreLoseCheckWallet = tri.exchangeClient.GetWallet()
 
 	liveTime := time.Second * time.Duration(tri.Init.ShowLiveSecond)
 	liveTimer := time.NewTimer(liveTime)
@@ -285,8 +287,13 @@ var MAX_FAIL_COUNT = 20
 var mFinishCount = 0
 
 const EveryCountCheckWallet = 5
+const EveryCountCheckReduce = 25
+const CheckSecond = 1
+const CheckLossUSD = -100
 
 var mPreWallet exc.Wallet
+var mPreTime time.Time
+var mPreLoseCheckWallet exc.Wallet
 
 func (tri *Triangular) stratStrategy() int {
 	max := 0
@@ -434,6 +441,22 @@ func (tri *Triangular) stratDealFlow(coinBunch CoinBunch) int {
 			log.Fatal(sendContent)
 		}
 		mPreWallet = wallet
+	}
+
+	if mFinishCount%EveryCountCheckReduce == 0 {
+		nextPreTime := time.Now()
+		gap := nextPreTime.Sub(mPreTime)
+		mPreTime = nextPreTime
+
+		wallet := tri.exchangeClient.GetWallet()
+		gapUSD := wallet.GetAllBalanceUSDValue() - mPreLoseCheckWallet.GetAllBalanceUSDValue()
+		mPreLoseCheckWallet = wallet
+
+		if gap.Seconds() < CheckSecond && gapUSD < CheckLossUSD {
+			sendContent := fmt.Sprintf("lose too quick. gapUSD:%f, %d times", gapUSD, EveryCountCheckWallet)
+			message_tool.SendTelegram(sendContent)
+			log.Fatal(sendContent)
+		}
 	}
 
 	resPlusMS := coinBunch.PlusMilliSecond
