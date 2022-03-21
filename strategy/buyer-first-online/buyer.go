@@ -28,6 +28,7 @@ type BuyerInit struct {
 	subAccount       string
 	targetPrice      float64
 	size             float64
+	baseCoinName     string
 	coinName         string
 	delayMilliSecond float64
 	sellPrice        float64
@@ -66,6 +67,7 @@ func (b *Buyer) SetInit() {
 	init.targetPrice = sec.Key("TargetPrice").MustFloat64(1.25)
 	init.size = sec.Key("Size").MustFloat64(1)
 	init.coinName = sec.Key("CoinName").MustString("MAP")
+	init.baseCoinName = sec.Key("BaseCoinName").MustString("USDC")
 	init.delayMilliSecond = sec.Key("DelayMilliSecond").MustFloat64(100)
 	init.sellPrice = sec.Key("SellPrice").MustFloat64(3)
 	init.sellSize = sec.Key("SellSize").MustFloat64(1)
@@ -123,12 +125,12 @@ func (b *Buyer) Start() {
 		for _, order := range b.init.buyOrders {
 			<-t.C
 			t.Reset(delayMilliSecond)
-			b.OrderPrice(exchange, "USD", order.Price, order.Size)
+			b.OrderPrice(exchange, b.init.baseCoinName, order.Price, order.Size)
 		}
 
 		<-t.C
 		t.Reset(delayMilliSecond)
-		b.SellPrice(exchange, "USD", b.init.sellPrice, b.init.sellSize)
+		b.SellPrice(exchange, b.init.baseCoinName, b.init.sellPrice, b.init.sellSize)
 	}
 
 }
