@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
@@ -115,6 +116,44 @@ func (ftx *Ftx) GetWallet() exc.Wallet {
 	ftx.account.WalletInfo = w
 	return w
 }
+
+// Markets
+
+func (ftx *Ftx) GetHistoricalPrices(market string, resolution int64,
+	limit int64, startTime int64, endTime int64) (HistoricalPrices, error) {
+	var historicalPrices HistoricalPrices
+	resp := ftx.doGet(
+		"markets/"+market+
+			"/candles?resolution="+strconv.FormatInt(resolution, 10)+
+			"&limit="+strconv.FormatInt(limit, 10)+
+			"&start_time="+strconv.FormatInt(startTime, 10)+
+			"&end_time="+strconv.FormatInt(endTime, 10),
+		"")
+	err := json.Unmarshal(resp, &historicalPrices)
+	if err != nil {
+		log.Println("Error GetHistoricalPrices:", err)
+		return historicalPrices, err
+	}
+	return historicalPrices, err
+}
+
+func (ftx *Ftx) GetTrades(market string, limit int64, startTime int64, endTime int64) (Trades, error) {
+	var trades Trades
+	resp := ftx.doGet(
+		"markets/"+market+"/trades?"+
+			"&limit="+strconv.FormatInt(limit, 10)+
+			"&start_time="+strconv.FormatInt(startTime, 10)+
+			"&end_time="+strconv.FormatInt(endTime, 10),
+		"")
+	err := json.Unmarshal(resp, &trades)
+	if err != nil {
+		log.Println("Error GetTrades:", err)
+		return trades, err
+	}
+	return trades, err
+}
+
+///////////
 
 func (ftx *Ftx) GetStructFills() []FillResponse {
 	res := ftx.GetFills()

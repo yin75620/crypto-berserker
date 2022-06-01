@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/setting"
@@ -15,6 +16,14 @@ var mftx = NewFtx(http.DefaultClient,
 		setting.FTX_KEY,
 		setting.FTX_API_SECRET_KEY,
 		"tester"})
+
+func TestHistoryInfo(t *testing.T) {
+	now := time.Now()
+	sec := now.Unix()
+
+	prices, _ := mftx.GetHistoricalPrices("BTC/USD", 60, 10, sec-300, sec)
+	log.Println(prices)
+}
 
 func TestInfo(t *testing.T) {
 
