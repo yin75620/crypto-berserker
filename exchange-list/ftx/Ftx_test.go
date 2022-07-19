@@ -18,10 +18,25 @@ var mftx = NewFtx(http.DefaultClient,
 		"tester"})
 
 func TestHistoryInfo(t *testing.T) {
-	now := time.Now()
-	sec := now.Unix()
+	//now_unix := time.Now().Unix()
+	specify_unix := time.Date(2022, 7, 11, 22, 0, 0, 0, time.Local).Unix()
+	//sec := now.Unix()
 
-	prices, _ := mftx.GetHistoricalPrices("BTC/USD", 60, 10, sec-300, sec)
+	prices, _ := mftx.GetHistoricalPrices("IP3/USD", 15, 10, specify_unix, specify_unix+150)
+	log.Println(prices)
+}
+
+func TestTradeInfo(t *testing.T) {
+	//now_unix := time.Now().Unix()
+	specify_unix := time.Date(2022, 7, 11, 22, 0, 0, 0, time.Local).Unix()
+	//sec := now.Unix()
+
+	prices, _ := mftx.GetTrades("IP3/USD", 100, specify_unix, specify_unix+20)
+	for _, a := range prices.Result {
+		if a.Size > 1000 {
+			println(a.Size, a.Time.String())
+		}
+	}
 	log.Println(prices)
 }
 
