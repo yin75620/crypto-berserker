@@ -34,6 +34,7 @@ func CreateConn(url string) *websocket.Conn {
 		return c
 	}
 
+	log.Println("Error: CreateConn Fail")
 	log.Fatal(err)
 	return c
 }

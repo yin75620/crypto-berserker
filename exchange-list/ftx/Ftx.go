@@ -119,6 +119,7 @@ func (ftx *Ftx) GetWallet() exc.Wallet {
 
 // Markets
 
+// resulution: window length in seconds. options: 15, 60, 300, 900, 3600, 14400, 86400, or any multiple of 86400 up to 30*86400
 func (ftx *Ftx) GetHistoricalPrices(market string, resolution int64,
 	limit int64, startTime int64, endTime int64) (HistoricalPrices, error) {
 	var historicalPrices HistoricalPrices
