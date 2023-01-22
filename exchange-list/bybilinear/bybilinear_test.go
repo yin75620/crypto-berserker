@@ -8,6 +8,11 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
+var defaultFutures = exc.Futures{
+	TargetName: "SOL",
+	QuoteCoin:  "USDT",
+}
+
 func TestAccount(t *testing.T) {
 	ce := NewBybilinear(http.DefaultClient)
 	res := ce.GetAccountInfo()
@@ -34,17 +39,11 @@ func TestOrderExecute(t *testing.T) {
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      "buy",
-			Price:     7700.0112640126,
-			Size:      0.00162621642642,
+			Price:     22.11111,
+			Size:      1.00162621642642,
 			OrderType: exc.LIMIT,
 		},
-		Futures: exc.Futures{
-			//ExpirationDate time.Time
-			// 商品名
-			TargetName: "BTC",
-			// 計價貨幣類型
-			QuoteCoin: "USDT",
-		},
+		Futures: defaultFutures,
 	}
 	ce.PostFuturesOrder(myOrder)
 }
@@ -52,10 +51,7 @@ func TestOrderExecute(t *testing.T) {
 func TestOrderCancelAll(t *testing.T) {
 	ce := NewBybilinear(http.DefaultClient)
 
-	ce.PostCancelAllOrder(exc.Futures{
-		TargetName: "BTC",
-		QuoteCoin:  "USDT",
-	})
+	ce.PostCancelAllOrder(defaultFutures)
 }
 
 func TestGetWallet(t *testing.T) {

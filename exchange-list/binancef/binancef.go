@@ -107,7 +107,7 @@ func (bn *binance) doGetMarketInfo(name string) exc.MarketInfo {
 	case "BNBUSDT":
 		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
 	case "BTCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+		return exc.MarketInfo{PriceIncrement: 0.1, VolumeIncrement: 0.001}
 	case "COMPUSDT":
 		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
 	case "DOGEUSDT":
@@ -183,6 +183,17 @@ func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 
 	return bb.doPostOrder(bo)*/
 	//return "", nil
+}
+
+func (bn *binance) PostCancelAllOrder(fu exc.Futures) {
+	symbol := fu.GetLinkMarketName()
+
+	body := exc.JArray{
+		"symbol": strings.ToUpper(symbol),
+	}
+
+	resByte := bn.doSignRequest("DELETE", "v1/allOpenOrders", body)
+	log.Println(fmt.Sprintf("%s", resByte))
 }
 
 type QuoteResponse struct {

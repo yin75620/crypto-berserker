@@ -257,7 +257,12 @@ func (bb *Bybilinear) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 func (bb *Bybilinear) doGetMarketInfo(name string) exc.MarketInfo {
 	switch name {
 	case "BTCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
+		return exc.MarketInfo{PriceIncrement: 0.5, VolumeIncrement: 0.001}
+	case "ETHUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.01}
+	case "SOLUSDT":
+		return exc.MarketInfo{PriceIncrement: 0.005, VolumeIncrement: 0.1}
+
 	default:
 		return exc.MarketInfo{}
 	}

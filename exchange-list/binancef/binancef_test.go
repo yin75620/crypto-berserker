@@ -23,8 +23,8 @@ func TestOrder(t *testing.T) {
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      exc.Buy,
-			Price:     10000,
-			Size:      0.0016646374605935427,
+			Price:     9999.29182330,
+			Size:      0.001646374605935427,
 			OrderType: exc.LIMIT,
 		},
 		Futures: exc.Futures{
@@ -40,6 +40,11 @@ func TestOrder(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(res)
+}
+
+func TestCancelAllOrder(t *testing.T) {
+	ce := NewBinancef(http.DefaultClient)
+	ce.PostCancelAllOrder(exc.Futures{QuoteCoin: "USDT", TargetName: "BTC"})
 }
 
 /*
