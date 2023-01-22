@@ -43,7 +43,6 @@ type binance struct {
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
 	res := bn.doSignRequest("GET", "v1/account", exc.JArray{})
-	log.Println("Binance res:", string(res))
 
 	account := Account{}
 
@@ -51,7 +50,6 @@ func (bn *binance) GetWallet() exc.Wallet {
 	if err != nil {
 		log.Fatal("GetWallet json.Unmarshal", err)
 	}
-	log.Println("account:", account)
 
 	wallet := exc.Wallet{}
 	for _, asset := range account.Assets {
@@ -259,7 +257,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	}
 
 	finalURL := fullURL + "?" + sendContent
-	fmt.Println(finalURL)
+	//fmt.Println(finalURL)
 
 	req, err := http.NewRequest(method, finalURL, bytes.NewBuffer([]byte("")))
 	if err != nil {

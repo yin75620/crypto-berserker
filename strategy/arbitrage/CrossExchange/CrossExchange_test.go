@@ -10,7 +10,6 @@ import (
 
 	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
-	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
@@ -19,13 +18,10 @@ import (
 
 func createTestCrossExchange() *CrossExchange {
 	exchanges := []exc.Exchange{}
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
-	bybit := bybit.NewBybit(http.DefaultClient)
-	exchanges = append(exchanges, ft)
-	exchanges = append(exchanges, bybit)
+	bf := binancef.NewBinancef(http.DefaultClient)
+	bl := bybilinear.NewBybilinear(http.DefaultClient)
+	exchanges = append(exchanges, bf)
+	exchanges = append(exchanges, bl)
 
 	ce := NewCrossExchange(exchanges)
 	return ce
@@ -128,10 +124,4 @@ func TestPositionCloseCheck(t *testing.T) {
 
 	assert.True(t, isClose)
 	assert.Zero(t, len(res))
-}
-
-func TestInit(t *testing.T) {
-	getMinSellProfit
-	getMinSumProfit
-	getMinCreateProfit
 }

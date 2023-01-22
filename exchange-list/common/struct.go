@@ -63,7 +63,7 @@ func GetExchange(exchangeName string) exc.Exchange {
 		res = okex.NewOkex(http.DefaultClient)
 		break
 	default:
-		log.Println("error, not define exchangeName:", exchangeName)
+		log.Fatal("error, not define exchangeName: ", exchangeName)
 		break
 	}
 

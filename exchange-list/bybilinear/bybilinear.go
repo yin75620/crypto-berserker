@@ -57,7 +57,7 @@ func (bb *Bybilinear) GetWallet() exc.Wallet {
 		fmt.Println(err)
 		return *w
 	}
-	fmt.Println(string(response))
+	//fmt.Println(string(response))
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		fmt.Println(err)
@@ -92,7 +92,7 @@ func (bb *Bybilinear) GetAccountInfo() []byte {
 	jarray["coin"] = coinName
 
 	response := bb.GetWallet()
-	fmt.Println(response)
+	//fmt.Println(response)
 
 	//res := bb.SendGetLeverage()
 	//fmt.Println(res)
@@ -121,7 +121,7 @@ func (bb *Bybilinear) SendGetLeverage() GetLeverageResult {
 		fmt.Println(err)
 		return leverageResult
 	}
-	fmt.Println(string(res))
+	//fmt.Println(string(res))
 	err = json.Unmarshal(res, &leverageResult)
 
 	if err != nil {
@@ -130,6 +130,20 @@ func (bb *Bybilinear) SendGetLeverage() GetLeverageResult {
 	}
 	//leverageResult.Result["BTCUSDT"] = LeverageItem{Leverage: 100}
 	return leverageResult
+}
+
+// Not Yet finish
+func (bb *Bybilinear) PostCancelOrder(f exc.Futures) {
+	boc := BybilinearCancelOrder{}
+	boc.Symbol = f.GetLinkMarketName()
+	bb.doPostCancelOrder(boc)
+}
+
+func (bb *Bybilinear) PostCancelAllOrder(f exc.Futures) {
+
+	boc := BybilinearCancelOrder{}
+	boc.Symbol = f.GetLinkMarketName()
+	bb.doPostCancelAllOrder(boc)
 }
 
 func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
@@ -178,6 +192,50 @@ func (bb *Bybilinear) doPostOrder(bo BybilinearOrder) (string, error) {
 	}
 
 	response, err := bb.doRequest("POST", "private/linear/order/create", jsonMap)
+	log.Println(fmt.Sprintf("%s", response))
+
+	return string(response), err
+}
+
+func (bb *Bybilinear) doPostCancelOrder(cancelPos BybilinearCancelOrder) (string, error) {
+	request, err := json.Marshal(cancelPos)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body := string(request)
+	//jtest
+	log.Println(fmt.Sprintf("body:%s", body))
+
+	jsonMap := make(map[string]interface{})
+	err = json.Unmarshal(request, &jsonMap)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err := bb.doRequest("POST", "private/linear/order/cancel", jsonMap)
+	//jtest
+	log.Println(fmt.Sprintf("%s", response))
+
+	return string(response), err
+}
+
+func (bb *Bybilinear) doPostCancelAllOrder(cancelPos BybilinearCancelOrder) (string, error) {
+	request, err := json.Marshal(cancelPos)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body := string(request)
+	//jtest
+	log.Println(fmt.Sprintf("body:%s", body))
+
+	jsonMap := make(map[string]interface{})
+	err = json.Unmarshal(request, &jsonMap)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err := bb.doRequest("POST", "private/linear/order/cancel-all", jsonMap)
+	//jtest
 	log.Println(fmt.Sprintf("%s", response))
 
 	return string(response), err
@@ -304,7 +362,7 @@ func GetSignature(params map[string]interface{}, key string) string {
 		_val += k + "=" + value + "&"
 	}
 	_val = _val[0 : len(_val)-1]
-	fmt.Println(_val)
+	//fmt.Println(_val)
 	h := hmac.New(sha256.New, []byte(key))
 	io.WriteString(h, _val)
 	return fmt.Sprintf("%x", h.Sum(nil))

@@ -49,6 +49,15 @@ func TestOrderExecute(t *testing.T) {
 	ce.PostFuturesOrder(myOrder)
 }
 
+func TestOrderCancelAll(t *testing.T) {
+	ce := NewBybilinear(http.DefaultClient)
+
+	ce.PostCancelAllOrder(exc.Futures{
+		TargetName: "BTC",
+		QuoteCoin:  "USDT",
+	})
+}
+
 func TestGetWallet(t *testing.T) {
 
 	ce := NewBybilinear(http.DefaultClient)
