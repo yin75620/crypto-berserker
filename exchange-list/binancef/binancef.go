@@ -27,6 +27,7 @@ func NewBinancef(c *http.Client) *binance {
 	bn.account.MakerFee = 0.0002
 	bn.account.TakerFee = 0.0004
 	bn.account.Leverage = 50
+	bn.marketInfos = make(map[string]exc.MarketInfo)
 	bn.init = NewBinancefInit()
 	bn.init.IniSetting("main.ini")
 
@@ -38,6 +39,7 @@ type binance struct {
 	orderBookCenter *ob.OrderBookCenter
 	account         exc.Account
 	init            *BinancefInit
+	marketInfos     map[string]exc.MarketInfo
 }
 
 // implement exchange
@@ -61,8 +63,13 @@ func (bn *binance) GetWallet() exc.Wallet {
 	return wallet
 }
 
+func (bn *binance) Prepare() {
+	bn.prepareMarketInfo()
+}
+
 func (bn *binance) GetAccountInfo() []byte {
 
+	bn.prepareMarketInfo()
 	response := bn.GetWallet()
 	log.Println(response)
 
@@ -97,46 +104,7 @@ func (bn *binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 }
 
 func (bn *binance) doGetMarketInfo(name string) exc.MarketInfo {
-	switch name {
-	case "ADAUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
-	case "ALGOUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
-	case "BCHUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
-	case "BNBUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
-	case "BTCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.1, VolumeIncrement: 0.001}
-	case "COMPUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
-	case "DOGEUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.000001, VolumeIncrement: 1}
-	case "EOSUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.1}
-	case "ETCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
-	case "ETHUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
-	case "KNCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
-	case "LINKUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.01}
-	case "LTCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.001}
-	case "THETAUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
-	case "TRXUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.00001, VolumeIncrement: 1}
-	case "VETUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.000001, VolumeIncrement: 1}
-	case "XRPUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.0001, VolumeIncrement: 0.1}
-	case "XTZUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.001, VolumeIncrement: 0.1}
-	default:
-		return exc.MarketInfo{}
-	}
+	return bn.marketInfos[name]
 }
 
 func (bn *binance) GetVolumeByTotal(total, price float64) float64 {
@@ -194,6 +162,40 @@ func (bn *binance) PostCancelAllOrder(fu exc.Futures) {
 
 	resByte := bn.doSignRequest("DELETE", "v1/allOpenOrders", body)
 	log.Println(fmt.Sprintf("%s", resByte))
+}
+
+func (bn *binance) getExchangeInfo() ExchangeInfo {
+
+	exchangeInfo := ExchangeInfo{}
+	body := exc.JArray{}
+	resByte := bn.doRequest("GET", "v1/exchangeInfo", false, body)
+
+	json.Unmarshal(resByte, &exchangeInfo)
+	return exchangeInfo
+	//log.Println(bn.exchangeInfo)
+
+}
+
+// call it before order
+func (bn *binance) prepareMarketInfo() {
+	exInfo := bn.getExchangeInfo()
+
+	if symbols := exInfo.Symbols; len(symbols) != 0 {
+		for _, value := range symbols {
+			marketInfo := exc.MarketInfo{}
+			marketInfo.Name = value.Symbol
+			for _, fr := range value.Filters {
+				if fr.FilterType == "PRICE_FILTER" {
+					marketInfo.PriceIncrement = fr.TickSize
+				}
+				if fr.FilterType == "MARKET_LOT_SIZE" {
+					marketInfo.VolumeIncrement = fr.StepSize
+				}
+			}
+			bn.marketInfos[marketInfo.Name] = marketInfo
+		}
+	}
+
 }
 
 type QuoteResponse struct {

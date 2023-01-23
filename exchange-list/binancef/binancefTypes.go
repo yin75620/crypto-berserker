@@ -36,7 +36,7 @@ type ExchangeInfo struct {
 		OrderTypes         []string `json:"orderTypes"`
 		IcebergAllowed     bool     `json:"icebergAllowed"`
 		Filters            []struct {
-			FilterType          string  `json:"filterType"`
+			FilterType          string  `json:"filterType"` //PRICE_FILTER, MARKET_LOT_SIZE
 			MinPrice            float64 `json:"minPrice,string"`
 			MaxPrice            float64 `json:"maxPrice,string"`
 			TickSize            float64 `json:"tickSize,string"`

@@ -8,34 +8,36 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
+var be = NewBinancef(http.DefaultClient)
+
 func TestAccount(t *testing.T) {
-	ce := NewBinancef(http.DefaultClient)
-	res := ce.GetAccountInfo()
+	res := be.GetAccountInfo()
 
 	fmt.Println(string(res))
 
-	fmt.Println(ce.GetAccount())
+	fmt.Println(be.GetAccount())
 }
 
 func TestOrder(t *testing.T) {
-	ce := NewBinancef(http.DefaultClient)
+
+	be.prepareMarketInfo()
 
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      exc.Buy,
-			Price:     9999.29182330,
-			Size:      0.001646374605935427,
+			Price:     20.32,
+			Size:      46.2,
 			OrderType: exc.LIMIT,
 		},
 		Futures: exc.Futures{
 			//ExpirationDate time.Time
 			// 商品名
-			TargetName: "BTC",
+			TargetName: "SOL",
 			// 計價貨幣類型
 			QuoteCoin: "USDT",
 		},
 	}
-	res, err := ce.PostFuturesOrder(myOrder)
+	res, err := be.PostFuturesOrder(myOrder)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -43,8 +45,12 @@ func TestOrder(t *testing.T) {
 }
 
 func TestCancelAllOrder(t *testing.T) {
-	ce := NewBinancef(http.DefaultClient)
-	ce.PostCancelAllOrder(exc.Futures{QuoteCoin: "USDT", TargetName: "BTC"})
+
+	be.PostCancelAllOrder(exc.Futures{QuoteCoin: "USDT", TargetName: "SOL"})
+}
+
+func TestGetExchangeInfo(t *testing.T) {
+	be.getExchangeInfo()
 }
 
 /*
