@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
@@ -12,6 +13,8 @@ var defaultFutures = exc.Futures{
 	TargetName: "SOL",
 	QuoteCoin:  "USDT",
 }
+
+var bb = NewBybilinear(http.DefaultClient)
 
 func TestAccount(t *testing.T) {
 	ce := NewBybilinear(http.DefaultClient)
@@ -34,7 +37,8 @@ func TestPricePair(t *testing.T) {
 }
 
 func TestOrderExecute(t *testing.T) {
-	ce := NewBybilinear(http.DefaultClient)
+
+	bb.prepareMarketInfo()
 
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
@@ -45,7 +49,7 @@ func TestOrderExecute(t *testing.T) {
 		},
 		Futures: defaultFutures,
 	}
-	ce.PostFuturesOrder(myOrder)
+	bb.PostFuturesOrder(myOrder)
 }
 
 func TestOrderCancelAll(t *testing.T) {
@@ -60,4 +64,21 @@ func TestGetWallet(t *testing.T) {
 
 	w := ce.GetWallet()
 	fmt.Println(w)
+}
+
+func TestGetInstrumentInfo(t *testing.T) {
+	bb.prepareMarketInfo()
+	ins := bb.getInstrumentInfo()
+	symbolName := "SOLUSDT"
+	for _, value := range ins.Results.List {
+		if value.Symbol == symbolName {
+			println(symbolName)
+			fmt.Println(value.LotSizeFilter.QtyStep)
+			fmt.Println(value.PriceFilter.TickSize)
+
+			assert.Equal(t, value.LotSizeFilter.QtyStep, bb.marketInfos[symbolName].VolumeIncrement, "qty not equal")
+			assert.Equal(t, value.PriceFilter.TickSize, bb.marketInfos[symbolName].PriceIncrement, "price not equal")
+		}
+	}
+
 }

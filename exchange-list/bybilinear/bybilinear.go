@@ -31,6 +31,7 @@ func NewBybilinear(c *http.Client) *Bybilinear {
 	bb.apiKey = setting.BYBIT_KEY
 	bb.secretKey = setting.BYBIT_SECRET_KEY
 	bb.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
+	bb.marketInfos = make(map[string]exc.MarketInfo)
 	bb.account.MakerFee = -0.00025
 	bb.account.TakerFee = 0.00075
 	return &bb
@@ -41,6 +42,7 @@ type Bybilinear struct {
 	apiKey          string
 	secretKey       string
 	orderBookCenter *ob.OrderBookCenter
+	marketInfos     map[string]exc.MarketInfo
 	account         exc.Account
 }
 
@@ -98,6 +100,8 @@ func (bb *Bybilinear) GetAccountInfo() []byte {
 	//fmt.Println(res)
 	// float64(res.Result["BTCUSDT"].Leverage)
 	bb.account.Leverage = 100 // there has no api, just manual set to 100.
+
+	bb.prepareMarketInfo()
 
 	return []byte(fmt.Sprintf("%v", response))
 }
@@ -162,12 +166,40 @@ func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	return bb.doPostOrder(bo)
 }
 
+func (bb *Bybilinear) getInstrumentInfo() InstrumentsInfo {
+
+	body := exc.JArray{
+		"category": "linear",
+	}
+
+	instrumentsInfo := InstrumentsInfo{}
+
+	resByte, _ := bb.doRequest("GET", "derivatives/v3/public/instruments-info", body)
+	//println(string(resByte))
+	json.Unmarshal(resByte, &instrumentsInfo)
+
+	return instrumentsInfo
+
+}
+
+func (bb *Bybilinear) prepareMarketInfo() {
+
+	instrumentsInfo := bb.getInstrumentInfo()
+	for _, value := range instrumentsInfo.Results.List {
+		marketInfo := exc.MarketInfo{}
+		marketInfo.Name = value.Symbol
+		marketInfo.PriceIncrement = value.PriceFilter.TickSize
+		marketInfo.VolumeIncrement = value.LotSizeFilter.QtyStep
+		bb.marketInfos[marketInfo.Name] = marketInfo
+	}
+}
+
 type BybilinearOrder struct {
 	Side        string  `json:"side"`          //side	true	string	方向, 有效选项:Buy, Sell (Buy Sell )
 	Symbol      string  `json:"symbol"`        //symbol	true	string	产品类型, 有效选项:BTCUSD, ETHUSD (BTCUSD ETHUSD )
 	OrderType   string  `json:"order_type"`    //order_type	true	string	委托单价格类型, 有效选项:Limit, Market (Limit Market )
-	Quantity    float64 `json:"qty"`           //qty	true	integer	委托数量, 单比最大1百万
-	Price       float64 `json:"price"`         // price	false	number	委托价格, 在没有仓位时，做多的委托价格需高于市价的10%、低于1百万。如有仓位时则需优于强平价。单笔价格增减最小单位为0.5。如果下限价单，则price为必输字段
+	Quantity    float64 `json:"qty,string"`    //qty	true	integer	委托数量, 单比最大1百万
+	Price       float64 `json:"price,string"`  // price	false	number	委托价格, 在没有仓位时，做多的委托价格需高于市价的10%、低于1百万。如有仓位时则需优于强平价。单笔价格增减最小单位为0.5。如果下限价单，则price为必输字段
 	TimeInForce string  `json:"time_in_force"` //time_in_force	true	string	执行策略, 有效选项:GoodTillCancel, ImmediateOrCancel, FillOrKill,PostOnly
 	//TakeProfit  string  `json:"take_profit,omitempty"` // take_profit	false	number	止盈价格
 	//stop_loss	false	number	止损价格
@@ -175,6 +207,7 @@ type BybilinearOrder struct {
 	CloseOnTrigger bool `json:"close_on_trigger"` //false	触发后平仓
 	//order_link_id	false	string	机构自定义订单ID, 最大长度36位，且同一机构下自定义ID不可重复
 	//trailing_stop	false	number	追踪止损
+	PositionIdx int `json:"position_idx"`
 }
 
 func (bb *Bybilinear) doPostOrder(bo BybilinearOrder) (string, error) {
@@ -255,17 +288,20 @@ func (bb *Bybilinear) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 }
 
 func (bb *Bybilinear) doGetMarketInfo(name string) exc.MarketInfo {
-	switch name {
-	case "BTCUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.5, VolumeIncrement: 0.001}
-	case "ETHUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.01}
-	case "SOLUSDT":
-		return exc.MarketInfo{PriceIncrement: 0.005, VolumeIncrement: 0.1}
 
-	default:
-		return exc.MarketInfo{}
-	}
+	return bb.marketInfos[name]
+	/*
+		switch name {
+		case "BTCUSDT":
+			return exc.MarketInfo{PriceIncrement: 0.5, VolumeIncrement: 0.001}
+		case "ETHUSDT":
+			return exc.MarketInfo{PriceIncrement: 0.01, VolumeIncrement: 0.01}
+		case "SOLUSDT":
+			return exc.MarketInfo{PriceIncrement: 0.005, VolumeIncrement: 0.1}
+
+		default:
+			return exc.MarketInfo{}
+		}*/
 }
 
 func (bb *Bybilinear) GetVolumeByTotal(total, price float64) float64 {
