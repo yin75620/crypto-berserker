@@ -195,7 +195,24 @@ func (bn *binance) prepareMarketInfo() {
 			bn.marketInfos[marketInfo.Name] = marketInfo
 		}
 	}
+}
 
+func (bn *binance) prepareLeverage() {
+	body := exc.JArray{}
+	resByte := bn.doSignRequest("GET", "v1/leverageBracket", body)
+
+	lb := []LeverageBracket{}
+	json.Unmarshal(resByte, &lb)
+
+	fmt.Println(string(resByte))
+
+	for _, value := range lb {
+		if value.Symbol == "BTCUSDT" {
+			for _, bracket := range value.Brackets {
+				fmt.Println(bracket)
+			}
+		}
+	}
 }
 
 type QuoteResponse struct {

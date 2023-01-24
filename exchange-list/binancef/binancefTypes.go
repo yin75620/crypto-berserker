@@ -55,6 +55,18 @@ type ExchangeInfo struct {
 	} `json:"symbols"`
 }
 
+type LeverageBracket struct {
+	Symbol   string `json:"symbol"`
+	Brackets []struct {
+		Bracket          int     `json:"bracket"`
+		InitialLeverage  int     `json:"initialLeverage"`
+		NotionalCap      int     `json:"notionalCap"`
+		NotionalFloor    int     `json:"notionalFloor"`
+		MaintMarginRatio float64 `json:"maintMarginRatio,string"`
+		Cum              int     `json:"cum"`
+	} `json:"brackets"`
+}
+
 // OrderBookDataRequestParams represents Klines request data.
 type OrderBookDataRequestParams struct {
 	Symbol string `json:"symbol"` // Required field; example LTCBTC,BTCUSDT
@@ -382,6 +394,60 @@ type Asset struct {
 	WalletBalance          float64 `json:"walletBalance,string"`
 }
 
+type Account struct {
+	FeeTier                     int     `json:"feeTier"`
+	CanTrade                    bool    `json:"canTrade"`
+	CanDeposit                  bool    `json:"canDeposit"`
+	CanWithdraw                 bool    `json:"canWithdraw"`
+	UpdateTime                  int     `json:"updateTime"`
+	MultiAssetsMargin           bool    `json:"multiAssetsMargin"`
+	TotalInitialMargin          float64 `json:"totalInitialMargin,string"`
+	TotalMaintMargin            float64 `json:"totalMaintMargin,string"`
+	TotalWalletBalance          float64 `json:"totalWalletBalance,string"`
+	TotalUnrealizedProfit       float64 `json:"totalUnrealizedProfit,string"`
+	TotalMarginBalance          float64 `json:"totalMarginBalance,string"`
+	TotalPositionInitialMargin  float64 `json:"totalPositionInitialMargin,string"`
+	TotalOpenOrderInitialMargin float64 `json:"totalOpenOrderInitialMargin,string"`
+	TotalCrossWalletBalance     float64 `json:"totalCrossWalletBalance,string"`
+	TotalCrossUnPnl             float64 `json:"totalCrossUnPnl,string"`
+	AvailableBalance            float64 `json:"availableBalance,string"`
+	MaxWithdrawAmount           float64 `json:"maxWithdrawAmount,string"`
+	Assets                      []struct {
+		Asset                  string  `json:"asset"`
+		WalletBalance          float64 `json:"walletBalance,string"`
+		UnrealizedProfit       float64 `json:"unrealizedProfit,string"`
+		MarginBalance          float64 `json:"marginBalance,string"`
+		MaintMargin            float64 `json:"maintMargin,string"`
+		InitialMargin          float64 `json:"initialMargin,string"`
+		PositionInitialMargin  float64 `json:"positionInitialMargin,string"`
+		OpenOrderInitialMargin float64 `json:"openOrderInitialMargin,string"`
+		CrossWalletBalance     float64 `json:"crossWalletBalance,string"`
+		CrossUnPnl             float64 `json:"crossUnPnl,string"`
+		AvailableBalance       float64 `json:"availableBalance,string"`
+		MaxWithdrawAmount      float64 `json:"maxWithdrawAmount,string"`
+		MarginAvailable        bool    `json:"marginAvailable"`
+		UpdateTime             int64   `json:"updateTime"`
+	} `json:"assets"`
+	Positions []struct {
+		Symbol                 string  `json:"symbol"`
+		InitialMargin          float64 `json:"initialMargin,string"`
+		MaintMargin            float64 `json:"maintMargin,string"`
+		UnrealizedProfit       float64 `json:"unrealizedProfit,string"`
+		PositionInitialMargin  float64 `json:"positionInitialMargin,string"`
+		OpenOrderInitialMargin float64 `json:"openOrderInitialMargin,string"`
+		Leverage               int     `json:"leverage,string"`
+		Isolated               bool    `json:"isolated"`
+		EntryPrice             float64 `json:"entryPrice,string"`
+		MaxNotional            float64 `json:"maxNotional,string"`
+		BidNotional            float64 `json:"bidNotional,string"`
+		AskNotional            float64 `json:"askNotional,string"`
+		PositionSide           string  `json:"positionSide"`
+		PositionAmt            float64 `json:"positionAmt,string"`
+		UpdateTime             int64   `json:"updateTime"`
+	} `json:"positions"`
+}
+
+/*
 // Account holds the account data
 type Account struct {
 	Assets                []Asset `json:"assets"`
@@ -433,9 +499,9 @@ type Account struct {
 	  "totalPositionInitialMargin": "0.33683000",
 	  "totalUnrealizedProfit": "-0.44537584",
 	  "totalWalletBalance": "9.19485176",
-	  "updateTime": 0*/
+	  "updateTime": 0
 
-}
+}*/
 
 // RequestParamsSideType trade order side (buy or sell)
 type RequestParamsSideType string

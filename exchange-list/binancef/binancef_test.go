@@ -53,6 +53,10 @@ func TestGetExchangeInfo(t *testing.T) {
 	be.getExchangeInfo()
 }
 
+func TestPrepareLeverage(t *testing.T) {
+	be.prepareLeverage()
+}
+
 /*
 func TestSign(t *testing.T) {
 	key := "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"
