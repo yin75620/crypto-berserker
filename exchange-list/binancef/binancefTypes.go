@@ -428,23 +428,25 @@ type Account struct {
 		MarginAvailable        bool    `json:"marginAvailable"`
 		UpdateTime             int64   `json:"updateTime"`
 	} `json:"assets"`
-	Positions []struct {
-		Symbol                 string  `json:"symbol"`
-		InitialMargin          float64 `json:"initialMargin,string"`
-		MaintMargin            float64 `json:"maintMargin,string"`
-		UnrealizedProfit       float64 `json:"unrealizedProfit,string"`
-		PositionInitialMargin  float64 `json:"positionInitialMargin,string"`
-		OpenOrderInitialMargin float64 `json:"openOrderInitialMargin,string"`
-		Leverage               int     `json:"leverage,string"`
-		Isolated               bool    `json:"isolated"`
-		EntryPrice             float64 `json:"entryPrice,string"`
-		MaxNotional            float64 `json:"maxNotional,string"`
-		BidNotional            float64 `json:"bidNotional,string"`
-		AskNotional            float64 `json:"askNotional,string"`
-		PositionSide           string  `json:"positionSide"`
-		PositionAmt            float64 `json:"positionAmt,string"`
-		UpdateTime             int64   `json:"updateTime"`
-	} `json:"positions"`
+	Positions []Position `json:"positions"`
+}
+
+type Position struct {
+	Symbol                 string  `json:"symbol"`
+	InitialMargin          float64 `json:"initialMargin,string"`
+	MaintMargin            float64 `json:"maintMargin,string"`
+	UnrealizedProfit       float64 `json:"unrealizedProfit,string"`
+	PositionInitialMargin  float64 `json:"positionInitialMargin,string"`
+	OpenOrderInitialMargin float64 `json:"openOrderInitialMargin,string"`
+	Leverage               int     `json:"leverage,string"`
+	Isolated               bool    `json:"isolated"`
+	EntryPrice             float64 `json:"entryPrice,string"`
+	MaxNotional            float64 `json:"maxNotional,string"`
+	BidNotional            float64 `json:"bidNotional,string"`
+	AskNotional            float64 `json:"askNotional,string"`
+	PositionSide           string  `json:"positionSide"`
+	PositionAmt            float64 `json:"positionAmt,string"`
+	UpdateTime             int64   `json:"updateTime"`
 }
 
 /*

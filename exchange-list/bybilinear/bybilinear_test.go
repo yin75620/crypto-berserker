@@ -49,7 +49,8 @@ func TestOrderExecute(t *testing.T) {
 		},
 		Futures: defaultFutures,
 	}
-	bb.PostFuturesOrder(myOrder)
+	res, _ := bb.PostFuturesOrder(myOrder)
+	fmt.Println(res)
 }
 
 func TestOrderCancelAll(t *testing.T) {
@@ -81,4 +82,14 @@ func TestGetInstrumentInfo(t *testing.T) {
 		}
 	}
 
+}
+
+func TestPrepareLeverage(t *testing.T) {
+	bb.prepareLeverage()
+	fmt.Println(bb.LeverageInfos["BTCUSDT"])
+}
+
+func TestFree(t *testing.T) {
+	bb.Prepare()
+	fmt.Println(bb.GetMaxOrderUSD("BTCUSDT"))
 }

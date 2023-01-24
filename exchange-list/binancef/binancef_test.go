@@ -57,6 +57,15 @@ func TestPrepareLeverage(t *testing.T) {
 	be.prepareLeverage()
 }
 
+func TestGetBalance(t *testing.T) {
+	be.GetBalance()
+}
+
+func TestFree(t *testing.T) {
+	be.Prepare()
+	fmt.Println(be.GetMaxOrderUSD("BTCUSDT"))
+}
+
 /*
 func TestSign(t *testing.T) {
 	key := "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"

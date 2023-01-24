@@ -32,8 +32,10 @@ func NewBybilinear(c *http.Client) *Bybilinear {
 	bb.secretKey = setting.BYBIT_SECRET_KEY
 	bb.orderBookCenter = ob.NewOrderBookCenter(NewSocket())
 	bb.marketInfos = make(map[string]exc.MarketInfo)
+	bb.LeverageInfos = map[string]exc.LeverageInfo{}
 	bb.account.MakerFee = -0.00025
 	bb.account.TakerFee = 0.00075
+	bb.account.Leverage = 50 // there has no api, just manual set to 50.
 	return &bb
 }
 
@@ -43,6 +45,7 @@ type Bybilinear struct {
 	secretKey       string
 	orderBookCenter *ob.OrderBookCenter
 	marketInfos     map[string]exc.MarketInfo
+	LeverageInfos   map[string]exc.LeverageInfo
 	account         exc.Account
 }
 
@@ -87,23 +90,26 @@ func appendToBalance(balances []exc.Balance, BybilinearBalance Balance, coinName
 	return balances
 }
 
-func (bb *Bybilinear) GetAccountInfo() []byte {
-
-	jarray := exc.JArray{}
-	coinName := "USDT"
-	jarray["coin"] = coinName
-
+func (bb *Bybilinear) Prepare() []byte {
 	response := bb.GetWallet()
-	//fmt.Println(response)
-
-	//res := bb.SendGetLeverage()
-	//fmt.Println(res)
-	// float64(res.Result["BTCUSDT"].Leverage)
-	bb.account.Leverage = 100 // there has no api, just manual set to 100.
 
 	bb.prepareMarketInfo()
+	bb.prepareLeverage()
 
 	return []byte(fmt.Sprintf("%v", response))
+}
+
+// for implement
+func (bb *Bybilinear) GetMaxOrderUSD(symbol string) float64 {
+	if value, ok := bb.LeverageInfos[symbol]; ok {
+		return bb.account.WalletInfo.GetAllBalanceFreeUSDValue() * float64(value.Leverage)
+	} else {
+		return bb.account.WalletInfo.GetAllBalanceFreeUSDValue() * bb.account.Leverage
+	}
+}
+
+func (bb *Bybilinear) GetAccountInfo() []byte {
+	return bb.Prepare()
 }
 
 func (bb *Bybilinear) PostOrder(order exc.ExchangeOrder) (string, error) {
@@ -191,6 +197,22 @@ func (bb *Bybilinear) prepareMarketInfo() {
 		marketInfo.PriceIncrement = value.PriceFilter.TickSize
 		marketInfo.VolumeIncrement = value.LotSizeFilter.QtyStep
 		bb.marketInfos[marketInfo.Name] = marketInfo
+	}
+
+}
+
+func (bb *Bybilinear) prepareLeverage() {
+
+	resByte, _ := bb.doRequest("GET", "private/linear/position/list", exc.JArray{})
+
+	pr := PositionListResponse{}
+	json.Unmarshal(resByte, &pr)
+
+	for _, value := range pr.Result {
+		li := exc.LeverageInfo{}
+		li.Name = value.Data.Symbol
+		li.Leverage = value.Data.Leverage
+		bb.LeverageInfos[li.Name] = li
 	}
 }
 

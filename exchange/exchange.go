@@ -203,3 +203,8 @@ type MarketInfo struct {
 	PriceIncrement  float64
 	VolumeIncrement float64
 }
+
+type LeverageInfo struct {
+	Name     string
+	Leverage int
+}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 
@@ -28,6 +29,7 @@ func NewBinancef(c *http.Client) *binance {
 	bn.account.TakerFee = 0.0004
 	bn.account.Leverage = 50
 	bn.marketInfos = make(map[string]exc.MarketInfo)
+	bn.positions = map[string]Position{}
 	bn.init = NewBinancefInit()
 	bn.init.IniSetting("main.ini")
 
@@ -40,6 +42,7 @@ type binance struct {
 	account         exc.Account
 	init            *BinancefInit
 	marketInfos     map[string]exc.MarketInfo
+	positions       map[string]Position
 }
 
 // implement exchange
@@ -57,23 +60,43 @@ func (bn *binance) GetWallet() exc.Wallet {
 	for _, asset := range account.Assets {
 		wallet.Balances = append(wallet.Balances, exc.NewBalance(asset.Asset, asset.MaxWithdrawAmount, asset.MarginBalance, asset.MarginBalance))
 	}
+
+	for _, position := range account.Positions {
+		bn.positions[position.Symbol] = position
+	}
+
 	bn.account.WalletInfo = wallet
 	bn.account.UnrealizedPnL = account.TotalUnrealizedProfit
 
 	return wallet
 }
 
-func (bn *binance) Prepare() {
-	bn.prepareMarketInfo()
+func (bn *binance) GetBalance() {
+	res := bn.doSignRequest("GET", "v2/balance", exc.JArray{})
+	fmt.Println(string(res))
 }
 
-func (bn *binance) GetAccountInfo() []byte {
+// for implement
+func (bn *binance) GetMaxOrderUSD(symbol string) float64 {
+	if value, ok := bn.positions[symbol]; ok {
+		return math.Min(value.MaxNotional, float64(value.Leverage)*bn.account.WalletInfo.GetAllBalanceFreeUSDValue())
+	} else {
+		//default amount
+		return bn.account.WalletInfo.GetAllBalanceFreeUSDValue() * bn.account.Leverage
+	}
+}
 
+func (bn *binance) Prepare() []byte {
 	bn.prepareMarketInfo()
 	response := bn.GetWallet()
 	log.Println(response)
 
 	return []byte(fmt.Sprintf("%v", response))
+}
+
+func (bn *binance) GetAccountInfo() []byte {
+
+	return bn.Prepare()
 }
 
 func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
@@ -204,7 +227,7 @@ func (bn *binance) prepareLeverage() {
 	lb := []LeverageBracket{}
 	json.Unmarshal(resByte, &lb)
 
-	fmt.Println(string(resByte))
+	//fmt.Println(string(resByte))
 
 	for _, value := range lb {
 		if value.Symbol == "BTCUSDT" {
