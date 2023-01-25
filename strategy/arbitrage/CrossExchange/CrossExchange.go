@@ -75,7 +75,7 @@ func (ce *CrossExchange) Start() {
 	for i, exchg := range ce.exchanges {
 		exchg.GetAccountInfo()
 		wallet := exchg.GetWallet()
-		infoAll = fmt.Sprintf("%s \r\n %s:%v", infoAll, exchg.GetName(), wallet)
+		infoAll = fmt.Sprintf("%s \r\n %s: %v", infoAll, exchg.GetName(), wallet)
 		mPreWallets[i] = wallet
 	}
 	log.Println(string(infoAll))
@@ -163,7 +163,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 				wallet := exchange.GetWallet()
 				array := mPreWallets[i].GetAllBalanceProfit(wallet)
 				mPreWallets[i] = wallet
-				sendInfo = fmt.Sprintf("%s%s", sendInfo, fmt.Sprintf("%s:%v, ", exchange.GetName(), array))
+				sendInfo = fmt.Sprintf("%s%s", sendInfo, fmt.Sprintf("%s: %v, ", exchange.GetName(), array))
 			}
 			log.Println(sendInfo)
 			message_tool.SendBroadcastArcherGroup(sendInfo)
@@ -349,6 +349,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 		return false, crossPairArray
 	}
 
+	speedTestStart := time.Now()
 	// 表示有交易
 	matchAskExchange, askPair := matchCrossPair.GetAskInfo()
 	matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
@@ -360,13 +361,17 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	<-askChannel
 	<-bidChannel
 
+	elapsed := time.Since(speedTestStart)
+
 	content := fmt.Sprintf(
-		"%s positionPairName:%s,\r\n matchPair:%s\r\n orderVolume:%f \r\n sumString:%s",
+		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %s\r\nelapsed: %v",
 		futures.GetMarketName(),
 		positionPairName,
 		matchCrossPair.GetProfitString(),
 		totalMatchOrderUSDVolume,
-		sumString)
+		sumString,
+		time.Now().UTC(),
+		elapsed)
 	message_tool.SendBroadcastArcherGroup(content)
 	log.Println(content)
 

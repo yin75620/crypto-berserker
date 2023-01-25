@@ -6,10 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/yin75620/crypto-berserker/message_tool"
-
 	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
+	"github.com/yin75620/crypto-berserker/message_tool"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
@@ -68,6 +67,64 @@ func TestOrder(t *testing.T) {
 		executeOrder(ft, futures, 8000, exc.Ask, 1)*/
 }
 
+func TestTelegramPost(t *testing.T) {
+
+	//message_tool.StartTelegram()
+	//message_tool.SendBroadcastArcherGroup("abc: 123\nchange: desk\nabcdefghijklmnopqrstuvwxyz: 2345678911")
+	//fmt.Println(fmt.Sprintf("time: %s", time.Now().UTC()))
+
+	exchanges := []exc.Exchange{}
+	bbl := bybilinear.NewBybilinear(http.DefaultClient)
+	bnf := binancef.NewBinancef(http.DefaultClient)
+
+	exchanges = append(exchanges, bbl)
+	exchanges = append(exchanges, bnf)
+
+	ce := NewCrossExchange(exchanges)
+
+	futures := exc.Futures{
+		TargetName: "BTC",
+		QuoteCoin:  "USDT",
+	}
+
+	first := bbl
+	second := bnf
+
+	ftxBit := CrossPair{
+		askExchange:  first,
+		bidExchange:  second,
+		askPricePair: exc.PricePair{9600, 100},
+		bidPricePair: exc.PricePair{9600, 100},
+		orderVolume:  10.0,
+	}
+
+	bybitFtx := CrossPair{
+		askExchange:  second,
+		bidExchange:  first,
+		askPricePair: exc.PricePair{9500, 1000},
+		bidPricePair: exc.PricePair{9700, 1000},
+		orderVolume:  10.0,
+	}
+
+	cpArray := []CrossPair{
+		ftxBit,
+		bybitFtx,
+	}
+
+	matchMap := getCrossPairMap(ce.exchanges, futures)
+	matchCrossPair := getMatchCrossPair("positionPairName", cpArray, matchMap)
+
+	message_tool.StartTelegram()
+	message_tool.SendBroadcastArcherGroup(matchCrossPair.GetProfitString())
+
+	/*
+		start := time.Now()
+		time.Sleep(time.Second)
+		elapsed := time.Since(start)
+
+		fmt.Println(fmt.Sprintf("time: %s\r\nTime elapsed: %v", time.Now().UTC(), elapsed))*/
+}
+
 func TestPositionCloseCheck(t *testing.T) {
 	/*
 		first := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
@@ -112,7 +169,7 @@ func TestPositionCloseCheck(t *testing.T) {
 		TargetName: "BTC",
 		QuoteCoin:  "USDT",
 	}
-	message_tool.StartTelegram()
+
 	init := *NewCrossExchangeInit()
 	isClose, res := positionCloseCheck(crossPairsTable, matchMap, futures, init)
 
