@@ -73,6 +73,12 @@ func (bb *Bybit) GetWallet() exc.Wallet {
 	return *w
 }
 
+// not yet finish implement
+func (bb *Bybit) GetMaxOrderUSD(symbol string) float64 {
+	log.Println("Bybit GetMaxOrderUSD not yet finish implement")
+	return bb.account.Leverage * bb.account.WalletInfo.GetAllBalanceFreeUSDValue()
+}
+
 func (bb *Bybit) GetPrice(symbol string) float64 {
 	var ret GetOrderBookResult
 	jarray := exc.JArray{}

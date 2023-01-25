@@ -81,6 +81,12 @@ func (bn *Binance) GetMarketInfo(coinPair exc.CoinPair) exc.MarketInfo {
 	return exc.MarketInfo{}
 }
 
+// not yet finish implement
+func (bn *Binance) GetMaxOrderUSD(symbol string) float64 {
+	log.Println("Binance GetMaxOrderUSD not yet finish implement")
+	return 100
+}
+
 func (bn *Binance) GetVolumeByTotal(total, price float64) float64 {
 	return total / price
 }
