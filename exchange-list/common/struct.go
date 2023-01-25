@@ -8,8 +8,6 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/exchange-list/okex"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
@@ -39,12 +37,12 @@ func GetExchange(exchangeName string) exc.Exchange {
 	const initFileName = "Main.ini"
 	var res exc.Exchange
 	switch exchangeName {
-	case FTX:
-		fi := ftx.NewFtxInit()
-		fe := ftx.NewFtx(http.DefaultClient, *fi)
-		fe.SetInitByIni(initFileName)
-		res = fe
-		break
+	//case FTX:
+	//	fi := ftx.NewFtxInit()
+	//	fe := ftx.NewFtx(http.DefaultClient, *fi)
+	//	fe.SetInitByIni(initFileName)
+	//	res = fe
+	//	break
 	case BYBIT:
 		res = bybit.NewBybit(http.DefaultClient)
 		break
@@ -59,9 +57,9 @@ func GetExchange(exchangeName string) exc.Exchange {
 		bi.SetInitByIni(initFileName)
 		res = bi
 		break
-	case OKEX:
-		res = okex.NewOkex(http.DefaultClient)
-		break
+	//case OKEX:
+	//	res = okex.NewOkex(http.DefaultClient)
+	//	break
 	default:
 		log.Fatal("error, not define exchangeName: ", exchangeName)
 		break

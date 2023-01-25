@@ -7,24 +7,22 @@ import (
 	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
+	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
+	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 )
 
 func TestGetMaxHoldVolume(t *testing.T) {
 	start := time.Now()
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
-	ft.GetAccountInfo()
-	bybit := bybit.NewBybit(http.DefaultClient)
-	bybit.GetAccountInfo()
+
+	bnf := binancef.NewBinancef(http.DefaultClient)
+	bnf.GetAccountInfo()
+	bybilinear := bybilinear.NewBybilinear(http.DefaultClient)
+	bybilinear.GetAccountInfo()
 
 	cp := CrossPair{
-		askExchange:  ft,
-		bidExchange:  bybit,
+		Symbol:       "BTCUSDT",
+		askExchange:  bnf,
+		bidExchange:  bybilinear,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
 		orderVolume:  200,

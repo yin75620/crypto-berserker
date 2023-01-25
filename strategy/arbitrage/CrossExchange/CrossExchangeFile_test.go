@@ -8,22 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybit"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 func TestSaveFile(t *testing.T) {
 
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
+	bnf := binancef.NewBinancef(http.DefaultClient)
 	bybit := bybit.NewBybit(http.DefaultClient)
 
 	crossPairsTable := map[string][]CrossPair{}
 	cp := CrossPair{
-		askExchange:  ft,
+		Symbol:       "BTCUSDT",
+		askExchange:  bnf,
 		bidExchange:  bybit,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
@@ -39,12 +36,9 @@ func TestSaveFile(t *testing.T) {
 
 func TestLoadFile(t *testing.T) {
 	exchanges := []exc.Exchange{}
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
+	bnf := binancef.NewBinancef(http.DefaultClient)
 	bybit := bybit.NewBybit(http.DefaultClient)
-	exchanges = append(exchanges, ft)
+	exchanges = append(exchanges, bnf)
 	exchanges = append(exchanges, bybit)
 
 	res, err := loadPairMapFromFile(exchanges)

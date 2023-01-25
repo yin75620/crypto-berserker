@@ -12,8 +12,6 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/exchange-list/ftx"
-	"github.com/yin75620/crypto-berserker/setting"
 )
 
 func createTestCrossExchange() *CrossExchange {
@@ -40,13 +38,9 @@ func TestMain(t *testing.T) {
 
 func TestExchangesTrade(t *testing.T) {
 	exchanges := []exc.Exchange{}
-	ft := ftx.NewFtx(http.DefaultClient, ftx.FtxInit{
-		setting.FTX_KEY,
-		setting.FTX_API_SECRET_KEY,
-		"tester"})
 	bybilinear := bybilinear.NewBybilinear(http.DefaultClient)
 	bnf := binancef.NewBinancef(http.DefaultClient)
-	exchanges = append(exchanges, ft)
+
 	exchanges = append(exchanges, bybilinear)
 	exchanges = append(exchanges, bnf)
 
