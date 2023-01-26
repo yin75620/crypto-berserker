@@ -1,8 +1,6 @@
 package binancef
 
 import (
-	"log"
-
 	"github.com/go-ini/ini"
 	"github.com/yin75620/crypto-berserker/setting"
 )
@@ -22,7 +20,7 @@ func NewBinancefInit() *BinancefInit {
 func (bfi *BinancefInit) IniSetting(filename string) error {
 	cfg, err := ini.Load(filename)
 	if err != nil {
-		log.Println("BinancefInit Fail to read file: %v", err)
+		//log.Println("BinancefInit Fail to read file: ", err)
 		return err
 	}
 
