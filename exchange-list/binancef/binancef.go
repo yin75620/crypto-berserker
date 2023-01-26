@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
@@ -236,6 +237,35 @@ func (bn *binance) prepareLeverage() {
 			}
 		}
 	}
+}
+
+func (bn *binance) getKline() {
+	body := exc.JArray{
+		"symbol":   "BTCUSDT",
+		"interval": "1m",
+		//"startTime": 1674724440000,
+		//"endTime":LONG
+		"limit": 3,
+	}
+
+	start := time.Now()
+	resByte := bn.doSignRequest("GET", "v1/klines", body)
+	d := time.Since(start)
+	fmt.Println(d)
+	body.ToValues()
+	klr := [][]interface{}{}
+	json.Unmarshal(resByte, &klr)
+
+	candles := []CandleStick{}
+	for _, value := range klr {
+		cs := CandleStick{}
+		cs.SetByJArray(value)
+
+		candles = append(candles, cs)
+	}
+	fmt.Println(string(resByte))
+	fmt.Println(candles)
+
 }
 
 type QuoteResponse struct {

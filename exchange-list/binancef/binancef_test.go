@@ -61,9 +61,15 @@ func TestGetBalance(t *testing.T) {
 	be.GetBalance()
 }
 
-func TestFree(t *testing.T) {
+func TestGetMaxOrderUSD(t *testing.T) {
 	be.Prepare()
 	fmt.Println(be.GetMaxOrderUSD("BTCUSDT"))
+}
+
+func TestFree(t *testing.T) {
+	//be.Prepare()
+	be.getKline()
+
 }
 
 /*

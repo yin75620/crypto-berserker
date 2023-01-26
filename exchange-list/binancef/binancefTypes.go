@@ -2,6 +2,8 @@ package binancef
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 
 	//"github.com/thrasher-corp/gocryptotrader/currency"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
@@ -264,6 +266,33 @@ type CandleStick struct {
 	TradeCount               float64
 	TakerBuyAssetVolume      float64
 	TakerBuyQuoteAssetVolume float64
+	//Ignore                   float64
+}
+
+func (cs *CandleStick) SetByJArray(array []interface{}) {
+	if len(array) < 11 {
+		fmt.Println("SetByJArray has error data", array)
+	}
+	cs.OpenTime = array[0].(float64)
+
+	cs.Open = StringToFloat(array[1].(string))
+
+	cs.High = StringToFloat(array[2].(string))
+	cs.Low = StringToFloat(array[3].(string))
+	cs.Close = StringToFloat(array[4].(string))
+	cs.Volume = StringToFloat(array[5].(string))
+	cs.CloseTime = array[6].(float64)
+	cs.QuoteAssetVolume = StringToFloat(array[7].(string))
+	cs.TradeCount = array[8].(float64)
+	cs.TakerBuyAssetVolume = StringToFloat(array[9].(string))
+	cs.TakerBuyQuoteAssetVolume = StringToFloat(array[10].(string))
+}
+
+func StringToFloat(s string) float64 {
+	if fl, err := strconv.ParseFloat(s, 64); err == nil {
+		return fl
+	}
+	return 0
 }
 
 // AveragePrice holds current average symbol price
