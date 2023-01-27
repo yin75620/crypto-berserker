@@ -64,7 +64,7 @@ func (fws *BinanceWebSocket) doSubScribeOrderBook(marketName string, resChannel 
 
 func createConn(channelName string, marketName string) *websocket.Conn {
 	const levels = "5" //5,10,20
-	endpoint := fmt.Sprintf("%s/%s@%s%s", WEBSOCKET_URL, marketName, channelName, levels)
+	endpoint := fmt.Sprintf("%s/%s@%s%s@100ms", WEBSOCKET_URL, marketName, channelName, levels)
 	return tool.CreateConn(endpoint)
 }
 
