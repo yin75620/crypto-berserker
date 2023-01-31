@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"runtime"
 	"testing"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -18,5 +20,16 @@ func TestExecuteOrder(t *testing.T) {
 	}
 
 	sendWallet(exchanges)
+
+}
+
+func TestMemoryCheck(t *testing.T) {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	fmt.Printf("Allocated memory: %d bytes", ms.Alloc)
+
+	fmt.Printf("Allocated memory: %d bytes", ms.Alloc)
+
+	fmt.Printf("Heap memory usage: %d bytes", ms.HeapAlloc)
 
 }

@@ -7,3 +7,32 @@ type Account struct {
 	WalletInfo    Wallet
 	UnrealizedPnL float64 //control by some api
 }
+
+type UserTrade struct {
+	Price       float64
+	Qty         float64
+	QuoteQty    float64
+	Side        string
+	Symbol      string
+	Time        int64
+	RealizedPnl float64
+}
+
+type UserTradeKey struct {
+	Symbol string
+	Time   int64
+}
+
+func (ut *UserTrade) Combine(v UserTrade) {
+
+	if ut.Symbol != v.Symbol {
+		return
+	}
+	if ut.Side != v.Side {
+		return
+	}
+	ut.QuoteQty = v.QuoteQty + ut.QuoteQty
+	ut.Qty = v.Qty + ut.Qty
+	ut.Price = ut.QuoteQty / ut.Qty
+
+}

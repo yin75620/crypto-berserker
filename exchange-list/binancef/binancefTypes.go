@@ -478,6 +478,23 @@ type Position struct {
 	UpdateTime             int64   `json:"updateTime"`
 }
 
+type UserTrade struct {
+	Buyer           bool    `json:"buyer"`
+	Commission      float64 `json:"commission,string"`
+	CommissionAsset string  `json:"commissionAsset"`
+	ID              int64   `json:"id"`
+	Maker           bool    `json:"maker"`
+	OrderID         int64   `json:"orderId"`
+	Price           float64 `json:"price,string"`
+	Qty             float64 `json:"qty,string"`
+	QuoteQty        float64 `json:"quoteQty,string"`
+	RealizedPnl     float64 `json:"realizedPnl,string"`
+	Side            string  `json:"side"`
+	PositionSide    string  `json:"positionSide"`
+	Symbol          string  `json:"symbol"`
+	Time            int64   `json:"time"`
+}
+
 /*
 // Account holds the account data
 type Account struct {

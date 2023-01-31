@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
 
 var be = NewBinancef(http.DefaultClient)
@@ -20,6 +22,7 @@ func TestAccount(t *testing.T) {
 
 func TestOrder(t *testing.T) {
 
+	start := time.Now()
 	be.prepareMarketInfo()
 
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
@@ -42,6 +45,8 @@ func TestOrder(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(res)
+
+	fmt.Println("elapsed:", time.Since(start))
 }
 
 func TestCancelAllOrder(t *testing.T) {
@@ -63,12 +68,31 @@ func TestGetBalance(t *testing.T) {
 
 func TestGetMaxOrderUSD(t *testing.T) {
 	be.Prepare()
-	fmt.Println(be.GetMaxOrderUSD("BTCUSDT"))
+	fmt.Println(be.GetMaxOrderUSD("AXSUSDT"))
+}
+
+func TestUserTraders(t *testing.T) {
+
+	userTrades := be.getUserTrades("APTUSDT", time.Now().Add(-100*time.Hour), time.Now())
+
+	for _, p := range userTrades {
+
+		tool.PrintStructNameValue(p)
+	}
+
+}
+
+func TestTightUserTraders(t *testing.T) {
+
+	userTrades := be.GetTightUserTrades("APTUSDT", time.Now().Add(-100*time.Hour), time.Now())
+	fmt.Println(userTrades)
 }
 
 func TestFree(t *testing.T) {
 	//be.Prepare()
-	be.getKline()
+	//be.getKline()
+	//be.prepareLeverage()
+	//be.getUserTrades()
 
 }
 

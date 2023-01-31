@@ -87,6 +87,48 @@ func (bn *binance) GetMaxOrderUSD(symbol string) float64 {
 	}
 }
 
+func (bn *binance) getUserTrades(symbol string, startTime time.Time, endTime time.Time) []UserTrade {
+
+	jarray := exc.JArray{
+		"symbol": symbol,
+	}
+	zero := time.Time{}
+	if startTime != zero {
+		jarray.Add(exc.JArray{"startTime": startTime.UnixMilli()})
+	}
+	if endTime != zero {
+		jarray.Add(exc.JArray{"endTime": endTime.UnixMilli()})
+	}
+
+	res := bn.doSignRequest("GET", "v1/userTrades", jarray)
+
+	userTrades := []UserTrade{}
+	err := json.Unmarshal(res, &userTrades)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return userTrades
+}
+
+func (bn *binance) GetTightUserTrades(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {
+	userTrades := bn.getUserTrades(symbol, startTime, endTime)
+
+	euts := map[exc.UserTradeKey]exc.UserTrade{}
+	for _, v := range userTrades {
+		eut := v.ToExcUserTrade()
+		eutKey := v.ToExcUserTradeKey()
+
+		if value, ok := euts[eutKey]; ok {
+			value.Combine(eut)
+			euts[eutKey] = value
+		} else {
+			euts[eutKey] = eut
+		}
+	}
+	return euts
+}
+
 func (bn *binance) Prepare() []byte {
 	bn.prepareMarketInfo()
 	response := bn.GetWallet()
