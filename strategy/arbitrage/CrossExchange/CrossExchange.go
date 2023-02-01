@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/yin75620/crypto-berserker/ksql"
@@ -21,6 +22,7 @@ type CrossExchange struct {
 	positionCrossPairMap map[string][]CrossPair
 	init                 CrossExchangeInit
 	sql                  *ksql.Ksql
+	mutex                sync.Mutex
 }
 
 var (
@@ -147,26 +149,24 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	// 檢查部位是否可以平倉
-	hasClose, mp := positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
+	hasClose, mp := ce.positionCloseCheck(ce.positionCrossPairMap, crossPairMap, futures, ce.init)
 	if hasClose {
 		ce.positionCrossPairMap = mp
 		savePairMapToFile(ce.positionCrossPairMap)
-
-		//更新交易所內幣別持有量
-		ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
-		ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
 
 		//完成N次交易報告資產變化值
 		const EveryCountCheckWallet = 1
 		var mFinishCount = 1
 		if mFinishCount%EveryCountCheckWallet == 0 {
 			sendInfo := ""
+			ce.mutex.Lock()
 			for i, exchange := range ce.exchanges {
 				wallet := exchange.GetWallet()
 				array := mPreWallets[i].GetAllBalanceProfit(wallet)
 				mPreWallets[i] = wallet
 				sendInfo = fmt.Sprintf("%s%s", sendInfo, fmt.Sprintf("%s: %v, ", exchange.GetName(), array))
 			}
+			ce.mutex.Unlock()
 			log.Println(sendInfo)
 			message_tool.SendBroadcastArcherGroup(sendInfo)
 		}
@@ -189,11 +189,14 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	m_expectedTotalValue = execMinTotalValue - orderTotalValue
 
+	ce.mutex.Lock()
 	// 進行交易
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
 	//更新交易所內幣別持有量
 	ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
 	ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
+	ce.mutex.Unlock()
+
 	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
 	topCrossPair.orderVolume = orderTotalValue
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
@@ -215,7 +218,7 @@ func (ce *CrossExchange) updateExchangeWallet(exchangeName string) {
 	}
 }
 
-func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, map[string][]CrossPair) {
+func (ce *CrossExchange) positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, map[string][]CrossPair) {
 
 	//hasPosition
 	if len(crossPairsTable) <= 0 {
@@ -239,7 +242,7 @@ func positionCloseCheck(crossPairsTable map[string][]CrossPair, matchMap CrossPa
 
 	for key, arrayPairs := range sameFutures {
 
-		isClose, arrayPairs := isCloseCheck(key, arrayPairs, matchMap, futures, init)
+		isClose, arrayPairs := ce.isCloseCheck(key, arrayPairs, matchMap, futures, init)
 		if !isClose {
 			continue
 		}
@@ -343,7 +346,7 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, resSumString
 }
 
-func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
+func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap CrossPairStringMap, futures exc.Futures, init CrossExchangeInit) (bool, []CrossPair) {
 
 	matchCrossPair := getMatchCrossPair(positionPairName, crossPairArray, matchMap)
 
@@ -354,6 +357,7 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	}
 
 	speedTestStart := time.Now()
+	ce.mutex.Lock()
 	// 表示有交易
 	matchAskExchange, askPair := matchCrossPair.GetAskInfo()
 	matchBidExchange, bidPair := matchCrossPair.GetBidInfo()
@@ -366,6 +370,11 @@ func isCloseCheck(positionPairName string, crossPairArray []CrossPair, matchMap 
 	<-bidChannel
 
 	elapsed := time.Since(speedTestStart)
+
+	//更新交易所內幣別持有量
+	ce.updateExchangeWallet(matchAskExchange.GetName())
+	ce.updateExchangeWallet(matchBidExchange.GetName())
+	ce.mutex.Unlock()
 
 	content := fmt.Sprintf(
 		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %s\r\nelapsed: %v",
@@ -553,7 +562,9 @@ func removeElement(a []CrossPair, i int) []CrossPair {
 func (ce *CrossExchange) getCalculateMaxHoldVolume(crossPair CrossPair) float64 {
 	maxHoldVolume := ce.init.MaxHoldVolume
 	//計算最大持有量
+	ce.mutex.Lock()
 	maxHoldVolume = math.Min(maxHoldVolume, crossPair.GetMaxHoldVolume()*ce.init.MaxHoldeExchangePercent)
+	ce.mutex.Unlock()
 	maxHoldVolume = maxHoldVolume * (1.0 - ce.init.MaxHoldBuffer) // 用1%做緩衝
 	return maxHoldVolume
 }

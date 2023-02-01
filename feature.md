@@ -39,18 +39,21 @@
   - 好像是斷線重連的機制導致Lag, 進行檢查
   - 可取得binance成交資料 
 ## 2023/02/01
+  修正完成
   - 好像是斷線重連的機制導致Lag, 進行檢查 -> 因果顛倒，因為Aws的CPU限制，所以ＬＡＧ因此斷線，從t3a.micro 升級成t3a.small就解決了
-  - 
+  - ce.init.DelayMilliSecond 使用的地方有問題，不應該兩個地方都用
+  - 把ce 放入 isclosecheck 跟完成交易放一起，做錢包的更新，然後再加上鎖
+  - 不應該其中一個Future斷線，就讓全部Future都等待
+  
 ## All
 - 完成
 
 - 未完成
+  
 
 - 預計製作
   - Archer
     - 修正：
-      - 不應該其中一個Future斷線，就讓全部Future都等待
-      - ce.init.DelayMilliSecond 使用的地方有問題，不應該兩個地方都用
       - websocket總是會斷線，檢查哪邊造成的
     - 開發： 
       - 製作bybit的交易列表
