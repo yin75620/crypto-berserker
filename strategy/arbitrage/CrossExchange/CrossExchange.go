@@ -9,7 +9,6 @@ import (
 	"github.com/yin75620/crypto-berserker/ksql"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
-	"github.com/yin75620/crypto-berserker/jtime"
 	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 )
@@ -87,26 +86,13 @@ func (ce *CrossExchange) Start() {
 	}
 	ce.positionCrossPairMap = pairMap
 
-	d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
-
-	t := time.NewTimer(d)
 	liveTime := time.Second * time.Duration(ce.init.ShowLiveSecond)
 	liveTimer := time.NewTimer(liveTime)
-	defer t.Stop()
 
-	startTime := time.Now()
+	ce.stratStrategy()
 
 	for {
 		select {
-		case <-t.C:
-			now := time.Now()
-			if !jtime.IsSameUtcDay(startTime, now) {
-				startTime = now
-				slog = simpleLog.StartLog()
-				defer slog.Close()
-			}
-			plusMilliSecond := ce.stratStrategy()
-			t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
 		case <-liveTimer.C:
 			log.Println("live")
 			liveTimer.Reset(liveTime)
@@ -120,7 +106,25 @@ func (ce *CrossExchange) stratStrategy() int64 {
 
 	var totalWaitTime int64
 	for _, futures := range ce.futuresArray {
-		totalWaitTime += ce.stratFuturesStrategy(futures)
+		mf := futures
+
+		go func() {
+
+			d := time.Duration(time.Millisecond * time.Duration(ce.init.DelayMilliSecond))
+			t := time.NewTimer(d)
+			defer t.Stop()
+
+			for {
+				select {
+				case <-t.C:
+
+					plusMilliSecond := ce.stratFuturesStrategy(mf)
+					t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
+				}
+			}
+
+		}()
+
 	}
 	return totalWaitTime
 }
@@ -187,6 +191,9 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	// 進行交易
 	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
+	//更新交易所內幣別持有量
+	ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
+	ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
 	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
 	topCrossPair.orderVolume = orderTotalValue
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
