@@ -106,9 +106,7 @@ func (ce *CrossExchange) Start() {
 				defer slog.Close()
 			}
 			plusMilliSecond := ce.stratStrategy()
-			//fmt.Println("d1.5", plusMilliSecond)
 			t.Reset(time.Millisecond * time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
-			//fmt.Println("d2", time.Millisecond*time.Duration(ce.init.DelayMilliSecond+plusMilliSecond))
 		case <-liveTimer.C:
 			log.Println("live")
 			liveTimer.Reset(liveTime)
@@ -194,8 +192,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 	savePairMapToFile(ce.positionCrossPairMap)
 
-	plusMilliSecond := ce.init.DelayMilliSecond
-	return plusMilliSecond
+	return 0 //由外部控制
 }
 
 func isDisconnect(cp CrossPair) bool {

@@ -22,7 +22,6 @@ func TestAccount(t *testing.T) {
 
 	fmt.Println(string(res))
 
-	fmt.Println(ce.GetAccount())
 }
 
 func TestPricePair(t *testing.T) {

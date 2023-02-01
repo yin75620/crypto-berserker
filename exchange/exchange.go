@@ -22,7 +22,6 @@ type Exchange interface {
 	GetFuturesAskBidPair(futures Futures) (PricePair, PricePair) // VOLUME = USD
 	GetVolumeByTotal(total, price float64) float64               //volume
 
-	GetAccount() Account
 	GetMaxOrderUSD(symbol string) float64
 }
 
