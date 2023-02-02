@@ -71,9 +71,17 @@ func TestGetMaxOrderUSD(t *testing.T) {
 	fmt.Println(be.GetMaxOrderUSD("AXSUSDT"))
 }
 
+func TestPostLeverage(t *testing.T) {
+	be.PostLeverage("BTCUSDT", 125)
+}
+
+func TestSetAllLeverage(t *testing.T) {
+	be.setAllLeverage()
+}
+
 func TestUserTraders(t *testing.T) {
 
-	userTrades := be.getUserTrades("APTUSDT", time.Now().Add(-100*time.Hour), time.Now())
+	userTrades := be.getUserTrades("GMTUSDT", time.Now().Add(-100*time.Hour), time.Now())
 
 	for _, p := range userTrades {
 
@@ -84,7 +92,7 @@ func TestUserTraders(t *testing.T) {
 
 func TestTightUserTraders(t *testing.T) {
 
-	userTrades := be.GetTightUserTrades("APTUSDT", time.Now().Add(-100*time.Hour), time.Now())
+	userTrades := be.GetTightUserTrades("GMTUSDT", time.Now().Add(-100*time.Hour), time.Now())
 	fmt.Println(userTrades)
 }
 

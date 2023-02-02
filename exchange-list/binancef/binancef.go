@@ -12,6 +12,7 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
+	"github.com/yin75620/crypto-berserker/exchange/tool"
 	"github.com/yin75620/crypto-berserker/jmath"
 )
 
@@ -230,6 +231,18 @@ func (bn *binance) PostCancelAllOrder(fu exc.Futures) {
 	log.Println(fmt.Sprintf("%s", resByte))
 }
 
+func (bn *binance) PostLeverage(symbol string, leverage int) {
+
+	body := exc.JArray{
+		"symbol":   symbol,
+		"leverage": leverage,
+	}
+
+	resByte := bn.doSignRequest("POST", "v1/leverage", body)
+	fmt.Println(fmt.Printf("%s", resByte))
+
+}
+
 func (bn *binance) getExchangeInfo() ExchangeInfo {
 
 	exchangeInfo := ExchangeInfo{}
@@ -275,7 +288,25 @@ func (bn *binance) prepareLeverage() {
 	for _, value := range lb {
 		if value.Symbol == "BTCUSDT" {
 			for _, bracket := range value.Brackets {
-				fmt.Println(bracket)
+				tool.PrintStructNameValue(bracket)
+			}
+		}
+	}
+}
+
+func (bn *binance) setAllLeverage() {
+	body := exc.JArray{}
+	resByte := bn.doSignRequest("GET", "v1/leverageBracket", body)
+
+	lb := []LeverageBracket{}
+	json.Unmarshal(resByte, &lb)
+
+	for _, value := range lb {
+		for _, bracket := range value.Brackets {
+			total := float64(bracket.InitialLeverage) * bn.account.WalletInfo.GetAllBalanceUSDValue()
+			if total < float64(bracket.NotionalCap) {
+				bn.PostLeverage(value.Symbol, bracket.InitialLeverage)
+				break
 			}
 		}
 	}
