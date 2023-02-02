@@ -403,9 +403,9 @@ func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, future
 	askItem := getFirstItme(askTrades)
 	bidItem := getFirstItme(bidTrades)
 
-	return fmt.Sprintf("%s:%s %f/r/n%s:%s %f",
-		askExchange.GetName(), askItem.Side, askItem.Price,
-		bidExchange.GetName(), bidItem.Side, bidItem.Price)
+	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v",
+		askExchange.GetName(), askItem.Side, askItem.Price, askItem.Qty, askItem.Time
+		bidExchange.GetName(), bidItem.Side, bidItem.Price, bidItem.Qty, bidItem.Time)
 }
 
 func getFirstItme(uts map[exc.UserTradeKey]exc.UserTrade) exc.UserTrade {

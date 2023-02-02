@@ -92,7 +92,7 @@ func TestUserTraders(t *testing.T) {
 
 func TestTightUserTraders(t *testing.T) {
 
-	userTrades := be.GetTightUserTrades("GMTUSDT", time.Now().Add(-100*time.Hour), time.Now())
+	userTrades := be.GetTightUserTrades("STGUSDT")
 	fmt.Println(userTrades)
 }
 
