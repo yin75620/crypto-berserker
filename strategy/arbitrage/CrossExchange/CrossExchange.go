@@ -376,19 +376,44 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 	ce.updateExchangeWallet(matchBidExchange.GetName())
 	ce.mutex.Unlock()
 
+	//看一下交易紀錄
+	lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
+
 	content := fmt.Sprintf(
-		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %s\r\nelapsed: %v",
+		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\nTradeInfo:%s \r\ntime: %s\r\nelapsed: %v",
 		futures.GetMarketName(),
 		positionPairName,
 		matchCrossPair.GetProfitString(),
 		totalMatchOrderUSDVolume,
 		sumString,
+		lastTradeInfo,
 		time.Now().UTC(),
 		elapsed)
 	message_tool.SendBroadcastArcherGroup(content)
 	log.Println(content)
 
 	return true, crossPairArray
+}
+
+func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, futures exc.Futures) string {
+	symbol := futures.GetLinkMarketNameUpper()
+	askTrades := askExchange.GetTightUserTrades(symbol)
+	bidTrades := bidExchange.GetTightUserTrades(symbol)
+
+	askItem := getFirstItme(askTrades)
+	bidItem := getFirstItme(bidTrades)
+
+	fmt.Printf("%s:%s %f/r/n%s:%s %f",
+		askExchange.GetName(), askItem.Side, askItem.Price,
+		bidExchange.GetName(), bidItem.Side, bidItem.Price)
+}
+
+func getFirstItme(uts map[exc.UserTradeKey]exc.UserTrade) exc.UserTrade {
+
+	for _, v := range uts {
+		return v
+	}
+	return exc.UserTrade{}
 }
 
 func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) CrossPairStringMap {
@@ -475,13 +500,16 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	content := fmt.Sprintf("%s, %s, %s\r\n orderTotalValue:%g \r\n maxProfit:%g \r\n m_expectedTotalValue:%g",
+	tradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
+
+	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g \r\nTradeInfo:%s",
 		futures.GetMarketName(),
 		fmt.Sprintf("resAsk:%f, orderTotal:%f, AskCoin:%s", askPair.Price, askPair.Total(), askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderTotal:%f, bidCoin:%s", bidPair.Price, bidPair.Total(), bidExchange.GetName()),
 		orderTotalValue,
 		topCrossPair.GetProfit(),
-		m_expectedTotalValue)
+		m_expectedTotalValue,
+		tradeInfo)
 	log.Println(content)
 
 	message_tool.SendBroadcastArcherGroup(content)

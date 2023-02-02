@@ -92,6 +92,10 @@ type Futures struct {
 	QuoteCoin string
 }
 
+func (f *Futures) GetLinkMarketNameUpper() string {
+	return strings.ToUpper(f.GetLinkMarketName())
+}
+
 func (f *Futures) GetLinkMarketName() string {
 	res := ""
 	if f.ExpirationDate.IsZero() {
