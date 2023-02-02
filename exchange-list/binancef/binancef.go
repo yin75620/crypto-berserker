@@ -112,7 +112,11 @@ func (bn *binance) getUserTrades(symbol string, startTime time.Time, endTime tim
 	return userTrades
 }
 
-func (bn *binance) GetTightUserTrades(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {
+func (bn *binance) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
+	return bn.GetTightUserTradesWithTime(symbol, time.Time{}, time.Time{})
+}
+
+func (bn *binance) GetTightUserTradesWithTime(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {
 	userTrades := bn.getUserTrades(symbol, startTime, endTime)
 
 	euts := map[exc.UserTradeKey]exc.UserTrade{}

@@ -23,6 +23,7 @@ type Exchange interface {
 	GetVolumeByTotal(total, price float64) float64               //volume
 
 	GetMaxOrderUSD(symbol string) float64
+	GetTightUserTrades(symbol string) map[UserTradeKey]UserTrade
 }
 
 func PostOrderRefry(ex Exchange, order ExchangeOrder) {
