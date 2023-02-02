@@ -403,7 +403,7 @@ func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, future
 	askItem := getFirstItme(askTrades)
 	bidItem := getFirstItme(bidTrades)
 
-	fmt.Printf("%s:%s %f/r/n%s:%s %f",
+	return fmt.Sprintf("%s:%s %f/r/n%s:%s %f",
 		askExchange.GetName(), askItem.Side, askItem.Price,
 		bidExchange.GetName(), bidItem.Side, bidItem.Price)
 }

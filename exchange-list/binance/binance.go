@@ -86,6 +86,10 @@ func (bn *Binance) GetMaxOrderUSD(symbol string) float64 {
 	log.Println("Binance GetMaxOrderUSD not yet finish implement")
 	return 100
 }
+func (bn *Binance) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
+	panic("interface not yet implement")
+	//return map[exc.UserTradeKey]exc.UserTrade{}
+}
 
 func (bn *Binance) GetVolumeByTotal(total, price float64) float64 {
 	return total / price
