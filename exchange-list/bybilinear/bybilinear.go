@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
@@ -264,6 +265,57 @@ func (bb *Bybilinear) PostSetLeverage(symbol string, leverage int) {
 
 	fmt.Println(string(resByte))
 
+}
+
+func (bb *Bybilinear) getUserTrades(symbol string, startTime time.Time, endTime time.Time) []UserTrade {
+
+	jarray := exc.JArray{
+		"symbol": symbol,
+	}
+
+	zero := time.Time{}
+	if startTime != zero {
+		jarray.Add(exc.JArray{"start_time": startTime.UnixMilli()})
+	}
+	if endTime != zero {
+		jarray.Add(exc.JArray{"end_time": endTime.UnixMilli()})
+	}
+
+	res, err := bb.doRequest("GET", "/private/linear/trade/execution/history-list", jarray)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	thr := TradingHistoryResponse{}
+	err = json.Unmarshal(res, &thr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return thr.Result.Data
+}
+
+func (bb *Bybilinear) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
+	return bb.GetTightUserTradesWithTime(symbol, time.Time{}, time.Time{})
+}
+
+func (bb *Bybilinear) GetTightUserTradesWithTime(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {
+	userTrades := bb.getUserTrades(symbol, startTime, endTime)
+
+	euts := map[exc.UserTradeKey]exc.UserTrade{}
+	for _, v := range userTrades {
+		eut := v.ToExcUserTrade()
+		eutKey := v.ToExcUserTradeKey()
+
+		if value, ok := euts[eutKey]; ok {
+			value.Combine(eut)
+			euts[eutKey] = value
+		} else {
+			euts[eutKey] = eut
+		}
+	}
+	return euts
 }
 
 type BybilinearOrder struct {

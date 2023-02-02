@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	exc "github.com/yin75620/crypto-berserker/exchange"
+	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
 
 var defaultFutures = exc.Futures{
-	TargetName: "SOL",
+	TargetName: "AXS",
 	QuoteCoin:  "USDT",
 }
 
@@ -86,6 +88,30 @@ func TestGetInstrumentInfo(t *testing.T) {
 func TestPrepareLeverage(t *testing.T) {
 	bb.prepareLeverage()
 	fmt.Println(bb.LeverageInfos["BTCUSDT"])
+}
+
+func TestSetAllLeverage(t *testing.T) {
+	bb.setAllLeverage()
+}
+
+func TestPostLeverage(t *testing.T) {
+	bb.PostSetLeverage("BTCUSDT", 100)
+}
+
+func TestUserTrade(t *testing.T) {
+	userTrades := bb.getUserTrades("APTUSDT", time.Time{}, time.Time{})
+	for _, v := range userTrades {
+		tool.PrintStructNameValue(v)
+	}
+
+	assert.NotEqual(t, len(userTrades), 0)
+}
+
+func TestTightUserTrade(t *testing.T) {
+	tightUserTrades := bb.GetTightUserTrades("STGUSDT")
+	fmt.Println(tightUserTrades)
+
+	assert.NotEqual(t, len(tightUserTrades), 0)
 }
 
 func TestFree(t *testing.T) {

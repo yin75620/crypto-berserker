@@ -271,3 +271,42 @@ type GetPositionResult struct {
 	ExtInfo interface{} `json:"ext_info"`
 	Result  Position    `json:"result"`
 }
+
+type TradingHistoryResponse struct {
+	RetCode int    `json:"ret_code"`
+	RetMsg  string `json:"ret_msg"`
+	Result  struct {
+		PageToken string      `json:"page_token"`
+		Data      []UserTrade `json:"data"`
+	} `json:"result"`
+	ExtCode string `json:"ext_code"`
+	ExtInfo string `json:"ext_info"`
+	TimeNow string `json:"time_now"`
+
+	RateLimitStatus  int `json:"rate_limit_status"`
+	RateLimitResetMs int `json:"rate_limit_reset_ms"`
+	RateLimit        int `json:"rate_limit"`
+}
+
+type UserTrade struct {
+	OrderID          string  `json:"order_id"`
+	OrderLinkID      string  `json:"order_link_id"`
+	Side             string  `json:"side"`
+	Symbol           string  `json:"symbol"`
+	ExecID           string  `json:"exec_id"`
+	Price            float64 `json:"price"`
+	OrderPrice       float64 `json:"order_price"`
+	OrderQty         float64 `json:"order_qty"`
+	OrderType        string  `json:"order_type"`
+	FeeRate          float64 `json:"fee_rate"`
+	ExecPrice        float64 `json:"exec_price"`
+	ExecType         string  `json:"exec_type"`
+	ExecQty          float64 `json:"exec_qty"`
+	ExecFee          float64 `json:"exec_fee"`
+	ExecValue        float64 `json:"exec_value"`
+	LeavesQty        float64 `json:"leaves_qty"`
+	ClosedSize       float64 `json:"closed_size"`
+	LastLiquidityInd string  `json:"last_liquidity_ind"`
+	TradeTime        int     `json:"trade_time"`
+	TradeTimeMs      int     `json:"trade_time_ms"`
+}
