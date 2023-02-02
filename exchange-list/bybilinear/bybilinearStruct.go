@@ -6,7 +6,6 @@ type BybilinearCancelOrder struct {
 	//OrderLinkID string `json:"order_link_id"`
 }
 
-
 type InstrumentsInfo struct {
 	Results struct {
 		Category string `json:"category"`
@@ -69,4 +68,24 @@ type PositionListResponse struct {
 	RateLimitStatus  int    `json:"rate_limit_status"`
 	RateLimitResetMs int    `json:"rate_limit_reset_ms"`
 	RateLimit        int    `json:"rate_limit"`
+}
+
+type LeverageInfo struct {
+	RetCode int    `json:"ret_code"`
+	RetMsg  string `json:"ret_msg"`
+	Result  []struct {
+		ID             int      `json:"id"`
+		Symbol         string   `json:"symbol"`
+		Limit          int      `json:"limit"`
+		MaintainMargin float64  `json:"maintain_margin"`
+		StartingMargin float64  `json:"starting_margin"`
+		Section        []string `json:"section"`
+		IsLowestRisk   int      `json:"is_lowest_risk"`
+		CreatedAt      string   `json:"created_at"`
+		UpdatedAt      string   `json:"updated_at"`
+		MaxLeverage    int      `json:"max_leverage"`
+	} `json:"result"`
+	ExtCode string `json:"ext_code"`
+	ExtInfo string `json:"ext_info"`
+	TimeNow string `json:"time_now"`
 }

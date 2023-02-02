@@ -216,6 +216,56 @@ func (bb *Bybilinear) prepareLeverage() {
 	}
 }
 
+func (bb *Bybilinear) setAllLeverage() {
+
+	resByte, _ := bb.doRequest("GET", "/public/linear/risk-limit", exc.JArray{})
+
+	li := LeverageInfo{}
+	json.Unmarshal(resByte, &li)
+
+	fmt.Println(string(resByte))
+	fmt.Println(li)
+
+	currentSymbol := ""
+	isSymbolSetFinish := false
+
+	for _, v := range li.Result {
+
+		if currentSymbol != v.Symbol {
+			currentSymbol = v.Symbol
+			isSymbolSetFinish = false
+		}
+
+		//一種symbol只要設定最大的那一次就好
+		if isSymbolSetFinish {
+			continue
+		}
+
+		total := bb.account.WalletInfo.GetAllBalanceUSDValue() * float64(v.MaxLeverage)
+		if int(total) < v.Limit {
+			bb.PostSetLeverage(v.Symbol, v.MaxLeverage)
+			isSymbolSetFinish = true
+		}
+	}
+
+}
+
+func (bb *Bybilinear) PostSetLeverage(symbol string, leverage int) {
+	req := exc.JArray{
+		"symbol":        symbol,
+		"buy_leverage":  leverage,
+		"sell_leverage": leverage,
+	}
+
+	resByte, err := bb.doRequest("POST", "/private/linear/position/set-leverage", req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(resByte))
+
+}
+
 type BybilinearOrder struct {
 	Side        string  `json:"side"`          //side	true	string	方向, 有效选项:Buy, Sell (Buy Sell )
 	Symbol      string  `json:"symbol"`        //symbol	true	string	产品类型, 有效选项:BTCUSD, ETHUSD (BTCUSD ETHUSD )
