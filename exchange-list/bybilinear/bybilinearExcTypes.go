@@ -1,6 +1,10 @@
 package bybilinear
 
-import exc "github.com/yin75620/crypto-berserker/exchange"
+import (
+	"strings"
+
+	exc "github.com/yin75620/crypto-berserker/exchange"
+)
 
 func (ut *UserTrade) ToExcUserTrade() exc.UserTrade {
 	eut := exc.UserTrade{}
@@ -8,7 +12,7 @@ func (ut *UserTrade) ToExcUserTrade() exc.UserTrade {
 	eut.Qty = ut.ExecQty
 	eut.Price = ut.ExecPrice
 	eut.QuoteQty = ut.ExecValue
-	eut.Side = ut.Side
+	eut.Side = strings.ToUpper(ut.Side)
 	eut.Symbol = ut.Symbol
 	eut.Time = int64(ut.TradeTimeMs) / 1000 * 1000
 	return eut

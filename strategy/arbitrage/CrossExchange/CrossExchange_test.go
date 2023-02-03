@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -173,21 +174,33 @@ func TestPositionCloseCheck(t *testing.T) {
 }
 
 func TestUserTrades(t *testing.T) {
-	symbol := "INJUSDT"
+	symbol := "RNDRUSDT"
 	bnfUTs := bnf.GetTightUserTrades(symbol)
 	bblUTs := bbl.GetTightUserTrades(symbol)
+	specifyTime := time.Now().Add(-time.Hour * 24)
+	checkUserTrade(bnfUTs, bblUTs, specifyTime)
+	fmt.Println("")
+	checkUserTrade(bblUTs, bnfUTs, specifyTime)
 
-	for key, bnfUT := range bnfUTs {
-		if bblUT, ok := bblUTs[key]; ok {
+}
+
+func checkUserTrade(mainUTs, otherUTs map[exc.UserTradeKey]exc.UserTrade, specifyTime time.Time) {
+	for key, mainUT := range mainUTs {
+		if key.Time < specifyTime.UnixMilli() {
+			continue
+		}
+		if otherUT, ok := otherUTs[key]; ok {
 
 			calc := 1.0
-			if bnfUT.Side == "BUY" {
+			if mainUT.Side == "BUY" {
 				calc = -1.0
 			}
-			revenue := (bnfUT.Price - bblUT.Price) * calc
+			revenue := (mainUT.Price - otherUT.Price) * calc
 			revenue = jmath.FloatFloor(revenue, 5)
-			fmt.Println(revenue, bnfUT, bblUT)
+			fmt.Println(time.UnixMilli(mainUT.Time), revenue, mainUT, otherUT)
 
+		} else {
+			fmt.Println(time.UnixMilli(mainUT.Time), "?", mainUT, "-")
 		}
 	}
 }
