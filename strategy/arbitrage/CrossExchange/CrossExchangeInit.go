@@ -14,6 +14,7 @@ type ProfitInit struct {
 
 type CrossExchangeInit struct {
 	DelayMilliSecond        int64
+	DealtDelayMilliSecond   int64
 	OverPrice               float64 //= 0.02 // 交易時，要溢價多少。 Ex:目前價位 9000 => 會用9180買進
 	MinSellProfit           float64 // = -0.0007
 	MinSumProfit            float64 //= 0.0001
@@ -33,6 +34,7 @@ type CrossExchangeInit struct {
 func NewCrossExchangeInit() *CrossExchangeInit {
 	return &CrossExchangeInit{
 		DelayMilliSecond:        500,
+		DealtDelayMilliSecond:   200,
 		OverPrice:               0.02,
 		MinSellProfit:           -0.05,
 		MinSumProfit:            0.0001,
@@ -59,6 +61,7 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	const section = "CrossExchange"
 
 	cei.DelayMilliSecond = cfg.Section(section).Key("DelayMilliSecond").MustInt64()
+	cei.DealtDelayMilliSecond = cfg.Section(section).Key("DelayMilliSecond").MustInt64()
 	cei.OverPrice = cfg.Section(section).Key("OverPrice").MustFloat64()
 	cei.MinSellProfit = cfg.Section(section).Key("MinSellProfit").MustFloat64()
 	cei.MinSumProfit = cfg.Section(section).Key("MinSumProfit").MustFloat64()

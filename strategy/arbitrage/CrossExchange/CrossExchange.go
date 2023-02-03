@@ -170,6 +170,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 			log.Println(sendInfo)
 			message_tool.SendBroadcastArcherGroup(sendInfo)
 		}
+		return ce.init.DealtDelayMilliSecond //成交之後要等待多久
 	}
 
 	topCrossPair = ce.getCanOrderMaxProfitCrossPair(crossPairMap, futures)
@@ -202,7 +203,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 	savePairMapToFile(ce.positionCrossPairMap)
 
-	return 0 //由外部控制
+	return ce.init.DealtDelayMilliSecond //成交之後要等待多久
 }
 
 func isDisconnect(cp CrossPair) bool {
@@ -404,7 +405,7 @@ func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, future
 	bidItem := getFirstItme(bidTrades)
 
 	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v",
-		askExchange.GetName(), askItem.Side, askItem.Price, askItem.Qty, askItem.Time
+		askExchange.GetName(), askItem.Side, askItem.Price, askItem.Qty, askItem.Time,
 		bidExchange.GetName(), bidItem.Side, bidItem.Price, bidItem.Qty, bidItem.Time)
 }
 
