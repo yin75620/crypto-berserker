@@ -1,6 +1,7 @@
 package CrossExchange
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -8,24 +9,18 @@ import (
 
 	"github.com/yin75620/crypto-berserker/exchange-list/binancef"
 	"github.com/yin75620/crypto-berserker/exchange-list/bybilinear"
+	"github.com/yin75620/crypto-berserker/jmath"
 	"github.com/yin75620/crypto-berserker/message_tool"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
-func createTestCrossExchange() *CrossExchange {
-	exchanges := []exc.Exchange{}
-	bf := binancef.NewBinancef(http.DefaultClient)
-	bl := bybilinear.NewBybilinear(http.DefaultClient)
-	exchanges = append(exchanges, bf)
-	exchanges = append(exchanges, bl)
-
-	ce := NewCrossExchange(exchanges)
-	return ce
-}
+var bnf = binancef.NewBinancef(http.DefaultClient)
+var bbl = bybilinear.NewBybilinear(http.DefaultClient)
+var exchanges = []exc.Exchange{bnf, bbl}
+var ce = NewCrossExchange(exchanges)
 
 func TestMain(t *testing.T) {
-	ce := createTestCrossExchange()
 	futures := exc.Futures{
 		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
 		TargetName: "BTC",
@@ -171,8 +166,28 @@ func TestPositionCloseCheck(t *testing.T) {
 	}
 
 	init := *NewCrossExchangeInit()
-	isClose, res := positionCloseCheck(crossPairsTable, matchMap, futures, init)
+	isClose, res := ce.positionCloseCheck(crossPairsTable, matchMap, futures, init)
 
 	assert.True(t, isClose)
 	assert.Zero(t, len(res))
+}
+
+func TestUserTrades(t *testing.T) {
+	symbol := "INJUSDT"
+	bnfUTs := bnf.GetTightUserTrades(symbol)
+	bblUTs := bbl.GetTightUserTrades(symbol)
+
+	for key, bnfUT := range bnfUTs {
+		if bblUT, ok := bblUTs[key]; ok {
+
+			calc := 1.0
+			if bnfUT.Side == "BUY" {
+				calc = -1.0
+			}
+			revenue := (bnfUT.Price - bblUT.Price) * calc
+			revenue = jmath.FloatFloor(revenue, 5)
+			fmt.Println(revenue, bnfUT, bblUT)
+
+		}
+	}
 }
