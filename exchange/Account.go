@@ -34,5 +34,16 @@ func (ut *UserTrade) Combine(v UserTrade) {
 	ut.QuoteQty = v.QuoteQty + ut.QuoteQty
 	ut.Qty = v.Qty + ut.Qty
 	ut.Price = ut.QuoteQty / ut.Qty
+}
 
+type UserTradeMap map[UserTradeKey]UserTrade
+
+func (utMap *UserTradeMap) Near(utk UserTradeKey, nearMili int64) (UserTrade, bool) {
+	for k, v := range *utMap {
+		gap := k.Time - utk.Time
+		if gap <= nearMili && gap >= -nearMili {
+			return v, true
+		}
+	}
+	return UserTrade{}, false
 }

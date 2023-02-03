@@ -297,7 +297,7 @@ func (bb *Bybilinear) getUserTrades(symbol string, startTime time.Time, endTime 
 }
 
 func (bb *Bybilinear) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
-	return bb.GetTightUserTradesWithTime(symbol, time.Time{}, time.Time{})
+	return bb.GetTightUserTradesWithTime(symbol, time.Now().Add(-24*time.Hour), time.Now())
 }
 
 func (bb *Bybilinear) GetTightUserTradesWithTime(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {

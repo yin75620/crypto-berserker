@@ -174,22 +174,23 @@ func TestPositionCloseCheck(t *testing.T) {
 }
 
 func TestUserTrades(t *testing.T) {
-	symbol := "RNDRUSDT"
+	symbol := "MAGICUSDT"
 	bnfUTs := bnf.GetTightUserTrades(symbol)
 	bblUTs := bbl.GetTightUserTrades(symbol)
-	specifyTime := time.Now().Add(-time.Hour * 24)
+	specifyTime := time.Now().Add(-time.Hour * 1)
 	checkUserTrade(bnfUTs, bblUTs, specifyTime)
-	fmt.Println("")
+	fmt.Println("bbl main")
 	checkUserTrade(bblUTs, bnfUTs, specifyTime)
 
 }
 
-func checkUserTrade(mainUTs, otherUTs map[exc.UserTradeKey]exc.UserTrade, specifyTime time.Time) {
+func checkUserTrade(mainUTs, otherUTs exc.UserTradeMap, specifyTime time.Time) {
 	for key, mainUT := range mainUTs {
-		if key.Time < specifyTime.UnixMilli() {
+		specifyTimeUnixMilli := specifyTime.UnixMilli()
+		if key.Time < specifyTimeUnixMilli {
 			continue
 		}
-		if otherUT, ok := otherUTs[key]; ok {
+		if otherUT, ok := otherUTs.Near(key, 1000); ok {
 
 			calc := 1.0
 			if mainUT.Side == "BUY" {
