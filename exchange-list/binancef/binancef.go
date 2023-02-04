@@ -102,6 +102,7 @@ func (bn *binance) getUserTrades(symbol string, startTime time.Time, endTime tim
 	}
 
 	res := bn.doSignRequest("GET", "v1/userTrades", jarray)
+	fmt.Println(string(res))
 
 	userTrades := []UserTrade{}
 	err := json.Unmarshal(res, &userTrades)
@@ -113,7 +114,7 @@ func (bn *binance) getUserTrades(symbol string, startTime time.Time, endTime tim
 }
 
 func (bn *binance) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
-	return bn.GetTightUserTradesWithTime(symbol, time.Time{}, time.Time{})
+	return bn.GetTightUserTradesWithTime(symbol, time.Now().Add(-24*time.Hour), time.Now())
 }
 
 func (bn *binance) GetTightUserTradesWithTime(symbol string, startTime time.Time, endTime time.Time) map[exc.UserTradeKey]exc.UserTrade {
