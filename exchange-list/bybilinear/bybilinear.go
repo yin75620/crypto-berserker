@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -170,7 +171,13 @@ func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	bo.TimeInForce = "GoodTillCancel"
 	bo.CloseOnTrigger = order.IsClose
 
-	return bb.doPostOrder(bo)
+	res, err := bb.doPostOrder(bo)
+	if err != nil {
+		fmt.Println(err)
+		return res, err
+	}
+
+	return res, err
 }
 
 func (bb *Bybilinear) getInstrumentInfo() InstrumentsInfo {
@@ -350,6 +357,15 @@ func (bb *Bybilinear) doPostOrder(bo BybilinearOrder) (string, error) {
 
 	response, err := bb.doRequest("POST", "private/linear/order/create", jsonMap)
 	log.Println(fmt.Sprintf("%s", response))
+
+	or := OrderResponse{}
+	json.Unmarshal(response, &or)
+	if err != nil {
+		return string(response), err
+	}
+	if or.RetCode != 0 {
+		err = errors.New(fmt.Sprintf("RectCode !=0, RectCode = %d", or.RetCode))
+	}
 
 	return string(response), err
 }

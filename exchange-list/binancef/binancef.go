@@ -49,7 +49,7 @@ type binance struct {
 
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
-	res := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+	res, _ := bn.doSignRequest("GET", "v1/account", exc.JArray{})
 
 	account := Account{}
 
@@ -74,7 +74,7 @@ func (bn *binance) GetWallet() exc.Wallet {
 }
 
 func (bn *binance) GetBalance() {
-	res := bn.doSignRequest("GET", "v2/balance", exc.JArray{})
+	res, _ := bn.doSignRequest("GET", "v2/balance", exc.JArray{})
 	fmt.Println(string(res))
 }
 
@@ -101,7 +101,7 @@ func (bn *binance) getUserTrades(symbol string, startTime time.Time, endTime tim
 		jarray.Add(exc.JArray{"endTime": endTime.UnixMilli()})
 	}
 
-	res := bn.doSignRequest("GET", "v1/userTrades", jarray)
+	res, _ := bn.doSignRequest("GET", "v1/userTrades", jarray)
 	fmt.Println(string(res))
 
 	userTrades := []UserTrade{}
@@ -158,7 +158,7 @@ func (bn *binance) PostOrder(order exc.ExchangeOrder) (string, error) {
 		"price":       order.Price,
 	}
 
-	resByte := bn.doSignRequest("POST", "v1/order", body)
+	resByte, _ := bn.doSignRequest("POST", "v1/order", body)
 	return string(resByte), nil
 }
 
@@ -209,9 +209,9 @@ func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 		body["price"] = jmath.FloatFloorByFloat(order.Price, merketInfo.PriceIncrement)
 	}
 
-	resByte := bn.doSignRequest("POST", "v1/order", body)
+	resByte, err := bn.doSignRequest("POST", "v1/order", body)
 	log.Println(fmt.Sprintf("%s", resByte))
-	return string(resByte), nil
+	return string(resByte), err
 
 	/*bo := BybitOrder{}
 	bo.Side = strings.Title(order.CommodityOrder.Side)
@@ -232,7 +232,7 @@ func (bn *binance) PostCancelAllOrder(fu exc.Futures) {
 		"symbol": strings.ToUpper(symbol),
 	}
 
-	resByte := bn.doSignRequest("DELETE", "v1/allOpenOrders", body)
+	resByte, _ := bn.doSignRequest("DELETE", "v1/allOpenOrders", body)
 	log.Println(fmt.Sprintf("%s", resByte))
 }
 
@@ -243,7 +243,7 @@ func (bn *binance) PostLeverage(symbol string, leverage int) {
 		"leverage": leverage,
 	}
 
-	resByte := bn.doSignRequest("POST", "v1/leverage", body)
+	resByte, _ := bn.doSignRequest("POST", "v1/leverage", body)
 	fmt.Println(fmt.Printf("%s", resByte))
 
 }
@@ -283,7 +283,7 @@ func (bn *binance) prepareMarketInfo() {
 
 func (bn *binance) prepareLeverage() {
 	body := exc.JArray{}
-	resByte := bn.doSignRequest("GET", "v1/leverageBracket", body)
+	resByte, _ := bn.doSignRequest("GET", "v1/leverageBracket", body)
 
 	lb := []LeverageBracket{}
 	json.Unmarshal(resByte, &lb)
@@ -301,7 +301,7 @@ func (bn *binance) prepareLeverage() {
 
 func (bn *binance) setAllLeverage() {
 	body := exc.JArray{}
-	resByte := bn.doSignRequest("GET", "v1/leverageBracket", body)
+	resByte, _ := bn.doSignRequest("GET", "v1/leverageBracket", body)
 
 	lb := []LeverageBracket{}
 	json.Unmarshal(resByte, &lb)
@@ -327,7 +327,7 @@ func (bn *binance) getKline() {
 	}
 
 	start := time.Now()
-	resByte := bn.doSignRequest("GET", "v1/klines", body)
+	resByte, _ := bn.doSignRequest("GET", "v1/klines", body)
 	d := time.Since(start)
 	fmt.Println(d)
 	body.ToValues()
@@ -369,7 +369,7 @@ func (bn *binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.P
 	reqArray := exc.JArray{}
 	reqArray["symbol"] = strings.ToUpper(coinPair.GetLinkMakertName())
 	reqArray["limit"] = minLimit
-	resByte := bn.doAPIRequest("GET", "v1/depth", reqArray)
+	resByte, _ := bn.doAPIRequest("GET", "v1/depth", reqArray)
 	fmt.Println(string(resByte))
 
 	var resJson map[string]interface{}
@@ -386,15 +386,15 @@ func (bn *binance) GetAskBidPairFromWeb(coinPair exc.CoinPair, depth int) (exc.P
 
 	return askPair, bidPair
 }
-func (bn *binance) doSignRequest(method, apiName string, body exc.JArray) []byte {
+func (bn *binance) doSignRequest(method, apiName string, body exc.JArray) ([]byte, error) {
 	return bn.doRequest(method, apiName, true, body)
 }
 
-func (bn *binance) doAPIRequest(method, apiName string, body exc.JArray) []byte {
+func (bn *binance) doAPIRequest(method, apiName string, body exc.JArray) ([]byte, error) {
 	return bn.doRequest(method, apiName, false, body)
 }
 
-func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArray) []byte {
+func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArray) ([]byte, error) {
 	client := bn.client
 
 	var res []byte
@@ -423,7 +423,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	req, err := http.NewRequest(method, finalURL, bytes.NewBuffer([]byte("")))
 	if err != nil {
 		log.Println(err)
-		return res
+		return res, err
 	}
 
 	req.Header.Set("Content-Type", "content-type application/x-www-form-urlencoded")
@@ -434,5 +434,5 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 		log.Println("binance doRequest err:", err)
 	}
 
-	return resByte
+	return resByte, err
 }
