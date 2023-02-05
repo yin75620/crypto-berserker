@@ -495,6 +495,34 @@ type UserTrade struct {
 	Time            int64   `json:"time"`
 }
 
+type OrderResponse struct {
+	Code          int     `json:"code"`
+	Msg           string  `json:"msg"`
+	ClientOrderID string  `json:"clientOrderId"`
+	CumQty        float64 `json:"cumQty,string"`
+	CumQuote      float64 `json:"cumQuote,string"`
+	ExecutedQty   float64 `json:"executedQty,string"`
+	OrderID       int     `json:"orderId"`
+	AvgPrice      float64 `json:"avgPrice,string"`
+	OrigQty       float64 `json:"origQty,string"`
+	Price         float64 `json:"price,string"`
+	ReduceOnly    bool    `json:"reduceOnly"`
+	Side          string  `json:"side"`
+	PositionSide  string  `json:"positionSide"`
+	Status        string  `json:"status"`
+	StopPrice     float64 `json:"stopPrice,string"`
+	ClosePosition bool    `json:"closePosition"`
+	Symbol        string  `json:"symbol"`
+	TimeInForce   string  `json:"timeInForce"`
+	Type          string  `json:"type"`
+	OrigType      string  `json:"origType"`
+	ActivatePrice float64 `json:"activatePrice,string"`
+	PriceRate     float64 `json:"priceRate,string"`
+	UpdateTime    int64   `json:"updateTime"`
+	WorkingType   string  `json:"workingType"`
+	PriceProtect  bool    `json:"priceProtect"`
+}
+
 /*
 // Account holds the account data
 type Account struct {

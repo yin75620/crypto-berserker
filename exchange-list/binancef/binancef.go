@@ -3,6 +3,7 @@ package binancef
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -211,6 +212,20 @@ func (bn *binance) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 
 	resByte, err := bn.doSignRequest("POST", "v1/order", body)
 	log.Println(fmt.Sprintf("%s", resByte))
+
+	orderResponse := OrderResponse{}
+	json.Unmarshal(resByte, &orderResponse)
+	if err != nil {
+		fmt.Println(err)
+		return string(resByte), err
+	}
+
+	if orderResponse.Code != 0 {
+		s := fmt.Sprint("Code =", orderResponse.Code, orderResponse.Msg)
+		fmt.Println(s)
+		return string(resByte), errors.New(s)
+	}
+
 	return string(resByte), err
 
 	/*bo := BybitOrder{}
@@ -252,7 +267,7 @@ func (bn *binance) getExchangeInfo() ExchangeInfo {
 
 	exchangeInfo := ExchangeInfo{}
 	body := exc.JArray{}
-	resByte := bn.doRequest("GET", "v1/exchangeInfo", false, body)
+	resByte, _ := bn.doRequest("GET", "v1/exchangeInfo", false, body)
 
 	json.Unmarshal(resByte, &exchangeInfo)
 	return exchangeInfo
