@@ -174,23 +174,24 @@ func TestPositionCloseCheck(t *testing.T) {
 }
 
 func TestUserTrades(t *testing.T) {
-	symbol := "MAGICUSDT"
+	symbol := "INJUSDT"
 	bnfUTs := bnf.GetTightUserTrades(symbol)
 	bblUTs := bbl.GetTightUserTrades(symbol)
-	specifyTime := time.Now().Add(-time.Hour * 1)
-	checkUserTrade(bnfUTs, bblUTs, specifyTime)
+	specifyTime := time.Now().Add(-time.Hour * 24)
+	var nearMili int64 = 1000
+	checkUserTrade(bnfUTs, bblUTs, specifyTime, nearMili)
 	fmt.Println("bbl main")
-	checkUserTrade(bblUTs, bnfUTs, specifyTime)
+	checkUserTrade(bblUTs, bnfUTs, specifyTime, nearMili)
 
 }
 
-func checkUserTrade(mainUTs, otherUTs exc.UserTradeMap, specifyTime time.Time) {
+func checkUserTrade(mainUTs, otherUTs exc.UserTradeMap, specifyTime time.Time, nearMili int64) {
 	for key, mainUT := range mainUTs {
 		specifyTimeUnixMilli := specifyTime.UnixMilli()
 		if key.Time < specifyTimeUnixMilli {
 			continue
 		}
-		if otherUT, ok := otherUTs.Near(key, 1000); ok {
+		if otherUT, ok := otherUTs.Near(key, nearMili); ok {
 
 			calc := 1.0
 			if mainUT.Side == "BUY" {
@@ -198,10 +199,12 @@ func checkUserTrade(mainUTs, otherUTs exc.UserTradeMap, specifyTime time.Time) {
 			}
 			revenue := (mainUT.Price - otherUT.Price) * calc
 			revenue = jmath.FloatFloor(revenue, 5)
-			fmt.Println(time.UnixMilli(mainUT.Time), revenue, mainUT, otherUT)
+			volume := (mainUT.Qty - otherUT.Qty) * calc
+			volume = jmath.FloatFloor(volume, 4)
+			fmt.Println(time.UnixMilli(mainUT.Time), revenue, volume, mainUT, otherUT)
 
 		} else {
-			fmt.Println(time.UnixMilli(mainUT.Time), "?", mainUT, "-")
+			fmt.Println(time.UnixMilli(mainUT.Time), "?", "?", mainUT, "-")
 		}
 	}
 }
