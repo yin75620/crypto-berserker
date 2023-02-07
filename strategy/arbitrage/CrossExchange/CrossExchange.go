@@ -377,20 +377,25 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 	ce.updateExchangeWallet(matchBidExchange.GetName())
 	ce.mutex.Unlock()
 
-	//看一下交易紀錄
-	lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
-
 	content := fmt.Sprintf(
-		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\nTradeInfo:%s \r\ntime: %s\r\nelapsed: %v",
+		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %s\r\nelapsed: %v",
 		futures.GetMarketName(),
 		positionPairName,
 		matchCrossPair.GetProfitString(),
 		totalMatchOrderUSDVolume,
 		sumString,
-		lastTradeInfo,
 		time.Now().UTC(),
 		elapsed)
-	message_tool.SendBroadcastArcherGroup(content)
+
+	go func() {
+		//wait then send to telegram
+		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond))
+		//看一下交易紀錄
+		lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
+		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
+		message_tool.SendBroadcastArcherGroup(sendContent)
+	}()
+
 	log.Println(content)
 
 	return true, crossPairArray
@@ -501,19 +506,23 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	tradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
-
-	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g \r\nTradeInfo:%s",
+	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g",
 		futures.GetMarketName(),
 		fmt.Sprintf("resAsk:%f, orderTotal:%f, AskCoin:%s", askPair.Price, askPair.Total(), askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderTotal:%f, bidCoin:%s", bidPair.Price, bidPair.Total(), bidExchange.GetName()),
 		orderTotalValue,
 		topCrossPair.GetProfit(),
-		m_expectedTotalValue,
-		tradeInfo)
+		m_expectedTotalValue)
 	log.Println(content)
 
-	message_tool.SendBroadcastArcherGroup(content)
+	go func() {
+		//wait 2 second then send to telegram
+		time.Sleep(time.Millisecond * time.Duration(2000))
+		//看一下交易紀錄
+		lastTradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
+		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
+		message_tool.SendBroadcastArcherGroup(sendContent)
+	}()
 }
 
 var (

@@ -50,11 +50,14 @@ type binance struct {
 
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
-	res, _ := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+	res, err := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+	if err != nil {
+		fmt.Println("Binance", err)
+	}
 
 	account := Account{}
 
-	err := json.Unmarshal(res, &account)
+	err = json.Unmarshal(res, &account)
 	if err != nil {
 		log.Fatal("GetWallet json.Unmarshal", err)
 	}
