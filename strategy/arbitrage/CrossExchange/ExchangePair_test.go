@@ -25,7 +25,6 @@ func TestGetMaxHoldVolume(t *testing.T) {
 		bidExchange:  bybilinear,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
-		orderVolume:  200,
 	}
 
 	fmt.Println(cp.GetMaxHoldVolume())

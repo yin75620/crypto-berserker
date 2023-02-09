@@ -44,7 +44,6 @@ type CrossPair struct {
 	bidExchange  exc.Exchange
 	askPricePair exc.PricePair
 	bidPricePair exc.PricePair
-	orderVolume  float64
 	Symbol       string
 }
 
@@ -66,13 +65,21 @@ func (cp *CrossPair) IsDefault() bool {
 	//return cp.askExchange == nil && cp.bidExchange == nil && cp.askPricePair.Price == 0 && cp.bidPricePair.Price == 0
 }
 
+func (cp *CrossPair) SetVolumeByTotal(total float64) {
+	cp.askPricePair.Volume = cp.askExchange.GetVolumeByTotal(total, cp.askPricePair.Price)
+	cp.bidPricePair.Volume = cp.bidExchange.GetVolumeByTotal(total, cp.bidPricePair.Price)
+}
+
+func (cp *CrossPair) GetTotalVolume() float64 {
+	return cp.askPricePair.Total()
+}
+
 func (cp *CrossPair) toJson() CrossPairJson {
 	j := CrossPairJson{}
 	j.AskExchangeName = cp.askExchange.GetName()
 	j.BidExchangeName = cp.bidExchange.GetName()
 	j.AskPair = cp.askPricePair
 	j.BidPair = cp.bidPricePair
-	j.OrderVolume = cp.orderVolume
 	j.Symbol = cp.Symbol
 	return j
 }

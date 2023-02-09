@@ -72,7 +72,6 @@ func jMapToStruct(jmap map[string][]CrossPairJson, exchanges []exc.Exchange) (ma
 			}
 
 			cp := NewCrossPair(askExchange, bidExchange, value.AskPair, value.BidPair, value.Symbol)
-			cp.orderVolume = value.OrderVolume
 
 			res[k] = append(res[k], *cp)
 		}

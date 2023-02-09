@@ -199,7 +199,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	ce.mutex.Unlock()
 
 	// 調整成交量，改用下單的量，後續平倉成交量才會正確。
-	topCrossPair.orderVolume = orderTotalValue
+	topCrossPair.SetVolumeByTotal(orderTotalValue)
 	ce.positionCrossPairMap[topCrossPair.GetName()] = append(ce.positionCrossPairMap[topCrossPair.GetName()], topCrossPair)
 	savePairMapToFile(ce.positionCrossPairMap)
 
@@ -252,7 +252,7 @@ func (ce *CrossExchange) positionCloseCheck(crossPairsTable map[string][]CrossPa
 
 		for i := len(arrayPairs) - 1; i >= 0; i-- {
 			pair := arrayPairs[i]
-			if pair.orderVolume == 0 {
+			if pair.GetTotalVolume() == 0 {
 				//remove
 				arrayPairs = removeElement(arrayPairs, i)
 			}
@@ -318,7 +318,6 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 		//找出反向配對，確定利潤
 		positionProfit := positionCrossPair.GetProfit()
 
-		//log.Println(fmt.Sprintf("position profit:%f; orderVolume:%f, matchProfit:%f", positionProfit, positionCrossPair.orderVolume, matchProfit))
 		sum := positionProfit + matchProfit
 
 		hasProfit := (matchProfit > getMinSellProfit(init, futures) && sum > getMinSumProfit(init, futures) && matchVolume > init.MinVolume)
@@ -331,17 +330,23 @@ func getTotalVolume(crossPairArray []CrossPair, matchCrossPair CrossPair, init C
 			log.Println(sumString)
 			resSumString = resSumString + sumString
 
-			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.orderVolume)
+			thisMatchOrderVolume := math.Min(matchVolume, positionCrossPair.GetTotalVolume())
 
-			askVolume := positionCrossPair.GetAskVolumeByTotal(thisMatchOrderVolume)
-			bidVolume := positionCrossPair.GetBidVolumeByTotal(thisMatchOrderVolume)
+			askVolume := positionCrossPair.askPricePair.Volume
+			bidVolume := positionCrossPair.bidPricePair.Volume
+
+			if thisMatchOrderVolume != positionCrossPair.GetTotalVolume() {
+				askVolume = positionCrossPair.GetAskVolumeByTotal(thisMatchOrderVolume)
+				bidVolume = positionCrossPair.GetBidVolumeByTotal(thisMatchOrderVolume)
+			}
 
 			askTotalVolume += askVolume
 			bidTotalVolume += bidVolume
 
 			totalMatchOrderUSDVolume += thisMatchOrderVolume
 
-			crossPairArray[index].orderVolume -= thisMatchOrderVolume
+			crossPairArray[index].askPricePair.Volume -= askVolume
+			crossPairArray[index].bidPricePair.Volume -= bidVolume
 		}
 	}
 	return askTotalVolume, bidTotalVolume, totalMatchOrderUSDVolume, crossPairArray, resSumString
@@ -540,7 +545,7 @@ func getCurrentUSDVolume(name string, positionCrossPairMap map[string][]CrossPai
 			continue
 		}
 		for _, v := range array {
-			sum = sum + v.orderVolume
+			sum = sum + v.GetTotalVolume()
 		}
 	}
 	return sum
