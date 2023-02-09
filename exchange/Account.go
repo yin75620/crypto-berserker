@@ -36,6 +36,24 @@ func (ut *UserTrade) Combine(v UserTrade) {
 	ut.Price = ut.QuoteQty / ut.Qty
 }
 
+func (ut *UserTrade) Revenue(other UserTrade) float64 {
+	calc := 1.0
+	if ut.Side == "BUY" {
+		calc = -1.0
+	}
+	revenue := (ut.Price - other.Price) * calc
+	return revenue
+}
+
+func (ut *UserTrade) VolumeGap(other UserTrade) float64 {
+	calc := 1.0
+	if ut.Side == "BUY" {
+		calc = -1.0
+	}
+	volume := (ut.Qty - other.Qty) * calc
+	return volume
+}
+
 type UserTradeMap map[UserTradeKey]UserTrade
 
 func (utMap *UserTradeMap) Near(utk UserTradeKey, nearMili int64) (UserTrade, bool) {

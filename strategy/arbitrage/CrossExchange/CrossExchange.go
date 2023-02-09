@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/yin75620/crypto-berserker/jmath"
 	"github.com/yin75620/crypto-berserker/ksql"
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
@@ -411,20 +412,31 @@ func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, future
 	askTrades := askExchange.GetTightUserTrades(symbol)
 	bidTrades := bidExchange.GetTightUserTrades(symbol)
 
-	askItem := getFirstItme(askTrades)
-	bidItem := getFirstItme(bidTrades)
+	askItem := getNewestItme(askTrades)
+	bidItem := getNewestItme(bidTrades)
 
-	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v",
+	revenue := askItem.Revenue(bidItem)
+	revenue = jmath.FloatFloor(revenue, 5)
+	volumeGap := askItem.VolumeGap(bidItem)
+	volumeGap = jmath.FloatFloor(volumeGap, 4)
+
+	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v\r\n revenue:%f, volumeGap:%f",
 		askExchange.GetName(), askItem.Side, askItem.Price, askItem.Qty, askItem.Time,
-		bidExchange.GetName(), bidItem.Side, bidItem.Price, bidItem.Qty, bidItem.Time)
+		bidExchange.GetName(), bidItem.Side, bidItem.Price, bidItem.Qty, bidItem.Time,
+		revenue, volumeGap)
 }
 
-func getFirstItme(uts map[exc.UserTradeKey]exc.UserTrade) exc.UserTrade {
+func getNewestItme(uts map[exc.UserTradeKey]exc.UserTrade) exc.UserTrade {
 
+	largest := int64(0)
+	newestUserTrade := exc.UserTrade{}
 	for _, v := range uts {
-		return v
+		if v.Time > largest {
+			largest = v.Time
+			newestUserTrade = v
+		}
 	}
-	return exc.UserTrade{}
+	return newestUserTrade
 }
 
 func getCrossPairMap(exchanges []exc.Exchange, futures exc.Futures) CrossPairStringMap {
