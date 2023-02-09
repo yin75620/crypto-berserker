@@ -504,6 +504,8 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	askVolume := askExchange.GetVolumeByTotal(orderTotalValue, askPair.Price)
 	bidVolume := bidExchange.GetVolumeByTotal(orderTotalValue, bidPair.Price)
 
+	speedTestStart := time.Now()
+
 	isClose := false
 	askChannel := executeOrder(askExchange, futures, askPair.Price, exc.Ask, askVolume, init.OverPrice, isClose)
 	bidChannel := executeOrder(bidExchange, futures, bidPair.Price, exc.Bid, bidVolume, init.OverPrice, isClose)
@@ -511,13 +513,15 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-askChannel
 	<-bidChannel
 
-	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g",
+	elapsed := time.Since(speedTestStart)
+	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g\r\nelapsed:%v",
 		futures.GetMarketName(),
 		fmt.Sprintf("resAsk:%f, orderTotal:%f, AskCoin:%s", askPair.Price, askPair.Total(), askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderTotal:%f, bidCoin:%s", bidPair.Price, bidPair.Total(), bidExchange.GetName()),
 		orderTotalValue,
 		topCrossPair.GetProfit(),
-		m_expectedTotalValue)
+		m_expectedTotalValue,
+		elapsed)
 	log.Println(content)
 
 	go func() {
