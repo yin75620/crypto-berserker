@@ -10,7 +10,7 @@ func (ut *UserTrade) ToExcUserTrade() exc.UserTrade {
 	eut.QuoteQty = ut.QuoteQty
 	eut.Side = ut.Side
 	eut.Symbol = ut.Symbol
-	eut.Time = ut.Time / 1000 * 1000
+	eut.Time = ut.Time
 	return eut
 }
 
