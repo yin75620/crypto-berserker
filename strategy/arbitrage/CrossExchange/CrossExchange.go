@@ -395,7 +395,7 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 
 	go func() {
 		//wait then send to telegram
-		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond))
+		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond/2))
 		//看一下交易紀錄
 		lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
 		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
@@ -511,7 +511,7 @@ func (ce *CrossExchange) getCanOrderMaxProfitCrossPair(mcp CrossPairStringMap, f
 	return topCrossPair
 }
 
-func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue float64, init CrossExchangeInit) {
+func (ce *CrossExchange) orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue float64, init CrossExchangeInit) {
 	askExchange, askPair := topCrossPair.GetAskInfo()
 	bidExchange, bidPair := topCrossPair.GetBidInfo()
 
@@ -540,8 +540,7 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	log.Println(content)
 
 	go func() {
-		//wait 2 second then send to telegram
-		time.Sleep(time.Millisecond * time.Duration(2000))
+		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond/2))
 		//看一下交易紀錄
 		lastTradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
 		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
