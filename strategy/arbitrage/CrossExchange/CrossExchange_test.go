@@ -91,7 +91,6 @@ func TestTelegramPost(t *testing.T) {
 		bidExchange:  second,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
-		orderVolume:  10.0,
 	}
 
 	bybitFtx := CrossPair{
@@ -99,7 +98,6 @@ func TestTelegramPost(t *testing.T) {
 		bidExchange:  first,
 		askPricePair: exc.PricePair{9500, 1000},
 		bidPricePair: exc.PricePair{9700, 1000},
-		orderVolume:  10.0,
 	}
 
 	cpArray := []CrossPair{
@@ -132,13 +130,19 @@ func TestPositionCloseCheck(t *testing.T) {
 	first := bybilinear.NewBybilinear(http.DefaultClient)
 	second := binancef.NewBinancef(http.DefaultClient)
 
+	futures := exc.Futures{
+		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
+		TargetName: "BTC",
+		QuoteCoin:  "USDT",
+	}
+
 	crossPairsTable := map[string][]CrossPair{}
 	ftxBit := CrossPair{
 		askExchange:  first,
 		bidExchange:  second,
 		askPricePair: exc.PricePair{9600, 100},
 		bidPricePair: exc.PricePair{9600, 100},
-		orderVolume:  10.0,
+		Symbol:       futures.GetMarketName(),
 	}
 
 	bybitFtx := CrossPair{
@@ -146,7 +150,7 @@ func TestPositionCloseCheck(t *testing.T) {
 		bidExchange:  first,
 		askPricePair: exc.PricePair{9500, 1000},
 		bidPricePair: exc.PricePair{9700, 1000},
-		orderVolume:  10.0,
+		Symbol:       futures.GetMarketName(),
 	}
 
 	cp := ftxBit
@@ -160,12 +164,6 @@ func TestPositionCloseCheck(t *testing.T) {
 
 	matchMap[matchCp.GetName()] = matchCp
 
-	futures := exc.Futures{
-		//ExpirationDate: time.Date(2019, time.December, 27, 0, 0, 0, 0, time.UTC),
-		TargetName: "BTC",
-		QuoteCoin:  "USDT",
-	}
-
 	init := *NewCrossExchangeInit()
 	isClose, res := ce.positionCloseCheck(crossPairsTable, matchMap, futures, init)
 
@@ -174,10 +172,10 @@ func TestPositionCloseCheck(t *testing.T) {
 }
 
 func TestUserTrades(t *testing.T) {
-	symbol := "INJUSDT"
+	symbol := "MAGICUSDT"
 	bnfUTs := bnf.GetTightUserTrades(symbol)
 	bblUTs := bbl.GetTightUserTrades(symbol)
-	specifyTime := time.Now().Add(-time.Hour * 24)
+	specifyTime := time.Now().Add(-time.Hour * 1)
 	var nearMili int64 = 1000
 	checkUserTrade(bnfUTs, bblUTs, specifyTime, nearMili)
 	fmt.Println("bbl main")
@@ -193,15 +191,11 @@ func checkUserTrade(mainUTs, otherUTs exc.UserTradeMap, specifyTime time.Time, n
 		}
 		if otherUT, ok := otherUTs.Near(key, nearMili); ok {
 
-			calc := 1.0
-			if mainUT.Side == "BUY" {
-				calc = -1.0
-			}
-			revenue := (mainUT.Price - otherUT.Price) * calc
+			revenue := mainUT.Revenue(otherUT)
 			revenue = jmath.FloatFloor(revenue, 5)
-			volume := (mainUT.Qty - otherUT.Qty) * calc
-			volume = jmath.FloatFloor(volume, 4)
-			fmt.Println(time.UnixMilli(mainUT.Time), revenue, volume, mainUT, otherUT)
+			volumeGap := mainUT.VolumeGap(otherUT)
+			volumeGap = jmath.FloatFloor(volumeGap, 4)
+			fmt.Println(time.UnixMilli(mainUT.Time), revenue, volumeGap, mainUT, otherUT)
 
 		} else {
 			fmt.Println(time.UnixMilli(mainUT.Time), "?", "?", mainUT, "-")
