@@ -384,13 +384,13 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 	ce.mutex.Unlock()
 
 	content := fmt.Sprintf(
-		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %s\r\nelapsed: %v",
+		"%s positionPairName: %s,\r\nmatchPair: %s\r\norderVolume: %f \r\nsumString: %s\r\ntime: %v\r\nelapsed: %v",
 		futures.GetMarketName(),
 		positionPairName,
 		matchCrossPair.GetProfitString(),
 		totalMatchOrderUSDVolume,
 		sumString,
-		time.Now().UTC(),
+		time.Now().UnixMilli(),
 		elapsed)
 
 	go func() {
@@ -417,13 +417,15 @@ func getLastTradeInfo(askExchange exc.Exchange, bidExchange exc.Exchange, future
 
 	revenue := askItem.Revenue(bidItem)
 	revenue = jmath.FloatFloor(revenue, 5)
+	revenuePercent := revenue / askItem.Price
 	volumeGap := askItem.VolumeGap(bidItem)
 	volumeGap = jmath.FloatFloor(volumeGap, 4)
+	timeGap := askItem.Time - bidItem.Time
 
-	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v\r\n revenue:%f, volumeGap:%f",
+	return fmt.Sprintf("%s:%s %f v:%f t:%v \r\n%s:%s %f v:%f t:%v\r\n revenue:%f, volumeGap:%f, revenuePercent:%0.4f, timeGap:%v",
 		askExchange.GetName(), askItem.Side, askItem.Price, askItem.Qty, askItem.Time,
 		bidExchange.GetName(), bidItem.Side, bidItem.Price, bidItem.Qty, bidItem.Time,
-		revenue, volumeGap)
+		revenue, volumeGap, revenuePercent, timeGap)
 }
 
 func getNewestItme(uts map[exc.UserTradeKey]exc.UserTrade) exc.UserTrade {
@@ -526,13 +528,14 @@ func orderCrossPair(topCrossPair CrossPair, futures exc.Futures, orderTotalValue
 	<-bidChannel
 
 	elapsed := time.Since(speedTestStart)
-	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g\r\nelapsed:%v",
+	content := fmt.Sprintf("%s, %s, %s\r\norderTotalValue:%g \r\nmaxProfit:%g \r\nexpectedTotalValue:%g\r\ntime:%v\r\nelapsed:%v",
 		futures.GetMarketName(),
 		fmt.Sprintf("resAsk:%f, orderTotal:%f, AskCoin:%s", askPair.Price, askPair.Total(), askExchange.GetName()),
 		fmt.Sprintf("resBid:%f, orderTotal:%f, bidCoin:%s", bidPair.Price, bidPair.Total(), bidExchange.GetName()),
 		orderTotalValue,
 		topCrossPair.GetProfit(),
 		m_expectedTotalValue,
+		time.Now().UnixMilli(),
 		elapsed)
 	log.Println(content)
 
