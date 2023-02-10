@@ -395,7 +395,7 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 
 	go func() {
 		//wait then send to telegram
-		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond/2))
+		time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
 		//看一下交易紀錄
 		lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
 		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
@@ -540,7 +540,7 @@ func (ce *CrossExchange) orderCrossPair(topCrossPair CrossPair, futures exc.Futu
 	log.Println(content)
 
 	go func() {
-		time.Sleep(time.Millisecond * time.Duration(ce.init.DealtDelayMilliSecond/2))
+		time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
 		//看一下交易紀錄
 		lastTradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
 		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
