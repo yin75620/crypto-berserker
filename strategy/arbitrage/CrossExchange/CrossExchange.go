@@ -193,7 +193,7 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 
 	ce.mutex.Lock()
 	// 進行交易
-	orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
+	ce.orderCrossPair(topCrossPair, futures, orderTotalValue, ce.init)
 	//更新交易所內幣別持有量
 	ce.updateExchangeWallet(topCrossPair.askExchange.GetName())
 	ce.updateExchangeWallet(topCrossPair.bidExchange.GetName())
