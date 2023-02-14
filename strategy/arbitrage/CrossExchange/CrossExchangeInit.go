@@ -63,7 +63,7 @@ func (cei *CrossExchangeInit) IniSetting(filename string) error {
 	const section = "CrossExchange"
 
 	cei.DelayMilliSecond = cfg.Section(section).Key("DelayMilliSecond").MustInt64()
-	cei.DealtDelayMilliSecond = cfg.Section(section).Key("DelayMilliSecond").MustInt64()
+	cei.DealtDelayMilliSecond = cfg.Section(section).Key("DealtDelayMilliSecond").MustInt64()
 	cei.WaitCompleteMilliSecond = cfg.Section(section).Key("WaitCompleteMilliSecond").MustInt64()
 	cei.OverPrice = cfg.Section(section).Key("OverPrice").MustFloat64()
 	cei.MinSellProfit = cfg.Section(section).Key("MinSellProfit").MustFloat64()
