@@ -142,7 +142,6 @@ func (ce *CrossExchange) stratFuturesStrategy(futures exc.Futures) int64 {
 	}
 
 	topCrossPair := ce.getMaxProfitCrossPair(crossPairMap)
-
 	if isDisconnect(topCrossPair) {
 		var disconnectMiliSeccond int64 = 3000
 		log.Println(fmt.Sprintf("error: disconnect, wait... %v miliSecond.", disconnectMiliSeccond))
@@ -393,16 +392,14 @@ func (ce *CrossExchange) isCloseCheck(positionPairName string, crossPairArray []
 		time.Now().UnixMilli(),
 		elapsed)
 
-	go func() {
-		//wait then send to telegram
-		time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
-		//看一下交易紀錄
-		lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
-		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
-		message_tool.SendBroadcastArcherGroup(sendContent)
-	}()
-
 	log.Println(content)
+
+	//wait then send to telegram
+	time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
+	//看一下交易紀錄
+	lastTradeInfo := getLastTradeInfo(matchAskExchange, matchBidExchange, futures)
+	sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
+	message_tool.SendBroadcastArcherGroup(sendContent)
 
 	return true, crossPairArray
 }
@@ -535,17 +532,17 @@ func (ce *CrossExchange) orderCrossPair(topCrossPair CrossPair, futures exc.Futu
 		orderTotalValue,
 		topCrossPair.GetProfit(),
 		m_expectedTotalValue,
-		time.Now().UnixMilli(),
+		speedTestStart.UnixMilli(),
 		elapsed)
 	log.Println(content)
 
-	go func() {
-		time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
-		//看一下交易紀錄
-		lastTradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
-		sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
-		message_tool.SendBroadcastArcherGroup(sendContent)
-	}()
+	//等交易完成，因為沒做Callback這邊直接用睡的等一下
+	time.Sleep(time.Millisecond * time.Duration(ce.init.WaitCompleteMilliSecond))
+	//看一下交易紀錄
+	lastTradeInfo := getLastTradeInfo(askExchange, bidExchange, futures)
+	sendContent := fmt.Sprintf("%s \r\nlastTradeInfo: %s", content, lastTradeInfo)
+	message_tool.SendBroadcastArcherGroup(sendContent)
+
 }
 
 var (
