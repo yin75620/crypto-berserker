@@ -10,6 +10,7 @@ import (
 	"github.com/go-ini/ini"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange-list/common"
+	simpleLog "github.com/yin75620/crypto-berserker/log"
 	"github.com/yin75620/crypto-berserker/message_tool"
 	"github.com/yin75620/crypto-berserker/strategy/arbitrage/CrossExchange"
 )
@@ -24,6 +25,9 @@ var (
 )
 
 func main() {
+	slog := simpleLog.StartLog()
+	defer slog.Close()
+
 	log.Println(version)
 
 	iniSetting()
