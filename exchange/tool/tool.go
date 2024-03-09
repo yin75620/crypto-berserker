@@ -111,6 +111,20 @@ func SendPing(c *websocket.Conn, req interface{}) {
 	log.Printf("receive: %s\n", msg)
 }
 
+func TransInterfaceToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
+	res := [][]float64{}
+	for _, array := range askStrArrays {
+		askFloatArray := []float64{}
+		sArray := array.([]interface{})
+		for _, s := range sArray {
+			res, _ := strconv.ParseFloat(s.(string), 64)
+			askFloatArray = append(askFloatArray, res)
+		}
+		res = append(res, askFloatArray)
+	}
+	return res
+}
+
 func TransToFloatTwoArray(askStrArrays [][]string) [][]float64 {
 	res := [][]float64{}
 	for _, array := range askStrArrays {

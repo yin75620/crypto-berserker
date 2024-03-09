@@ -63,11 +63,11 @@ type OrderBookDataRequestParams struct {
 
 // OrderBookData is resp data from orderbook endpoint
 type OrderBookData struct {
-	Code         int           `json:"code"`
-	Msg          string        `json:"msg"`
-	LastUpdateID int64         `json:"lastUpdateId"`
-	Bids         []interface{} `json:"bids,[]string"`
-	Asks         []interface{} `json:"asks,[]string"`
+	Code         int        `json:"code"`
+	Msg          string     `json:"msg"`
+	LastUpdateID int64      `json:"lastUpdateId"`
+	Bids         [][]string `json:"bids"`
+	Asks         [][]string `json:"asks"`
 }
 
 func (obd *OrderBookData) ToOrderBookDetail() ob.OrderBookerResponseDetail {

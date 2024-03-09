@@ -50,7 +50,7 @@ func (ssr *SnapshotResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 	res.Time = ssr.TimeStamp
 	//res.checksum = ssr.Id
 	res.Action = ob.Partial
-	//res.Market = ssr.Symbol
+	res.Market = ssr.Data.Symbol
 	res.Asks = tool.TransToFloatTwoArray(ssr.Data.Asks)
 	res.Bids = tool.TransToFloatTwoArray(ssr.Data.Bids)
 
@@ -68,7 +68,7 @@ func (dr *DeltaResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 	res.Time = dr.TimeStamp
 	//res.checksum = dr.Id
 	res.Action = ob.Update
-	//res.Market = dr.Symbol
+	res.Market = dr.Data.Symbol
 
 	res.Asks = tool.TransToFloatTwoArray(dr.Data.Asks)
 	res.Bids = tool.TransToFloatTwoArray(dr.Data.Bids)
