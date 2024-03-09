@@ -1,6 +1,7 @@
 package bybilinear
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -22,4 +23,13 @@ func TestWebsocketInfo(t *testing.T) {
 		fmt.Println("ask", ask)
 		fmt.Println("bid", bid)
 	}
+}
+
+func TestConvert(t *testing.T) {
+	message := []byte("{\"topic\":\"orderbook.50.BTCUSDT\",\"type\":\"delta\",\"ts\":1709972689094,\"data\":{\"s\":\"BTCUSDT\",\"b\":[],\"a\":[[\"68410.10\",\"0.308\"],[\"68418.20\",\"0.010\"]],\"u\":16044212,\"seq\":139157701116},\"cts\":1709972689090}")
+	fmt.Println(string(message))
+	deltaResponse := DeltaResponse{}
+	json.Unmarshal(message, &deltaResponse)
+	fmt.Println(deltaResponse)
+
 }

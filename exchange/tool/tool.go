@@ -48,13 +48,15 @@ func doCreateConn(url string) (*websocket.Conn, error) {
 	return c, nil
 }
 
-func Send(c *websocket.Conn, req interface{}) {
+func Send(c *websocket.Conn, req interface{}) []byte {
+
 	msg, err := doSend(c, req)
 	if err != nil {
 		log.Fatal("send has error:", err)
-		return
+		return []byte{}
 	}
 	log.Printf("receive: %s\n", msg)
+	return msg
 }
 
 func SendFlate(c *websocket.Conn, req interface{}) {
@@ -109,13 +111,13 @@ func SendPing(c *websocket.Conn, req interface{}) {
 	log.Printf("receive: %s\n", msg)
 }
 
-func TransToFloatTwoArray(askStrArrays []interface{}) [][]float64 {
+func TransToFloatTwoArray(askStrArrays [][]string) [][]float64 {
 	res := [][]float64{}
 	for _, array := range askStrArrays {
 		askFloatArray := []float64{}
-		sArray := array.([]interface{})
+		sArray := array
 		for _, s := range sArray {
-			res, _ := strconv.ParseFloat(s.(string), 64)
+			res, _ := strconv.ParseFloat(s, 64)
 			askFloatArray = append(askFloatArray, res)
 		}
 		res = append(res, askFloatArray)

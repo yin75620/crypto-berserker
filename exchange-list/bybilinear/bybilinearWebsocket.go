@@ -10,7 +10,7 @@ import (
 	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
 
-const WEBSOCKET_URL = "wss://stream.bybit.com/realtime_public"
+const WEBSOCKET_URL = "wss://stream.bybit.com/v5/public/linear"
 
 type BybilinearWebSocket struct {
 }
@@ -25,97 +25,24 @@ func (fws *BybilinearWebSocket) SubScribeOrderBook(marketName string) chan ob.Or
 	return fws.doSubScribeOrderBook(marketName, resChannel)
 }
 
-//從這裡繼續，準備對 Response 做轉換
-//https://github.com/bybilinear-exchange/bybilinear-official-api-docs/blob/master/en/websocket.md#orderBook25_v2
-/*
-//snapshot type format. The data is ordered by price, from buy to sell
-{
-     "topic":"orderBookL2_25.BTCUSD",
-     "type":"snapshot",
-     "data":[
-        {
-            "price":"2999.00",
-            "symbol":"BTCUSD",
-            "id":29990000,
-            "side":"Buy",
-            "size":9
-        },
-        {
-            "price":"3001.00",
-            "symbol":"BTCUSD",
-            "id":30010000,
-            "side":"Sell",
-            "size":10
-        }
-     ],
-     "cross_seq":11518,
-     "timestamp_e6":1555647164875373
-}
-
-
-//delta type format
-{
-     "topic":"orderBookL2_25.BTCUSD",
-     "type":"delta",
-     "data":{
-          "delete":[
-             {
-                   "price":"3001.00",
-                   "symbol":"BTCUSD",
-                   "id":30010000,
-                   "side":"Sell"
-             }
-          ],
-          "update":[
-             {
-                   "price":"2999.00",
-                   "symbol":"BTCUSD",
-                   "id":29990000,
-                   "side":"Buy",
-                   "size":8
-             }
-          ],
-          "insert":[
-             {
-                   "price":"2998.00",
-                   "symbol":"BTCUSD",
-                   "id":29980000,
-                   "side":"Buy",
-                   "size":8
-             }
-          ],
-          "transactTimeE6":0
-     },
-     "cross_seq":11519,
-     "timestamp_e6":1555647221331673
-}
-*/
-
-/*price":"2999.00",
-  "symbol":"BTCUSD",
-  "id":29990000,
-  "side":"Buy",
-  "size":9*/
-
-///
 type OrderBookSocketResponseData struct {
-	Price  float64 `json:"price,string,omitempty"`
-	Symbol string  `json:"symbol,omitempty"`
-	Id     int64   `json:"id,omitempty"`
-	Side   string  `json:"side,omitempty"`
-	Size   float64 `json:"size,omitempty"`
+	Symbol   string     `json:"s,omitempty"`
+	Bids     [][]string `json:"b"`             // Bids 是出价，其中每个元素包含[价格, 数量]
+	Asks     [][]string `json:"a,omitempty"`   // Asks 是要价，其中每个元素包含[价格, 数量]
+	UpdateID int64      `json:"u,omitempty"`   // UpdateID 是更新ID，表示数据序列
+	Sequence int64      `json:"seq,omitempty"` // Sequence 是交叉序列号
+	Cts      int64      `json:"cts,omitempty"` // Cts 是匹配引擎产生此订单簿数据的时间戳
 }
 
 type OrderBookSocketResponse struct {
 	Topic      string  `json:"topic,omitempty"`
 	ActionType string  `json:"type,omitempty"`
-	CrossSeq   int64   `json:"cross_seq,omitempty"`
-	TimeStamp  float64 `json:"timestamp_e6,omitempty"`
+	TimeStamp  float64 `json:"ts,omitempty"`
 }
 
 type SnapshotResponse struct {
 	OrderBookSocketResponse
-	Data []OrderBookSocketResponseData `json:"data,omitempty"`
+	Data OrderBookSocketResponseData `json:"data,omitempty"`
 }
 
 func (ssr *SnapshotResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
@@ -124,19 +51,16 @@ func (ssr *SnapshotResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 	//res.checksum = ssr.Id
 	res.Action = ob.Partial
 	//res.Market = ssr.Symbol
-	transToAskBid(&res.Asks, &res.Bids, ssr.Data)
-	return res
-}
+	res.Asks = tool.TransToFloatTwoArray(ssr.Data.Asks)
+	res.Bids = tool.TransToFloatTwoArray(ssr.Data.Bids)
 
-type DeltaDetail struct {
-	Delete []OrderBookSocketResponseData `json:"delete,omitempty"`
-	Update []OrderBookSocketResponseData `json:"update,omitempty"`
-	Insert []OrderBookSocketResponseData `json:"insert,omitempty"`
+	return res
 }
 
 type DeltaResponse struct {
 	OrderBookSocketResponse
-	Data DeltaDetail `json:"data,omitempty"`
+	Data OrderBookSocketResponseData `json:"data,omitempty"`
+	Cts  int64                       `json:"cts"` // 匹配引擎时间戳
 }
 
 func (dr *DeltaResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
@@ -146,33 +70,22 @@ func (dr *DeltaResponse) toOrderBookDetail() ob.OrderBookerResponseDetail {
 	res.Action = ob.Update
 	//res.Market = dr.Symbol
 
-	transToAskBid(&res.Asks, &res.Bids, dr.Data.Delete)
-	transToAskBid(&res.Asks, &res.Bids, dr.Data.Update)
-	transToAskBid(&res.Asks, &res.Bids, dr.Data.Insert)
+	res.Asks = tool.TransToFloatTwoArray(dr.Data.Asks)
+	res.Bids = tool.TransToFloatTwoArray(dr.Data.Bids)
+
 	return res
 }
 
-func transToAskBid(asks, bids *[][]float64, data []OrderBookSocketResponseData) {
-	for _, pItem := range data {
-		if pItem.Side == "Buy" {
-			*bids = append(*bids, []float64{pItem.Price, pItem.Size})
-		} else if pItem.Side == "Sell" {
-			*asks = append(*asks, []float64{pItem.Price, pItem.Size})
-		} else {
-			log.Println("unknow pItem.Side:", pItem.Side)
-		}
-	}
-}
-
-///
+// /
 // 為了錯誤重連，所以要再傳入 channel
 func (fws *BybilinearWebSocket) doSubScribeOrderBook(marketName string, resChannel chan ob.OrderBookerResponseDetail) chan ob.OrderBookerResponseDetail {
 	conn := createConn()
 	market := marketName
-	sendSubcribe(conn, "orderBook", market)
+	receive_res := sendSubcribe(conn, "orderbook", market)
 
 	go func() {
-
+		rep := addResultToChannel(receive_res, market)
+		resChannel <- rep
 		for {
 			response := ob.OrderBookerResponseDetail{}
 			_, message, err := conn.ReadMessage()
@@ -208,6 +121,25 @@ func (fws *BybilinearWebSocket) doSubScribeOrderBook(marketName string, resChann
 	return resChannel
 }
 
+func addResultToChannel(message []byte, market string) ob.OrderBookerResponseDetail {
+	response := ob.OrderBookerResponseDetail{}
+	firstResponse := OrderBookSocketResponse{}
+
+	json.Unmarshal(message, &firstResponse)
+	if firstResponse.ActionType == "snapshot" {
+		snapshotResponse := SnapshotResponse{}
+		json.Unmarshal(message, &snapshotResponse)
+		response = snapshotResponse.toOrderBookDetail()
+		response.Market = market
+	} else if firstResponse.ActionType == "delta" {
+		deltaResponse := DeltaResponse{}
+		json.Unmarshal(message, &deltaResponse)
+		response = deltaResponse.toOrderBookDetail()
+		response.Market = market
+	}
+	return response
+}
+
 func createConn() *websocket.Conn {
 	return tool.CreateConn(WEBSOCKET_URL)
 }
@@ -217,14 +149,16 @@ type SubscriptionRequest struct {
 	Op   string   `json:"op,omitempty"`   //subscribe,unsubscribe
 }
 
-func sendSubcribe(c *websocket.Conn, channelName string, marketName string) {
+func sendSubcribe(c *websocket.Conn, channelName string, marketName string) []byte {
 	//"orderBookL2_25.BTCUSD"
 	//ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}');
-	args := fmt.Sprintf("%sL2_25.%s", channelName, marketName)
+	args := fmt.Sprintf("%s.50.%s", channelName, marketName)
+	fmt.Println(args)
 	req := SubscriptionRequest{
 		Op:   "subscribe",
 		Args: []string{args},
 	}
 
-	tool.Send(c, req)
+	return tool.Send(c, req)
+
 }
