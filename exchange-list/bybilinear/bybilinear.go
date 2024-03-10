@@ -4,25 +4,26 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"sort"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/yin75620/crypto-berserker/exchange"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/jmath"
-	"github.com/yin75620/crypto-berserker/object_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
 var (
-	apiURL = "https://api.Bybit.com/"
+	apiURL = "https://api.bybit.com/"
 )
 
 type JArray exc.JArray
@@ -57,9 +58,13 @@ func (bb *Bybilinear) GetWallet() exc.Wallet {
 	jarray := exc.JArray{}
 	coinName := "USDT"
 	jarray["coin"] = coinName
+	jarray["accountType"] = "UNIFIED" //Unified account: UNIFIED (trade spot/linear/options), CONTRACT(trade inverse)
+	jarray["category"] = "linear"
 	w := exc.NewWallet()
 
-	response, err := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
+	response, err := bb.doRequest("GET", "v5/account/wallet-balance", jarray)
+	//response, err := bb.doRequest("GET", "v5/account/transaction-log", jarray)
+	fmt.Println(string(response))
 	if err != nil {
 		fmt.Println(err)
 		return *w
@@ -490,21 +495,14 @@ func (bb *Bybilinear) doRequest(method, apiName string, body exc.JArray) ([]byte
 	client := bb.client
 
 	ts := exc.GetTimeSpan()
-	objBody := exc.JArray{
-		"api_key":   bb.apiKey,
-		"timestamp": ts,
-	}
-	objBody.Add(body)
 
-	sign := GetSignature(objBody, bb.secretKey)
-
-	objBody.Add(exc.JArray{
-		"sign": sign,
-	})
-
-	jsonBody, err := json.Marshal(objBody)
-	if err != nil {
-		log.Fatal(err)
+	jsonBody := []byte{}
+	if method == "POST" {
+		jb, err := json.Marshal(body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		jsonBody = jb
 	}
 
 	var res []byte
@@ -516,35 +514,41 @@ func (bb *Bybilinear) doRequest(method, apiName string, body exc.JArray) ([]byte
 		return res, err
 	}
 
-	if method == "GET" {
-		q := req.URL.Query()
-		for key, obj := range objBody {
-			q.Add(key, object_tool.ToString(obj))
-		}
-		req.URL.RawQuery = q.Encode()
-	}
+	queryString := toUrlValues(body).Encode()
+	req.URL.RawQuery = queryString
+	qString := queryString
 
-	req.Header.Add("Content-Type", "application/json")
+	recvWindowStr := "5000"
+
+	req.Header.Set("User-Agent", "bybit.api.go/1.0.2")
+	req.Header.Set("X-BAPI-API-KEY", bb.apiKey)
+	req.Header.Set("X-BAPI-TIMESTAMP", fmt.Sprintf("%v", ts))
+	req.Header.Set("X-BAPI-RECV-WINDOW", recvWindowStr)
+	req.Header.Set("X-BAPI-SIGN-TYPE", "2")
+
+	if method == "POST" {
+		req.Header.Set("Content-Type", "application/json")
+		qString = string(jsonBody)
+	}
+	sign := GetSignature(bb.apiKey, bb.secretKey, recvWindowStr, qString, ts)
+	req.Header.Set("X-BAPI-SIGN", sign)
 
 	return exc.SendRequest(client, req)
 }
 
-func GetSignature(params map[string]interface{}, key string) string {
-	keys := make([]string, len(params))
-	i := 0
-	_val := ""
-	for k, _ := range params {
-		keys[i] = k
-		i++
+func GetSignature(apiKey, apiSecret, recvWindow, queryString string, timeStamp int64) string {
+	var signatureBase []byte
+	signatureBase = []byte(strconv.FormatInt(timeStamp, 10) + apiKey + recvWindow + queryString)
+	hmac256 := hmac.New(sha256.New, []byte(apiSecret))
+	hmac256.Write(signatureBase)
+	signature := hex.EncodeToString(hmac256.Sum(nil))
+	return signature
+}
+
+func toUrlValues(m exchange.JArray) url.Values {
+	res := url.Values{}
+	for k, v := range m {
+		res.Set(k, fmt.Sprintf("%v", v))
 	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		value := object_tool.ToString(params[k])
-		_val += k + "=" + value + "&"
-	}
-	_val = _val[0 : len(_val)-1]
-	//fmt.Println(_val)
-	h := hmac.New(sha256.New, []byte(key))
-	io.WriteString(h, _val)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return res
 }
