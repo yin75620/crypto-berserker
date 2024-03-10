@@ -69,8 +69,8 @@ func GetPricePair(depth int, prices [][]float64) (PricePair, error) {
 }
 
 func (ps *PriceStatus) SetByJArray(json map[string]interface{}) {
-	ps.Asks = tool.TransToFloatTwoArray(json["asks"].([]interface{}))
-	ps.Bids = tool.TransToFloatTwoArray(json["bids"].([]interface{}))
+	ps.Asks = tool.TransInterfaceToFloatTwoArray(json["asks"].([]interface{}))
+	ps.Bids = tool.TransInterfaceToFloatTwoArray(json["bids"].([]interface{}))
 }
 
 type ICommodity interface {
