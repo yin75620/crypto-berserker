@@ -12,7 +12,7 @@ import (
 )
 
 var defaultFutures = exc.Futures{
-	TargetName: "AXS",
+	TargetName: "BTC",
 	QuoteCoin:  "USDT",
 }
 
@@ -44,13 +44,16 @@ func TestOrderExecute(t *testing.T) {
 	var myOrder exc.FuturesOrder = exc.FuturesOrder{
 		CommodityOrder: exc.CommodityOrder{
 			Side:      "buy",
-			Price:     22.11111,
-			Size:      1.00162621642642,
+			Price:     60100.1,
+			Size:      0.001,
 			OrderType: exc.LIMIT,
 		},
 		Futures: defaultFutures,
 	}
-	res, _ := bb.PostFuturesOrder(myOrder)
+	res, err := bb.PostFuturesOrder(myOrder)
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(res)
 }
 
@@ -99,7 +102,7 @@ func TestPostLeverage(t *testing.T) {
 }
 
 func TestUserTrade(t *testing.T) {
-	userTrades := bb.getUserTrades("APTUSDT", time.Time{}, time.Time{})
+	userTrades := bb.getUserTrades("SOLUSDT", time.Time{}, time.Time{})
 	for _, v := range userTrades {
 		tool.PrintStructNameValue(v)
 	}
@@ -108,7 +111,7 @@ func TestUserTrade(t *testing.T) {
 }
 
 func TestTightUserTrade(t *testing.T) {
-	tightUserTrades := bb.GetTightUserTrades("STGUSDT")
+	tightUserTrades := bb.GetTightUserTrades("SOLUSDT")
 	fmt.Println(tightUserTrades)
 
 	assert.NotEqual(t, len(tightUserTrades), 0)
