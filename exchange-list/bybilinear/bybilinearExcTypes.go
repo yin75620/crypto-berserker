@@ -6,7 +6,7 @@ import (
 	exc "github.com/yin75620/crypto-berserker/exchange"
 )
 
-func (ut *UserTrade) ToExcUserTrade() exc.UserTrade {
+func (ut *TradingHistoryOrder) ToExcUserTrade() exc.UserTrade {
 	eut := exc.UserTrade{}
 
 	eut.Qty = ut.ExecQty
@@ -14,13 +14,13 @@ func (ut *UserTrade) ToExcUserTrade() exc.UserTrade {
 	eut.QuoteQty = ut.ExecValue
 	eut.Side = strings.ToUpper(ut.Side)
 	eut.Symbol = ut.Symbol
-	eut.Time = int64(ut.TradeTimeMs)
+	eut.Time = int64(ut.ExecTime)
 	return eut
 }
 
-func (ut *UserTrade) ToExcUserTradeKey() exc.UserTradeKey {
+func (ut *TradingHistoryOrder) ToExcUserTradeKey() exc.UserTradeKey {
 	eutKey := exc.UserTradeKey{}
 	eutKey.Symbol = ut.Symbol
-	eutKey.Time = int64(ut.TradeTimeMs) / 1000 * 1000
+	eutKey.Time = int64(ut.ExecTime) / 1000 * 1000
 	return eutKey
 }

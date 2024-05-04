@@ -50,7 +50,7 @@ type binance struct {
 
 // implement exchange
 func (bn *binance) GetWallet() exc.Wallet {
-	res, err := bn.doSignRequest("GET", "v1/account", exc.JArray{})
+	res, err := bn.doSignRequest("GET", "v2/account", exc.JArray{})
 	if err != nil {
 		fmt.Println("Binance", err)
 	}
@@ -422,6 +422,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	if isSign {
 		ts := exc.GetTimeSpan()
 		body["timestamp"] = ts
+		body["recvWindow"] = 10000
 		bodyEncode := body.ToValues().Encode()
 
 		raw := fmt.Sprintf("%s", bodyEncode)

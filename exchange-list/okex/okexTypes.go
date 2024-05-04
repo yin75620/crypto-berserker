@@ -31,8 +31,8 @@ func (obd *OrderBookData) ToOrderBookDetail() ob.OrderBookerResponseDetail {
 	res.Time = float64(data.Timestamp.Unix())
 	res.Action = ob.Partial
 	res.Checksum = data.Timestamp.Unix()
-	res.Asks = tool.TransToFloatTwoArray(data.Asks)
-	res.Bids = tool.TransToFloatTwoArray(data.Bids)
+	res.Asks = tool.TransInterfaceToFloatTwoArray(data.Asks)
+	res.Bids = tool.TransInterfaceToFloatTwoArray(data.Bids)
 
 	return res
 }

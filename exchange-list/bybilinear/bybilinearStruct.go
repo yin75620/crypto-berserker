@@ -29,45 +29,55 @@ type InstrumentsInfo struct {
 	} `json:"result"`
 }
 
+// Response represents the top-level structure of the JSON response
 type PositionListResponse struct {
-	RetCode int    `json:"ret_code"`
-	RetMsg  string `json:"ret_msg"`
-	ExtCode string `json:"ext_code"`
-	ExtInfo string `json:"ext_info"`
-	Result  []struct {
-		Data struct {
-			UserID              int     `json:"user_id"`
-			Symbol              string  `json:"symbol"`
-			Side                string  `json:"side"`
-			Size                int     `json:"size"`
-			PositionValue       float64 `json:"position_value"`
-			EntryPrice          float64 `json:"entry_price"`
-			LiqPrice            float64 `json:"liq_price"`
-			BustPrice           float64 `json:"bust_price"`
-			Leverage            int     `json:"leverage"`
-			AutoAddMargin       int     `json:"auto_add_margin"`
-			IsIsolated          bool    `json:"is_isolated"`
-			PositionMargin      float64 `json:"position_margin"`
-			OccClosingFee       float64 `json:"occ_closing_fee"`
-			RealisedPnl         float64 `json:"realised_pnl"`
-			CumRealisedPnl      float64 `json:"cum_realised_pnl"`
-			FreeQty             int     `json:"free_qty"`
-			TpSlMode            string  `json:"tp_sl_mode"`
-			UnrealisedPnl       float64 `json:"unrealised_pnl"`
-			DeleverageIndicator int     `json:"deleverage_indicator"`
-			RiskID              int     `json:"risk_id"`
-			StopLoss            float64 `json:"stop"`
-			TakeProfit          float64 `json:"take_profit"`
-			TrailingStop        int     `json:"trailing_stop"`
-			PositionIdx         int     `json:"position_idx"`
-			Mode                string  `json:"mode"`
-		} `json:"data"`
-		IsValid bool `json:"is_valid"`
-	} `json:"result"`
-	TimeNow          string `json:"time_now"`
-	RateLimitStatus  int    `json:"rate_limit_status"`
-	RateLimitResetMs int    `json:"rate_limit_reset_ms"`
-	RateLimit        int    `json:"rate_limit"`
+	RetCode int    `json:"retCode"`
+	RetMsg  string `json:"retMsg"`
+	Result  Result `json:"result"`
+	Time    int64  `json:"time"`
+}
+
+type Result struct {
+	List           []PositionX `json:"list"`
+	NextPageCursor string      `json:"nextPageCursor"`
+	Category       string      `json:"category"`
+}
+
+// Position represents each item within the "list" array of the JSON response
+type PositionX struct {
+	PositionIdx            int     `json:"positionIdx"`
+	RiskId                 int     `json:"riskId"`
+	RiskLimitValue         string  `json:"riskLimitValue"`
+	Symbol                 string  `json:"symbol"`
+	Side                   string  `json:"side"`
+	Size                   string  `json:"size"`
+	AvgPrice               float64 `json:"avgPrice,string"`
+	PositionValue          float64 `json:"positionValue,string"`
+	TradeMode              int     `json:"tradeMode"`
+	PositionStatus         string  `json:"positionStatus"`
+	AutoAddMargin          int     `json:"autoAddMargin"`
+	AdlRankIndicator       int     `json:"adlRankIndicator"`
+	Leverage               int     `json:"leverage,string"`
+	PositionBalance        float64 `json:"positionBalance,string"`
+	MarkPrice              float64 `json:"markPrice,string"`
+	LiqPrice               string  `json:"liqPrice,omitempty"`
+	BustPrice              float64 `json:"bustPrice,string"`
+	PositionMM             float64 `json:"positionMM,string"`
+	PositionIM             float64 `json:"positionIM,string"`
+	TpslMode               string  `json:"tpslMode"`
+	TakeProfit             float64 `json:"takeProfit,string"`
+	StopLoss               float64 `json:"stopLoss,string"`
+	TrailingStop           float64 `json:"trailingStop,string"`
+	UnrealisedPnl          float64 `json:"unrealisedPnl,string"`
+	CurRealisedPnl         float64 `json:"curRealisedPnl,string"`
+	CumRealisedPnl         float64 `json:"cumRealisedPnl,string"`
+	Seq                    int64   `json:"seq,string"`
+	IsReduceOnly           bool    `json:"isReduceOnly"`
+	MmrSysUpdateTime       string  `json:"mmrSysUpdateTime,omitempty"`
+	LeverageSysUpdatedTime string  `json:"leverageSysUpdatedTime,omitempty"`
+	SessionAvgPrice        string  `json:"sessionAvgPrice,omitempty"`
+	CreatedTime            string  `json:"createdTime"`
+	UpdatedTime            string  `json:"updatedTime"`
 }
 
 type LeverageInfo struct {

@@ -78,6 +78,30 @@ type GetBalanceResultData struct {
 	USDT Balance `json:"USDT"`
 }
 
+// Response 是從API接收到的整體響應的結構體
+type QACBResponse struct {
+	RetCode    int         `json:"retCode"`
+	RetMsg     string      `json:"retMsg"`
+	Result     QACBResult  `json:"result"`
+	RetExtInfo interface{} `json:"retExtInfo"` // 由於retExtInfo大部分時間是{}，可以使用interface{}來處理不同情況
+	Time       int64       `json:"time"`
+}
+
+// Result 是響應中的result部分
+type QACBResult struct {
+	MemberId    string        `json:"memberId"`
+	AccountType string        `json:"accountType"`
+	Balance     []QACBBalance `json:"balance"`
+}
+
+// Balance 描述了平衡信息的結構體
+type QACBBalance struct {
+	Coin            string  `json:"coin"`
+	TransferBalance float64 `json:"transferBalance,string"`
+	WalletBalance   float64 `json:"walletBalance,string"`
+	Bonus           string  `json:"bonus"`
+}
+
 type CreateOrderResult struct {
 	RetCode         int    `json:"ret_code"`
 	RetMsg          string `json:"ret_msg"`
@@ -308,41 +332,51 @@ type GetPositionResult struct {
 	Result  Position    `json:"result"`
 }
 
+// Response represents the top-level structure of the JSON response.
 type TradingHistoryResponse struct {
-	RetCode int    `json:"ret_code"`
-	RetMsg  string `json:"ret_msg"`
-	Result  struct {
-		PageToken string      `json:"page_token"`
-		Data      []UserTrade `json:"data"`
-	} `json:"result"`
-	ExtCode string `json:"ext_code"`
-	ExtInfo string `json:"ext_info"`
-	TimeNow string `json:"time_now"`
-
-	RateLimitStatus  int `json:"rate_limit_status"`
-	RateLimitResetMs int `json:"rate_limit_reset_ms"`
-	RateLimit        int `json:"rate_limit"`
+	RetCode    int                  `json:"retCode"`
+	RetMsg     string               `json:"retMsg"`
+	Result     TradingHistoryResult `json:"result"`
+	Time       int64                `json:"time"`
+	RetExtInfo struct{}             `json:"retExtInfo"`
 }
 
-type UserTrade struct {
-	OrderID          string  `json:"order_id"`
-	OrderLinkID      string  `json:"order_link_id"`
-	Side             string  `json:"side"`
-	Symbol           string  `json:"symbol"`
-	ExecID           string  `json:"exec_id"`
-	Price            float64 `json:"price"`
-	OrderPrice       float64 `json:"order_price"`
-	OrderQty         float64 `json:"order_qty"`
-	OrderType        string  `json:"order_type"`
-	FeeRate          float64 `json:"fee_rate"`
-	ExecPrice        float64 `json:"exec_price"`
-	ExecType         string  `json:"exec_type"`
-	ExecQty          float64 `json:"exec_qty"`
-	ExecFee          float64 `json:"exec_fee"`
-	ExecValue        float64 `json:"exec_value"`
-	LeavesQty        float64 `json:"leaves_qty"`
-	ClosedSize       float64 `json:"closed_size"`
-	LastLiquidityInd string  `json:"last_liquidity_ind"`
-	TradeTime        int     `json:"trade_time"`
-	TradeTimeMs      int     `json:"trade_time_ms"`
+// Result represents the "result" part of the JSON response.
+type TradingHistoryResult struct {
+	NextPageCursor string                `json:"nextPageCursor"`
+	Category       string                `json:"category"`
+	List           []TradingHistoryOrder `json:"list"`
+}
+
+// Order represents each item within the "list" array of the JSON response.
+type TradingHistoryOrder struct {
+	Symbol          string  `json:"symbol"`
+	OrderType       string  `json:"orderType"`
+	UnderlyingPrice string  `json:"underlyingPrice,omitempty"`
+	OrderLinkId     string  `json:"orderLinkId,omitempty"`
+	OrderId         string  `json:"orderId"`
+	StopOrderType   string  `json:"stopOrderType"`
+	ExecTime        int64   `json:"execTime,string"`
+	FeeCurrency     string  `json:"feeCurrency,omitempty"`
+	CreateType      string  `json:"createType,omitempty"`
+	FeeRate         float64 `json:"feeRate,string"`
+	TradeIv         string  `json:"tradeIv,omitempty"`
+	BlockTradeId    string  `json:"blockTradeId,omitempty"`
+	MarkPrice       float64 `json:"markPrice,string"`
+	ExecPrice       float64 `json:"execPrice,string"`
+	MarkIv          string  `json:"markIv,omitempty"`
+	OrderQty        float64 `json:"orderQty,string"`
+	OrderPrice      float64 `json:"orderPrice,string"`
+	ExecValue       float64 `json:"execValue,string"`
+	ClosedSize      string  `json:"closedSize,omitempty"`
+	ExecType        string  `json:"execType"`
+	Seq             int64   `json:"seq"`
+	Side            string  `json:"side"`
+	IndexPrice      string  `json:"indexPrice,omitempty"`
+	LeavesQty       string  `json:"leavesQty"`
+	IsMaker         bool    `json:"isMaker"`
+	ExecFee         float64 `json:"execFee,string"`
+	ExecId          string  `json:"execId"`
+	MarketUnit      string  `json:"marketUnit,omitempty"`
+	ExecQty         float64 `json:"execQty,string"`
 }

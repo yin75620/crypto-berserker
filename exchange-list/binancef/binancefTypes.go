@@ -77,11 +77,11 @@ type OrderBookDataRequestParams struct {
 
 // OrderBookData is resp data from orderbook endpoint
 type OrderBookData struct {
-	Code         int           `json:"code"`
-	Msg          string        `json:"msg"`
-	LastUpdateID int64         `json:"T"`
-	Bids         []interface{} `json:"b,[]string"`
-	Asks         []interface{} `json:"a,[]string"`
+	Code         int        `json:"code"`
+	Msg          string     `json:"msg"`
+	LastUpdateID int64      `json:"T"`
+	Bids         [][]string `json:"b"`
+	Asks         [][]string `json:"a"`
 }
 
 func (obd *OrderBookData) ToOrderBookDetail() ob.OrderBookerResponseDetail {
@@ -92,17 +92,7 @@ func (obd *OrderBookData) ToOrderBookDetail() ob.OrderBookerResponseDetail {
 	res.Asks = tool.TransToFloatTwoArray(obd.Asks)
 	res.Bids = tool.TransToFloatTwoArray(obd.Bids)
 
-	//transToFloatArray(&res.Asks, obd.Asks)
-	//transToFloatArray(&res.Bids, obd.Bids)
-
 	return res
-}
-
-func transToFloatArray(floatDoubleArray *[][]float64, data []interface{}) {
-	for _, pItem := range data {
-		pArray := pItem.([]float64)
-		*floatDoubleArray = append(*floatDoubleArray, []float64{pArray[0], pArray[1]})
-	}
 }
 
 // OrderBook actual structured data that can be used for orderbook

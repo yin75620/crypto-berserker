@@ -4,25 +4,26 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"sort"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/yin75620/crypto-berserker/exchange"
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/jmath"
-	"github.com/yin75620/crypto-berserker/object_tool"
 	"github.com/yin75620/crypto-berserker/setting"
 )
 
 var (
-	apiURL = "https://api.Bybit.com/"
+	apiURL = "https://api.bybit.com/"
 )
 
 type JArray exc.JArray
@@ -53,29 +54,56 @@ type Bybilinear struct {
 
 // implement exchange
 func (bb *Bybilinear) GetWallet() exc.Wallet {
-	var ret GetBalanceResult
+	var ret QACBResponse
 	jarray := exc.JArray{}
 	coinName := "USDT"
 	jarray["coin"] = coinName
+	jarray["accountType"] = "UNIFIED" //Unified account: UNIFIED (trade spot/linear/options), CONTRACT(trade inverse)
+	jarray["category"] = "linear"
 	w := exc.NewWallet()
 
-	response, err := bb.doRequest("GET", "v2/private/wallet/balance", jarray)
+	response, err := bb.doRequest("GET", "/v5/asset/transfer/query-account-coins-balance", jarray)
+	fmt.Println(string(response))
 	if err != nil {
 		fmt.Println(err)
 		return *w
 	}
-	//fmt.Println(string(response))
+
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		fmt.Println(err)
 		return *w
 	}
 
-	w.Balances = appendToBalance(w.Balances, ret.Result.USDT, coinName)
+	w.Balances = appendToBalance2(w.Balances, ret.Result.Balance, coinName)
 
 	bb.account.WalletInfo = *w
-	bb.account.UnrealizedPnL = ret.Result.USDT.UnrealisedPnl
+	// bb.account.UnrealizedPnL = ret.Result.USDT.UnrealisedPnl
 	return *w
+}
+
+func appendToBalance2(balances []exc.Balance, bybilinearBalances []QACBBalance, coinName string) []exc.Balance {
+
+	for _, v := range bybilinearBalances {
+		bal := exc.Balance{
+			Coin:         v.Coin,
+			Free:         v.TransferBalance,
+			FreeUsdValue: v.TransferBalance,
+			Total:        v.WalletBalance,
+			UsdValue:     v.WalletBalance,
+		}
+		balances = append(balances, bal)
+	}
+
+	// bal := exc.Balance{
+	// 	Coin:         coinName,
+	// 	Free:         bybilinearBalance.AvailableBalance,
+	// 	FreeUsdValue: bybilinearBalance.AvailableBalance * TempUSDTToUSDValue,
+	// 	Total:        bybilinearBalance.Equity,
+	// 	UsdValue:     TempUSDTToUSDValue * bybilinearBalance.Equity,
+	// }
+
+	return balances
 }
 
 func appendToBalance(balances []exc.Balance, BybilinearBalance Balance, coinName string) []exc.Balance {
@@ -168,8 +196,9 @@ func (bb *Bybilinear) PostFuturesOrder(order exc.FuturesOrder) (string, error) {
 	bo.OrderType = strings.Title(string(order.CommodityOrder.OrderType))
 	bo.Quantity = jmath.FloatFloorByFloat(order.CommodityOrder.Size, merketInfo.VolumeIncrement)
 	bo.Price = jmath.FloatFloorByFloat(order.CommodityOrder.Price, merketInfo.PriceIncrement)
-	bo.TimeInForce = "GoodTillCancel"
+	bo.TimeInForce = "GTC"
 	bo.CloseOnTrigger = order.IsClose
+	bo.Category = "linear"
 
 	res, err := bb.doPostOrder(bo)
 	if err != nil {
@@ -211,15 +240,23 @@ func (bb *Bybilinear) prepareMarketInfo() {
 
 func (bb *Bybilinear) prepareLeverage() {
 
-	resByte, _ := bb.doRequest("GET", "private/linear/position/list", exc.JArray{})
+	req := exc.JArray{
+		"category":   "linear",
+		"settleCoin": "USDT",
+		//"baseCoin":   "USDT",
+	}
+
+	resByte, _ := bb.doRequest("GET", "/v5/position/list", req)
+
+	fmt.Println(string(resByte))
 
 	pr := PositionListResponse{}
 	json.Unmarshal(resByte, &pr)
 
-	for _, value := range pr.Result {
+	for _, value := range pr.Result.List {
 		li := exc.LeverageInfo{}
-		li.Name = value.Data.Symbol
-		li.Leverage = value.Data.Leverage
+		li.Name = value.Symbol
+		li.Leverage = value.Leverage
 		bb.LeverageInfos[li.Name] = li
 	}
 }
@@ -259,13 +296,15 @@ func (bb *Bybilinear) setAllLeverage() {
 }
 
 func (bb *Bybilinear) PostSetLeverage(symbol string, leverage int) {
+	leverageString := strconv.Itoa(leverage)
 	req := exc.JArray{
-		"symbol":        symbol,
-		"buy_leverage":  leverage,
-		"sell_leverage": leverage,
+		"category":     "linear",
+		"symbol":       symbol,
+		"buyLeverage":  leverageString,
+		"sellLeverage": leverageString,
 	}
 
-	resByte, err := bb.doRequest("POST", "/private/linear/position/set-leverage", req)
+	resByte, err := bb.doRequest("POST", "/v5/position/set-leverage", req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -274,21 +313,23 @@ func (bb *Bybilinear) PostSetLeverage(symbol string, leverage int) {
 
 }
 
-func (bb *Bybilinear) getUserTrades(symbol string, startTime time.Time, endTime time.Time) []UserTrade {
+func (bb *Bybilinear) getUserTrades(symbol string, startTime time.Time, endTime time.Time) []TradingHistoryOrder {
 
 	jarray := exc.JArray{
-		"symbol": symbol,
+		"category": "linear",
+		"symbol":   symbol,
 	}
 
 	zero := time.Time{}
 	if startTime != zero {
-		jarray.Add(exc.JArray{"start_time": startTime.UnixMilli()})
+		jarray.Add(exc.JArray{"startTime": startTime.UnixMilli()})
 	}
 	if endTime != zero {
-		jarray.Add(exc.JArray{"end_time": endTime.UnixMilli()})
+		jarray.Add(exc.JArray{"endTime": endTime.UnixMilli()})
 	}
 
-	res, err := bb.doRequest("GET", "/private/linear/trade/execution/history-list", jarray)
+	res, err := bb.doRequest("GET", "/v5/execution/list", jarray)
+	fmt.Println(string(res))
 
 	if err != nil {
 		log.Fatal(err)
@@ -300,7 +341,7 @@ func (bb *Bybilinear) getUserTrades(symbol string, startTime time.Time, endTime 
 		fmt.Println(err)
 	}
 
-	return thr.Result.Data
+	return thr.Result.List
 }
 
 func (bb *Bybilinear) GetTightUserTrades(symbol string) map[exc.UserTradeKey]exc.UserTrade {
@@ -328,6 +369,7 @@ func (bb *Bybilinear) GetTightUserTradesWithTime(symbol string, startTime time.T
 type BybilinearOrder struct {
 	Side        string  `json:"side"`          //side	true	string	方向, 有效选项:Buy, Sell (Buy Sell )
 	Symbol      string  `json:"symbol"`        //symbol	true	string	产品类型, 有效选项:BTCUSD, ETHUSD (BTCUSD ETHUSD )
+	Category    string  `json:"category"`      // category spot, linear, inverse, option
 	OrderType   string  `json:"order_type"`    //order_type	true	string	委托单价格类型, 有效选项:Limit, Market (Limit Market )
 	Quantity    float64 `json:"qty,string"`    //qty	true	integer	委托数量, 单比最大1百万
 	Price       float64 `json:"price,string"`  // price	false	number	委托价格, 在没有仓位时，做多的委托价格需高于市价的10%、低于1百万。如有仓位时则需优于强平价。单笔价格增减最小单位为0.5。如果下限价单，则price为必输字段
@@ -355,7 +397,7 @@ func (bb *Bybilinear) doPostOrder(bo BybilinearOrder) (string, error) {
 		panic(err)
 	}
 
-	response, err := bb.doRequest("POST", "private/linear/order/create", jsonMap)
+	response, err := bb.doRequest("POST", "/v5/order/create", jsonMap)
 	log.Println(fmt.Sprintf("%s", response))
 
 	or := OrderResponse{}
@@ -397,17 +439,17 @@ func (bb *Bybilinear) doPostCancelAllOrder(cancelPos BybilinearCancelOrder) (str
 	if err != nil {
 		log.Fatal(err)
 	}
-	body := string(request)
-	//jtest
-	log.Println(fmt.Sprintf("body:%s", body))
 
 	jsonMap := make(map[string]interface{})
+	jsonMap["symbol"] = string(request)
+	jsonMap["accountType"] = "UNIFIED" //Unified account: UNIFIED (trade spot/linear/options), CONTRACT(trade inverse)
+	jsonMap["category"] = "linear"
 	err = json.Unmarshal(request, &jsonMap)
 	if err != nil {
 		panic(err)
 	}
 
-	response, err := bb.doRequest("POST", "private/linear/order/cancel-all", jsonMap)
+	response, err := bb.doRequest("POST", "/v5/order/cancel-all", jsonMap)
 	//jtest
 	log.Println(fmt.Sprintf("%s", response))
 
@@ -490,21 +532,14 @@ func (bb *Bybilinear) doRequest(method, apiName string, body exc.JArray) ([]byte
 	client := bb.client
 
 	ts := exc.GetTimeSpan()
-	objBody := exc.JArray{
-		"api_key":   bb.apiKey,
-		"timestamp": ts,
-	}
-	objBody.Add(body)
 
-	sign := GetSignature(objBody, bb.secretKey)
-
-	objBody.Add(exc.JArray{
-		"sign": sign,
-	})
-
-	jsonBody, err := json.Marshal(objBody)
-	if err != nil {
-		log.Fatal(err)
+	jsonBody := []byte{}
+	if method == "POST" {
+		jb, err := json.Marshal(body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		jsonBody = jb
 	}
 
 	var res []byte
@@ -516,35 +551,41 @@ func (bb *Bybilinear) doRequest(method, apiName string, body exc.JArray) ([]byte
 		return res, err
 	}
 
-	if method == "GET" {
-		q := req.URL.Query()
-		for key, obj := range objBody {
-			q.Add(key, object_tool.ToString(obj))
-		}
-		req.URL.RawQuery = q.Encode()
-	}
+	queryString := toUrlValues(body).Encode()
+	req.URL.RawQuery = queryString
+	qString := queryString
 
-	req.Header.Add("Content-Type", "application/json")
+	recvWindowStr := "10000"
+
+	req.Header.Set("User-Agent", "bybit.api.go/1.0.2")
+	req.Header.Set("X-BAPI-API-KEY", bb.apiKey)
+	req.Header.Set("X-BAPI-TIMESTAMP", fmt.Sprintf("%v", ts))
+	req.Header.Set("X-BAPI-RECV-WINDOW", recvWindowStr)
+	req.Header.Set("X-BAPI-SIGN-TYPE", "2")
+
+	if method == "POST" {
+		req.Header.Set("Content-Type", "application/json")
+		qString = string(jsonBody)
+	}
+	sign := GetSignature(bb.apiKey, bb.secretKey, recvWindowStr, qString, ts)
+	req.Header.Set("X-BAPI-SIGN", sign)
 
 	return exc.SendRequest(client, req)
 }
 
-func GetSignature(params map[string]interface{}, key string) string {
-	keys := make([]string, len(params))
-	i := 0
-	_val := ""
-	for k, _ := range params {
-		keys[i] = k
-		i++
+func GetSignature(apiKey, apiSecret, recvWindow, queryString string, timeStamp int64) string {
+	var signatureBase []byte
+	signatureBase = []byte(strconv.FormatInt(timeStamp, 10) + apiKey + recvWindow + queryString)
+	hmac256 := hmac.New(sha256.New, []byte(apiSecret))
+	hmac256.Write(signatureBase)
+	signature := hex.EncodeToString(hmac256.Sum(nil))
+	return signature
+}
+
+func toUrlValues(m exchange.JArray) url.Values {
+	res := url.Values{}
+	for k, v := range m {
+		res.Set(k, fmt.Sprintf("%v", v))
 	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		value := object_tool.ToString(params[k])
-		_val += k + "=" + value + "&"
-	}
-	_val = _val[0 : len(_val)-1]
-	//fmt.Println(_val)
-	h := hmac.New(sha256.New, []byte(key))
-	io.WriteString(h, _val)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return res
 }
