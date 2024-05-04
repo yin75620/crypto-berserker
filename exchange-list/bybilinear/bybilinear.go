@@ -555,7 +555,7 @@ func (bb *Bybilinear) doRequest(method, apiName string, body exc.JArray) ([]byte
 	req.URL.RawQuery = queryString
 	qString := queryString
 
-	recvWindowStr := "5000"
+	recvWindowStr := "10000"
 
 	req.Header.Set("User-Agent", "bybit.api.go/1.0.2")
 	req.Header.Set("X-BAPI-API-KEY", bb.apiKey)

@@ -422,7 +422,7 @@ func (bn *binance) doRequest(method, apiName string, isSign bool, body exc.JArra
 	if isSign {
 		ts := exc.GetTimeSpan()
 		body["timestamp"] = ts
-		body["recvWindow"] = 60000
+		body["recvWindow"] = 10000
 		bodyEncode := body.ToValues().Encode()
 
 		raw := fmt.Sprintf("%s", bodyEncode)
