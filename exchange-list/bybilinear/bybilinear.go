@@ -439,17 +439,17 @@ func (bb *Bybilinear) doPostCancelAllOrder(cancelPos BybilinearCancelOrder) (str
 	if err != nil {
 		log.Fatal(err)
 	}
-	body := string(request)
-	//jtest
-	log.Println(fmt.Sprintf("body:%s", body))
 
 	jsonMap := make(map[string]interface{})
+	jsonMap["symbol"] = string(request)
+	jsonMap["accountType"] = "UNIFIED" //Unified account: UNIFIED (trade spot/linear/options), CONTRACT(trade inverse)
+	jsonMap["category"] = "linear"
 	err = json.Unmarshal(request, &jsonMap)
 	if err != nil {
 		panic(err)
 	}
 
-	response, err := bb.doRequest("POST", "private/linear/order/cancel-all", jsonMap)
+	response, err := bb.doRequest("POST", "/v5/order/cancel-all", jsonMap)
 	//jtest
 	log.Println(fmt.Sprintf("%s", response))
 
