@@ -33,6 +33,11 @@ func GetIndexByName(name string) int {
 	return m[name]
 }
 
+func GetCollector(collectName string) exc.Collector {
+	bc := binancef.NewBinancef(http.DefaultClient)
+	return bc
+}
+
 func GetExchange(exchangeName string) exc.Exchange {
 	const initFileName = "Main.ini"
 	var res exc.Exchange

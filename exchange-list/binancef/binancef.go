@@ -335,32 +335,51 @@ func (bn *binance) setAllLeverage() {
 	}
 }
 
-func (bn *binance) getKline() {
+func (bn *binance) GetKlines(symbol string, interval string, startTime, endTime time.Time, limit int) ([]exc.CandleStick, error) {
+	// body := exc.JArray{
+	// 	"symbol":   "BTCUSDT",
+	// 	"interval": "1m",
+	// 	//"startTime": 1674724440000,
+	// 	//"endTime":LONG
+	// 	"limit": 3,
+	// }
 	body := exc.JArray{
-		"symbol":   "BTCUSDT",
-		"interval": "1m",
-		//"startTime": 1674724440000,
-		//"endTime":LONG
-		"limit": 3,
+		"symbol":   symbol,
+		"interval": interval,
+		"limit":    limit,
 	}
 
+	zero := time.Time{}
+	if startTime != zero {
+		body.Add(exc.JArray{"startTime": startTime.UnixMilli()})
+	}
+	if endTime != zero {
+		body.Add(exc.JArray{"endTime": endTime.UnixMilli()})
+	}
+
+	candles := []exc.CandleStick{}
+
 	start := time.Now()
-	resByte, _ := bn.doSignRequest("GET", "v1/klines", body)
+	resByte, err := bn.doSignRequest("GET", "v1/klines", body)
+	if err != nil {
+		return candles, err
+	}
 	d := time.Since(start)
 	fmt.Println(d)
 	body.ToValues()
 	klr := [][]interface{}{}
 	json.Unmarshal(resByte, &klr)
 
-	candles := []CandleStick{}
 	for _, value := range klr {
 		cs := CandleStick{}
 		cs.SetByJArray(value)
+		exccs := cs.ConvertToExcCandleStick()
 
-		candles = append(candles, cs)
+		candles = append(candles, exccs)
 	}
 	fmt.Println(string(resByte))
 	fmt.Println(candles)
+	return candles, err
 
 }
 

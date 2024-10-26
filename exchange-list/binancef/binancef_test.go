@@ -8,6 +8,7 @@ import (
 
 	exc "github.com/yin75620/crypto-berserker/exchange"
 	"github.com/yin75620/crypto-berserker/exchange/tool"
+	"github.com/yin75620/crypto-berserker/jtime"
 )
 
 var be = NewBinancef(http.DefaultClient)
@@ -98,7 +99,11 @@ func TestTightUserTraders(t *testing.T) {
 
 func TestFree(t *testing.T) {
 	//be.Prepare()
-	//be.getKline()
+	// Unix 毫秒時間戳
+	mytime := jtime.UnixToTime(1674724440000)
+
+	// start, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+	be.GetKlines("BTCUSDT", "1m", mytime, time.Time{}, 3)
 	//be.prepareLeverage()
 	//be.getUserTrades()
 
@@ -155,8 +160,8 @@ func TestPricePair(t *testing.T) {
 
 func TestGetWallet(t *testing.T) {
 
-	ce := NewBinancef(http.DefaultClient)
+	// ce := NewBinancef(http.DefaultClient)
 
-	w := ce.GetWallet()
+	w := be.GetWallet()
 	fmt.Println(w)
 }

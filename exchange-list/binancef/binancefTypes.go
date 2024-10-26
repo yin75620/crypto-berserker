@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	//"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/yin75620/crypto-berserker/exchange"
 	ob "github.com/yin75620/crypto-berserker/exchange/order_booker"
 	"github.com/yin75620/crypto-berserker/exchange/tool"
 )
@@ -256,7 +257,24 @@ type CandleStick struct {
 	TradeCount               float64
 	TakerBuyAssetVolume      float64
 	TakerBuyQuoteAssetVolume float64
-	//Ignore                   float64
+	Ignore                   float64
+}
+
+func (cs *CandleStick) ConvertToExcCandleStick() exchange.CandleStick {
+	return exchange.CandleStick{
+		OpenTime:                 cs.OpenTime,
+		Open:                     cs.Open,
+		High:                     cs.High,
+		Low:                      cs.Low,
+		Close:                    cs.Close,
+		Volume:                   cs.Volume,
+		CloseTime:                cs.CloseTime,
+		QuoteAssetVolume:         cs.QuoteAssetVolume,
+		TradeCount:               cs.TradeCount,
+		TakerBuyAssetVolume:      cs.TakerBuyAssetVolume,
+		TakerBuyQuoteAssetVolume: cs.TakerBuyQuoteAssetVolume,
+		Ignore:                   cs.Ignore,
+	}
 }
 
 func (cs *CandleStick) SetByJArray(array []interface{}) {
