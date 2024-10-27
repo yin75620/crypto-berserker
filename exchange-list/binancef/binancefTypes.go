@@ -273,7 +273,7 @@ func (cs *CandleStick) ConvertToExcCandleStick() exchange.CandleStick {
 		TradeCount:               cs.TradeCount,
 		TakerBuyAssetVolume:      cs.TakerBuyAssetVolume,
 		TakerBuyQuoteAssetVolume: cs.TakerBuyQuoteAssetVolume,
-		Ignore:                   cs.Ignore,
+		// Ignore:                   cs.Ignore,
 	}
 }
 

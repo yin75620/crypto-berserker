@@ -374,6 +374,7 @@ func (bn *binance) GetKlines(symbol string, interval string, startTime, endTime 
 		cs := CandleStick{}
 		cs.SetByJArray(value)
 		exccs := cs.ConvertToExcCandleStick()
+		exccs.TimeInterval = exc.TimeInterval(interval)
 
 		candles = append(candles, exccs)
 	}
