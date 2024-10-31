@@ -1,11 +1,7 @@
 package exchange
 
-import (
-	"time"
-)
-
 type Collector interface {
-	GetKlines(symbol string, interval string, startTime, endTime time.Time, limit int) ([]CandleStick, error)
+	GetKlines(symbol string, interval string, startTime, endTime int64, limit int) ([]CandleStick, error)
 }
 type CandleStick struct {
 	TimeInterval             TimeInterval `gorm:"column:time_interval"`

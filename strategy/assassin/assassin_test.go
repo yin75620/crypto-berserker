@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/yin75620/crypto-berserker/exchange-list/common"
 	"github.com/yin75620/crypto-berserker/jtime"
@@ -14,7 +15,14 @@ func TestMain(t *testing.T) {
 }
 
 func TestFree(t *testing.T) {
+
 	fmt.Println(jtime.UnixToTime(1567965420000))
+	now := time.Now()
+	fmt.Println(now.Unix())
+	fmt.Println(now.UnixMilli())
+	fmt.Println(now.UnixMicro())
+	fmt.Println(now.UnixNano())
+
 }
 
 func TestEarly(t *testing.T) {
@@ -27,5 +35,5 @@ func TestEarly(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	save_bar_into_db(gormDB, collector, jtime.UnixToTime(1566965420000), jtime.UnixToTime(1577965420000), 1)
+	save_bar_into_db(gormDB, collector, 1566965420000, 1577965420000, 1)
 }
