@@ -2,7 +2,7 @@
 
 **Go · REST APIs · WebSocket · Concurrency · MySQL · Automated Trading · Exchange Integration**
 
-Developed and maintained from **2019 to 2024** as a personal quantitative trading project — designed, built, and operated live on AWS by a single developer. ~13,500 lines of Go across 569 commits.
+Developed and maintained from **2019 to 2024** as an independent automated trading system — designed, built, and operated live on AWS with real capital. ~13,500 lines of Go across 550+ commits.
 
 ## What it does
 
